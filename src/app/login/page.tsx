@@ -1,14 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowRight, ArrowLeft, KeyRound } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { storage } from '@/lib/storage';
+import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
 import { FadeInUp } from '@/components/ui/FadeInUp';
+
+interface SessionPayload {
+  email: string;
+  loggedAt: number;
+  keepSession: boolean;
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,6 +26,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Si ya tiene sesión activa con keepSession en localStorage, redirigir al panel
+  useEffect(() => {
+    const savedSession = storage.get<SessionPayload | null>(STORAGE_KEYS.SESSION, null);
+    if (savedSession && savedSession.keepSession) {
+      router.replace('/admin');
+    }
+  }, [router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,10 +46,8 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // Llamada preparada para Supabase Auth
       const supabase = createClient();
 
-      // Si la URL es la real de producción, intenta con Supabase Auth
       if (
         process.env.NEXT_PUBLIC_SUPABASE_URL &&
         process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://placeholder.supabase.co'
@@ -49,17 +63,21 @@ export default function LoginPage() {
         }
       }
 
-      // Simulación de sesión local y token para desarrollo
-      const sessionData = {
-        email,
-        rememberMe,
-        loginAt: Date.now(),
-      };
-
+      // Persistencia de sesión con storage.ts (BUG 4)
       if (rememberMe) {
-        localStorage.setItem('sn_auth_token', JSON.stringify(sessionData));
+        storage.set(STORAGE_KEYS.SESSION, {
+          email,
+          loggedAt: Date.now(),
+          keepSession: true,
+        });
+        storage.sessionRemove(STORAGE_KEYS.SESSION);
       } else {
-        sessionStorage.setItem('sn_auth_token', JSON.stringify(sessionData));
+        storage.remove(STORAGE_KEYS.SESSION);
+        storage.sessionSet(STORAGE_KEYS.SESSION, {
+          email,
+          loggedAt: Date.now(),
+          keepSession: false,
+        });
       }
 
       toast('Sesión iniciada con éxito. ¡Bienvenida, Sandra!', 'success');

@@ -16,7 +16,7 @@ export const PropertyGallery: React.FC<PropertyGalleryProps> = ({ images, title 
   const shouldReduceMotion = useReducedMotion();
 
   const displayImages =
-    images.length > 0
+    images && images.length > 0
       ? images
       : ['https://placehold.co/800x600/1e3a5f/ffffff?text=Sin+Imagen'];
 
@@ -27,6 +27,8 @@ export const PropertyGallery: React.FC<PropertyGalleryProps> = ({ images, title 
   const handleNext = () => {
     setCurrentIndex((prev) => (prev === displayImages.length - 1 ? 0 : prev + 1));
   };
+
+  const currentSrc = displayImages[currentIndex] || displayImages[0];
 
   return (
     <div className="w-full select-none font-body">
@@ -42,11 +44,15 @@ export const PropertyGallery: React.FC<PropertyGalleryProps> = ({ images, title 
             className="relative w-full h-full"
           >
             <Image
-              src={displayImages[currentIndex]}
+              src={currentSrc}
               alt={`${title} - Fotografía ${currentIndex + 1}`}
               fill
               priority
-              unoptimized={displayImages[currentIndex].includes('placehold.co')}
+              unoptimized={
+                currentSrc.includes('placehold.co') ||
+                currentSrc.startsWith('blob:') ||
+                currentSrc.startsWith('data:')
+              }
               sizes="(max-width: 1024px) 100vw, 1024px"
               className="object-cover"
             />
@@ -98,7 +104,11 @@ export const PropertyGallery: React.FC<PropertyGalleryProps> = ({ images, title 
                 src={img}
                 alt={`Miniatura ${idx + 1}`}
                 fill
-                unoptimized={img.includes('placehold.co')}
+                unoptimized={
+                  img.includes('placehold.co') ||
+                  img.startsWith('blob:') ||
+                  img.startsWith('data:')
+                }
                 sizes="140px"
                 className="object-cover"
               />

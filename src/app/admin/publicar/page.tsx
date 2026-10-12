@@ -1,21 +1,31 @@
 'use client';
 
-import React, { useMemo, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { MOCK_PROPERTIES } from '@/data/mock-properties';
+import { propertiesStore } from '@/lib/properties';
+import { WizardFormData } from '@/lib/types';
 import { WizardStep } from '@/components/admin/WizardStep';
 import { FadeInUp } from '@/components/ui/FadeInUp';
 
 function PublicarContent() {
   const searchParams = useSearchParams();
   const editId = searchParams.get('edit');
+  const [initialPropertyData, setInitialPropertyData] = useState<
+    Partial<WizardFormData> | undefined
+  >(undefined);
 
-  const initialPropertyData = useMemo(() => {
-    if (!editId) return undefined;
-    const existing = MOCK_PROPERTIES.find((p) => p.id === editId);
-    if (!existing) return undefined;
+  useEffect(() => {
+    if (!editId) {
+      setInitialPropertyData(undefined);
+      return;
+    }
+    const existing = propertiesStore.getById(editId);
+    if (!existing) {
+      setInitialPropertyData(undefined);
+      return;
+    }
 
-    return {
+    setInitialPropertyData({
       operation: existing.operation,
       type: existing.type,
       state: existing.state,
@@ -38,7 +48,7 @@ function PublicarContent() {
       price: existing.price,
       internal_code: existing.internal_code || '',
       notes: existing.notes || '',
-    };
+    });
   }, [editId]);
 
   return (
@@ -57,7 +67,7 @@ function PublicarContent() {
         </p>
       </FadeInUp>
 
-      <WizardStep initialData={initialPropertyData} />
+      <WizardStep initialData={initialPropertyData} editId={editId} />
     </div>
   );
 }

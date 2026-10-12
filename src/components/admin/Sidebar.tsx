@@ -13,6 +13,8 @@ import {
   X,
 } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
+import { storage } from '@/lib/storage';
+import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { cn } from '@/lib/utils';
 
 interface SidebarProps {
@@ -54,10 +56,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   ];
 
   const handleLogout = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('sn_auth_token');
-      sessionStorage.removeItem('sn_auth_token');
-    }
+    storage.remove(STORAGE_KEYS.SESSION);
+    storage.sessionRemove(STORAGE_KEYS.SESSION);
     router.push('/login');
   };
 

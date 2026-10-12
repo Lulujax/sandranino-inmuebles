@@ -1,63 +1,21 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Check,
   KeyRound,
-  MessageCircle,
   Mail,
   User,
 } from 'lucide-react';
+import { FaWhatsapp, FaInstagram, FaFacebook } from 'react-icons/fa';
 import { MOCK_ASESOR } from '@/data/mock-properties';
+import { PerfilAsesor } from '@/lib/types';
+import { storage } from '@/lib/storage';
+import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { FadeInUp } from '@/components/ui/FadeInUp';
-
-// Lucide-compatible Instagram & Facebook icons (removed in lucide-react v1.x)
-const InstagramIcon: React.FC<{ size?: number; strokeWidth?: number; className?: string }> = ({
-  size = 14,
-  strokeWidth = 1.5,
-  className,
-}) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth={strokeWidth}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-  </svg>
-);
-
-const FacebookIcon: React.FC<{ size?: number; strokeWidth?: number; className?: string }> = ({
-  size = 14,
-  strokeWidth = 1.5,
-  className,
-}) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth={strokeWidth}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-  </svg>
-);
 
 export default function MiPerfilPage() {
   const { toast } = useToast();
@@ -72,6 +30,17 @@ export default function MiPerfilPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
+  useEffect(() => {
+    const savedProfile = storage.get<PerfilAsesor | null>(STORAGE_KEYS.PROFILE, null);
+    if (savedProfile) {
+      setFullName(savedProfile.full_name);
+      setWhatsapp(savedProfile.whatsapp);
+      setEmail(savedProfile.email || '');
+      setInstagram(savedProfile.instagram || '');
+      setFacebook(savedProfile.facebook || '');
+    }
+  }, []);
+
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -84,6 +53,16 @@ export default function MiPerfilPage() {
       toast('El número de WhatsApp es obligatorio', 'warning');
       return;
     }
+
+    storage.set<PerfilAsesor>(STORAGE_KEYS.PROFILE, {
+      ...MOCK_ASESOR,
+      full_name: fullName.trim(),
+      whatsapp: whatsapp.trim(),
+      email: email.trim(),
+      instagram: instagram.trim(),
+      facebook: facebook.trim(),
+      updated_at: new Date().toISOString(),
+    });
 
     toast('Perfil guardado correctamente', 'success');
   };
@@ -121,8 +100,6 @@ export default function MiPerfilPage() {
       </FadeInUp>
 
       <form onSubmit={handleSaveProfile} className="space-y-6">
-        {/* // TODO: Reemplazar cuando lleguen las fotos reales (Bloque de foto de perfil removido temporalmente) */}
-
         {/* Datos Personales */}
         <FadeInUp delay={0.05} className="bg-[#faf9f6] p-6 sm:p-7 rounded-2xl border border-stone-200/80 shadow-card space-y-4">
           <div className="flex items-center gap-2.5">
@@ -146,9 +123,8 @@ export default function MiPerfilPage() {
             Canales de Contacto Directo
           </h3>
 
-          {/* Aviso estilizado de WhatsApp */}
           <div className="p-4 rounded-xl bg-[#f9ede7] border border-[#C97B5A]/30 flex items-start gap-3">
-            <MessageCircle size={18} strokeWidth={1.5} className="text-[#C97B5A] shrink-0 mt-0.5" />
+            <FaWhatsapp size={19} className="text-[#1d6447] shrink-0 mt-0.5" />
             <p className="text-xs sm:text-sm text-stone-800 leading-relaxed font-body">
               El número de WhatsApp es el canal principal para recibir prospectos de compradores e interesados en cada una de tus fichas inmobiliarias.
             </p>
@@ -156,7 +132,7 @@ export default function MiPerfilPage() {
 
           <div className="space-y-1">
             <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-stone-700">
-              <MessageCircle size={14} strokeWidth={1.5} className="text-[#C97B5A]" />
+              <FaWhatsapp size={15} className="text-[#1d6447]" />
               <span>WhatsApp (obligatorio) *</span>
             </div>
             <Input
@@ -184,7 +160,7 @@ export default function MiPerfilPage() {
 
           <div className="space-y-1">
             <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-stone-700">
-              <InstagramIcon size={14} strokeWidth={1.5} className="text-[#C97B5A]" />
+              <FaInstagram size={15} className="text-[#C97B5A]" />
               <span>Instagram (opcional)</span>
             </div>
             <Input
@@ -197,7 +173,7 @@ export default function MiPerfilPage() {
 
           <div className="space-y-1">
             <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-stone-700">
-              <FacebookIcon size={14} strokeWidth={1.5} className="text-[#C97B5A]" />
+              <FaFacebook size={15} className="text-[#1e3a5f]" />
               <span>Facebook (opcional)</span>
             </div>
             <Input
@@ -209,7 +185,7 @@ export default function MiPerfilPage() {
           </div>
         </FadeInUp>
 
-        {/* Botón Guardar Cambios con hover elevado */}
+        {/* Botón Guardar Cambios */}
         <FadeInUp delay={0.14} className="flex justify-end">
           <Button
             type="submit"

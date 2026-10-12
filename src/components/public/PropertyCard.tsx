@@ -22,7 +22,6 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, index = 0 
     <FadeInUp delay={(index % 6) * 0.08} duration={0.45} className="h-full">
       <Link
         href={`/inmueble/${property.id}`}
-        prefetch={true}
         className="group flex flex-col h-full bg-[#faf9f6] rounded-2xl overflow-hidden shadow-card hover:shadow-luxury-hover border border-stone-200/80 hover:border-[#C97B5A]/40 hover:scale-[1.02] transition-all duration-300 ease-out font-body"
       >
         {/* Contenedor de Imagen con zoom sutil (500ms) */}
@@ -31,7 +30,11 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, index = 0 
             src={mainImage}
             alt={property.title}
             fill
-            unoptimized={mainImage.includes('placehold.co')}
+            unoptimized={
+              mainImage.includes('placehold.co') ||
+              mainImage.startsWith('blob:') ||
+              mainImage.startsWith('data:')
+            }
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
           />

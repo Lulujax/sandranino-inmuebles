@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -11,8 +11,10 @@ import {
   Play,
   Trash2,
   Eye,
+  Home,
 } from 'lucide-react';
 import { Inmueble, AdminFilterState, PropertyStatus } from '@/lib/types';
+import { propertiesStore } from '@/lib/properties';
 import { formatPrice } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
@@ -32,28 +34,31 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
     sortBy: 'recent',
   });
 
+  useEffect(() => {
+    setProperties(initialProperties);
+  }, [initialProperties]);
+
   const { toast } = useToast();
 
   const handleStatusToggle = (id: string) => {
-    setProperties((prev) =>
-      prev.map((prop) => {
-        if (prop.id === id) {
-          const nextStatus: PropertyStatus =
-            prop.status === 'Pausado' ? 'Publicado' : 'Pausado';
-          toast(
-            `Inmueble ${nextStatus === 'Pausado' ? 'pausado' : 'reactivado'} correctamente`,
-            'info'
-          );
-          return { ...prop, status: nextStatus };
-        }
-        return prop;
-      })
+    const target = properties.find((p) => p.id === id);
+    if (!target) return;
+
+    const nextStatus: PropertyStatus =
+      target.status === 'Pausado' ? 'Publicado' : 'Pausado';
+
+    propertiesStore.update(id, { status: nextStatus });
+    setProperties(propertiesStore.getAll());
+    toast(
+      `Inmueble ${nextStatus === 'Pausado' ? 'pausado' : 'reactivado'} correctamente`,
+      'info'
     );
   };
 
   const handleDelete = (id: string, title: string) => {
     if (confirm(`¿Estás segura de eliminar el inmueble "${title}"?`)) {
-      setProperties((prev) => prev.filter((p) => p.id !== id));
+      propertiesStore.delete(id);
+      setProperties(propertiesStore.getAll());
       toast('Inmueble eliminado con éxito', 'success');
     }
   };
@@ -62,7 +67,6 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
   const filteredProperties = useMemo(() => {
     return properties
       .filter((prop) => {
-        // Texto
         if (filters.searchQuery) {
           const q = filters.searchQuery.toLowerCase();
           const matchTitle = prop.title.toLowerCase().includes(q);
@@ -72,17 +76,14 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
           if (!matchTitle && !matchCity && !matchSector && !matchCode) return false;
         }
 
-        // Estado
         if (filters.status !== 'Todos' && prop.status !== filters.status) {
           return false;
         }
 
-        // Operación
         if (filters.operation !== 'Todas' && prop.operation !== filters.operation) {
           return false;
         }
 
-        // Tipo
         if (filters.type !== 'Todos' && prop.type !== filters.type) {
           return false;
         }
@@ -105,6 +106,46 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
       });
   }, [properties, filters]);
 
+  // Empty state cuando aún no hay inmuebles en sn_properties (BUG 3.8)
+  if (properties.length === 0) {
+    return (
+      <div className="space-y-6 font-body">
+        <FadeInUp className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <span className="text-[11px] font-medium uppercase tracking-[0.22em] text-[#C97B5A] block mb-1">
+              GESTIÓN DE INVENTARIO
+            </span>
+            <h2 className="font-display text-2xl sm:text-3xl font-semibold text-text-heading tracking-tight">
+              Catálogo de Inmuebles
+            </h2>
+            <p className="text-xs sm:text-sm text-stone-600 mt-0.5">
+              Administra, actualiza, edita o pausa las propiedades publicadas en tu catálogo personal.
+            </p>
+          </div>
+        </FadeInUp>
+
+        <FadeInUp
+          delay={0.05}
+          className="bg-[#faf9f6] p-12 sm:p-16 text-center rounded-2xl border border-stone-200/80 shadow-card flex flex-col items-center justify-center"
+        >
+          <div className="w-16 h-16 rounded-2xl bg-[#f5f1ea] text-brand flex items-center justify-center mb-4 border border-stone-200/80">
+            <Home size={28} strokeWidth={1.5} />
+          </div>
+          <p className="font-display text-lg sm:text-xl font-semibold text-text-heading mb-6 max-w-md">
+            Aún no tienes inmuebles publicados. Empieza publicando el primero.
+          </p>
+          <Link
+            href="/admin/publicar"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#1e3a5f] hover:bg-[#152a45] text-white font-body font-medium text-xs uppercase tracking-wider shadow-sm hover:shadow-luxury hover:-translate-y-0.5 transition-all duration-200"
+          >
+            <PlusCircle size={16} strokeWidth={1.5} />
+            <span>+ Nuevo Inmueble</span>
+          </Link>
+        </FadeInUp>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 font-body">
       {/* Barra superior con botón nuevo inmueble */}
@@ -125,12 +166,15 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
           className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#1e3a5f] hover:bg-[#152a45] text-white font-body font-medium text-xs uppercase tracking-wider shadow-sm hover:shadow-luxury hover:-translate-y-0.5 transition-all duration-200"
         >
           <PlusCircle size={16} strokeWidth={1.5} />
-          <span>PUBLICAR NUEVO</span>
+          <span>+ Nuevo Inmueble</span>
         </Link>
       </FadeInUp>
 
       {/* Grid de 5 filtros */}
-      <FadeInUp delay={0.05} className="bg-[#faf9f6] p-5 rounded-2xl border border-stone-200/80 shadow-card grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+      <FadeInUp
+        delay={0.05}
+        className="bg-[#faf9f6] p-5 rounded-2xl border border-stone-200/80 shadow-card grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5"
+      >
         {/* Buscador */}
         <div className="relative">
           <Search
@@ -231,14 +275,23 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                       alt={prop.title}
                       fill
                       sizes="64px"
-                      unoptimized={thumbUrl.includes('placehold.co')}
+                      unoptimized={
+                        thumbUrl.includes('placehold.co') ||
+                        thumbUrl.startsWith('blob:') ||
+                        thumbUrl.startsWith('data:')
+                      }
                       className="object-cover"
                     />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <Badge status={prop.status} size="sm">{prop.status}</Badge>
-                      <Badge variant={prop.operation === 'Venta' ? 'venta' : 'alquiler'} size="sm">
+                      <Badge status={prop.status} size="sm">
+                        {prop.status}
+                      </Badge>
+                      <Badge
+                        variant={prop.operation === 'Venta' ? 'venta' : 'alquiler'}
+                        size="sm"
+                      >
                         {prop.operation}
                       </Badge>
                     </div>
@@ -306,10 +359,15 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
       </div>
 
       {/* Tabla Desktop responsive */}
-      <FadeInUp delay={0.1} className="hidden md:block bg-white rounded-2xl border border-stone-200/80 shadow-card overflow-hidden">
+      <FadeInUp
+        delay={0.1}
+        className="hidden md:block bg-white rounded-2xl border border-stone-200/80 shadow-card overflow-hidden"
+      >
         {filteredProperties.length === 0 ? (
           <div className="p-14 text-center bg-[#faf9f6]">
-            <p className="text-stone-500 font-display text-lg">No se encontraron inmuebles con esos filtros</p>
+            <p className="text-stone-500 font-display text-lg">
+              No se encontraron inmuebles con esos filtros
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -331,13 +389,17 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                       {/* Miniatura + Título */}
                       <td className="py-4 px-5">
                         <div className="flex items-center gap-3.5">
-                          <div className="relative w-13 h-13 rounded-xl overflow-hidden bg-[#f5f1ea] shrink-0 border border-stone-200 shadow-2xs">
+                          <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-[#f5f1ea] shrink-0 border border-stone-200 shadow-2xs">
                             <Image
                               src={thumbUrl}
                               alt={prop.title}
                               fill
-                              sizes="52px"
-                              unoptimized={thumbUrl.includes('placehold.co')}
+                              sizes="56px"
+                              unoptimized={
+                                thumbUrl.includes('placehold.co') ||
+                                thumbUrl.startsWith('blob:') ||
+                                thumbUrl.startsWith('data:')
+                              }
                               className="object-cover"
                             />
                           </div>
@@ -360,7 +422,9 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                       {/* Tipo + Operación */}
                       <td className="py-4 px-5 whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-stone-700 font-body">{prop.type}</span>
+                          <span className="text-xs font-medium text-stone-700 font-body">
+                            {prop.type}
+                          </span>
                           <Badge
                             size="sm"
                             variant={prop.operation === 'Venta' ? 'venta' : 'alquiler'}
@@ -379,7 +443,9 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
 
                       {/* Estado */}
                       <td className="py-4 px-5 whitespace-nowrap">
-                        <Badge status={prop.status} size="sm">{prop.status}</Badge>
+                        <Badge status={prop.status} size="sm">
+                          {prop.status}
+                        </Badge>
                       </td>
 
                       {/* Acciones */}

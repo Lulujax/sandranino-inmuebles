@@ -1,16 +1,18 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Building2 } from 'lucide-react';
 import { MOCK_PROPERTIES } from '@/data/mock-properties';
-import { FilterState } from '@/lib/types';
+import { propertiesStore } from '@/lib/properties';
+import { FilterState, Inmueble } from '@/lib/types';
 import { getPropertyMainArea } from '@/lib/utils';
 import { FilterBar } from '@/components/public/FilterBar';
 import { PropertyCard } from '@/components/public/PropertyCard';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 
 export default function InventarioPage() {
+  const [allProperties, setAllProperties] = useState<Inmueble[]>(MOCK_PROPERTIES);
   const [filters, setFilters] = useState<FilterState>({
     searchQuery: '',
     type: 'Todos',
@@ -20,18 +22,25 @@ export default function InventarioPage() {
     sortBy: 'recent',
   });
 
+  useEffect(() => {
+    const stored = propertiesStore.getAll();
+    if (stored.length > 0) {
+      setAllProperties(stored);
+    }
+  }, []);
+
   const availableCities = useMemo(() => {
     const cities = new Set<string>();
-    MOCK_PROPERTIES.forEach((p) => {
+    allProperties.forEach((p) => {
       if (p.status === 'Publicado') {
         cities.add(p.city);
       }
     });
     return Array.from(cities).sort();
-  }, []);
+  }, [allProperties]);
 
   const filteredProperties = useMemo(() => {
-    return MOCK_PROPERTIES.filter((prop) => prop.status === 'Publicado')
+    return allProperties.filter((prop) => prop.status === 'Publicado')
       .filter((prop) => {
         if (filters.searchQuery) {
           const q = filters.searchQuery.toLowerCase();
@@ -80,7 +89,7 @@ export default function InventarioPage() {
             return 0;
         }
       });
-  }, [filters]);
+  }, [filters, allProperties]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] text-text-body font-body pb-24 selection:bg-terracotta/20 selection:text-text-heading">

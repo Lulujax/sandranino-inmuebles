@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   FileSpreadsheet,
   FileText,
@@ -10,8 +10,8 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { MOCK_PROPERTIES } from '@/data/mock-properties';
 import { Inmueble } from '@/lib/types';
+import { propertiesStore } from '@/lib/properties';
 import { getPropertyMainArea } from '@/lib/utils';
 import { StatCard } from '@/components/admin/StatCard';
 import { Button } from '@/components/ui/Button';
@@ -21,13 +21,18 @@ import { FadeInUp } from '@/components/ui/FadeInUp';
 export default function HerramientasPage() {
   const { toast } = useToast();
   const [exportOption, setExportOption] = useState('Todos');
+  const [properties, setProperties] = useState<Inmueble[]>([]);
 
-  // Cálculo de estadísticas
-  const totalVisits = MOCK_PROPERTIES.reduce((acc, curr) => acc + (curr.visits || 0), 0);
+  useEffect(() => {
+    setProperties(propertiesStore.getAll());
+  }, []);
+
+  // Cálculo de estadísticas dinámicas
+  const totalVisits = properties.reduce((acc, curr) => acc + (curr.visits || 0), 0);
   const currentMonthVisits = Math.round(totalVisits * 0.42);
 
   const getFilteredProperties = (option: string): Inmueble[] => {
-    return MOCK_PROPERTIES.filter((p) => {
+    return properties.filter((p) => {
       switch (option) {
         case 'Solo venta':
           return p.operation === 'Venta';
@@ -62,7 +67,7 @@ export default function HerramientasPage() {
     });
   };
 
-  // Escapar celda CSV solo si contiene comas, comillas o saltos de línea (igual al formato enviado)
+  // Escapar celda CSV solo si contiene comas, comillas o saltos de línea
   const formatCsvValue = (val: unknown): string => {
     if (val === undefined || val === null) return '';
     const str = String(val);
@@ -72,7 +77,7 @@ export default function HerramientasPage() {
     return str;
   };
 
-  // EXPORTACIÓN EXCEL (Estructura exacta solicitada + UTF-8 BOM \uFEFF + sin fotos)
+  // EXPORTACIÓN EXCEL
   const handleExportExcel = () => {
     const filtered = getFilteredProperties(exportOption);
     const slug = exportOption.toLowerCase().replace(/\s+/g, '_');
@@ -109,7 +114,6 @@ export default function HerramientasPage() {
       rows.push(row.map(formatCsvValue).join(','));
     });
 
-    // Anteponer BOM \uFEFF para encoding UTF-8 perfecto en Excel
     const csvContent = '\uFEFF' + rows.join('\r\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -124,7 +128,7 @@ export default function HerramientasPage() {
     toast(`Excel ${filename} descargado con éxito (${filtered.length} inmuebles)`, 'success');
   };
 
-  // EXPORTACIÓN PDF (Hoja Carta 'letter', jspdf + jspdf-autotable, misma estructura sin fotos)
+  // EXPORTACIÓN PDF
   const handleExportPDF = () => {
     try {
       const filtered = getFilteredProperties(exportOption);
@@ -132,29 +136,25 @@ export default function HerramientasPage() {
       const slug = exportOption.toLowerCase().replace(/\s+/g, '_');
       const filename = `inventario_sandra_nino_${slug}.pdf`;
 
-      // Hoja Carta ('letter')
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'letter',
       });
 
-      const pageWidth = doc.internal.pageSize.getWidth(); // 215.9 mm en Carta
+      const pageWidth = doc.internal.pageSize.getWidth();
 
-      // Header izquierda: Título + Filtro
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
-      doc.setTextColor(30, 58, 95); // #1e3a5f
+      doc.setTextColor(30, 58, 95);
       doc.text(`Inmuebles Sandra Nino — Filtro: ${exportOption}`, 14, 16);
 
-      // Header derecha: Fecha
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.setTextColor(100, 100, 100);
       doc.text(`Fecha: ${dateStr}`, pageWidth - 14, 16, { align: 'right' });
 
-      // Línea divisoria sutil
-      doc.setDrawColor(201, 123, 90); // #C97B5A
+      doc.setDrawColor(201, 123, 90);
       doc.setLineWidth(0.4);
       doc.line(14, 19.5, pageWidth - 14, 19.5);
 
@@ -197,13 +197,13 @@ export default function HerramientasPage() {
           overflow: 'linebreak',
         },
         headStyles: {
-          fillColor: [30, 58, 95], // #1e3a5f
+          fillColor: [30, 58, 95],
           textColor: [255, 255, 255],
           fontStyle: 'bold',
           fontSize: 8.5,
         },
         alternateRowStyles: {
-          fillColor: [250, 249, 246], // #faf9f6
+          fillColor: [250, 249, 246],
         },
         columnStyles: {
           0: { cellWidth: 12, halign: 'center' },
@@ -213,7 +213,6 @@ export default function HerramientasPage() {
         margin: { left: 14, right: 14, bottom: 14 },
       });
 
-      // Generar como Blob y disparar descarga automática
       const pdfBlob = doc.output('blob');
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
@@ -289,9 +288,7 @@ export default function HerramientasPage() {
           </select>
         </div>
 
-        {/* 2 Botones: Excel y PDF con iconos strokeWidth 1.5 */}
         <div className="flex flex-wrap gap-4 pt-2">
-          {/* Botón Excel */}
           <Button
             type="button"
             variant="success"
@@ -302,7 +299,6 @@ export default function HerramientasPage() {
             <span>Descargar Excel</span>
           </Button>
 
-          {/* Botón PDF */}
           <Button
             type="button"
             variant="terracotta"
@@ -315,7 +311,7 @@ export default function HerramientasPage() {
         </div>
       </FadeInUp>
 
-      {/* Sección 2: Estadísticas con AnimatedCounter */}
+      {/* Sección 2: Estadísticas */}
       <FadeInUp delay={0.12} className="bg-[#faf9f6] p-6 sm:p-8 rounded-2xl border border-stone-200/80 shadow-card space-y-6">
         <div>
           <span className="text-[11px] font-medium uppercase tracking-[0.22em] text-[#C97B5A] block mb-0.5">
@@ -353,7 +349,6 @@ export default function HerramientasPage() {
           />
         </div>
 
-        {/* Nota sobre estadísticas por inmueble */}
         <div className="p-4.5 rounded-xl bg-white border border-stone-200/70 flex items-start gap-3 text-xs text-stone-600 leading-relaxed font-body">
           <Eye size={16} strokeWidth={1.5} className="text-[#C97B5A] shrink-0 mt-0.5" />
           <p>

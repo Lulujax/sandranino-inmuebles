@@ -2,9 +2,17 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { storage } from '@/lib/storage';
+import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { Sidebar } from '@/components/admin/Sidebar';
 import { Topbar } from '@/components/admin/Topbar';
 import { useToast } from '@/components/ui/Toast';
+
+interface SessionPayload {
+  email: string;
+  loggedAt: number;
+  keepSession: boolean;
+}
 
 export default function AdminLayout({
   children,
@@ -12,6 +20,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
@@ -26,40 +35,59 @@ export default function AdminLayout({
     return 'Panel de Administración';
   };
 
-  // Lógica de inactividad de 5 minutos si no se marcó "mantener sesión"
+  // Auto-logout por inactividad de 5 minutos (solo si keepSession es false)
   const handleInactivityLogout = useCallback(() => {
     toast('Sesión cerrada por 5 minutos de inactividad', 'info');
-    localStorage.removeItem('sn_auth_token');
-    sessionStorage.removeItem('sn_auth_token');
-    router.push('/login');
+    storage.remove(STORAGE_KEYS.SESSION);
+    storage.sessionRemove(STORAGE_KEYS.SESSION);
+    router.replace('/login');
   }, [router, toast]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    const persistentSession = storage.get<SessionPayload | null>(
+      STORAGE_KEYS.SESSION,
+      null
+    );
+    const temporarySession = storage.sessionGet<SessionPayload | null>(
+      STORAGE_KEYS.SESSION,
+      null
+    );
 
-    // Verificar si está en sessionStorage (sin "mantener sesión")
-    const isSessionTemporary = sessionStorage.getItem('sn_auth_token') !== null;
+    // Si existe en localStorage y keepSession es true, permitir acceso sin auto-logout
+    if (persistentSession && persistentSession.keepSession) {
+      setIsAuthorized(true);
+      return;
+    }
 
-    if (!isSessionTemporary) return;
+    // Si existe sesión temporal en sessionStorage (keepSession es false), permitir acceso + auto-logout 5 min
+    if (temporarySession) {
+      setIsAuthorized(true);
 
-    let timeoutId: NodeJS.Timeout;
+      let timeoutId: ReturnType<typeof setTimeout>;
 
-    const resetTimer = () => {
-      clearTimeout(timeoutId);
-      // 5 minutos = 300,000 ms
-      timeoutId = setTimeout(handleInactivityLogout, 5 * 60 * 1000);
-    };
+      const resetTimer = () => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(handleInactivityLogout, 5 * 60 * 1000);
+      };
 
-    const events = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'];
-    events.forEach((evt) => window.addEventListener(evt, resetTimer));
+      const events = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'];
+      events.forEach((evt) => window.addEventListener(evt, resetTimer));
 
-    resetTimer();
+      resetTimer();
 
-    return () => {
-      clearTimeout(timeoutId);
-      events.forEach((evt) => window.removeEventListener(evt, resetTimer));
-    };
-  }, [handleInactivityLogout]);
+      return () => {
+        clearTimeout(timeoutId);
+        events.forEach((evt) => window.removeEventListener(evt, resetTimer));
+      };
+    }
+
+    // Si no hay sesión válida, redirigir a /login
+    router.replace('/login');
+  }, [handleInactivityLogout, router]);
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] flex flex-col font-body selection:bg-terracotta/20 selection:text-text-heading">

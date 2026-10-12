@@ -30,8 +30,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const toast = useCallback(
     (rawMessage: string, type: ToastType = 'info') => {
-      // Eliminar cualquier emoji que provenga de llamadas antiguas (Regla: Cero emojis)
-      const cleanMessage = rawMessage.replace(/^[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\uFE0F\s]+/u, '').trim();
+      const cleanMessage = rawMessage.trim();
       const id = Math.random().toString(36).substring(2, 9);
       setToasts((prev) => [...prev, { id, type, message: cleanMessage }]);
 

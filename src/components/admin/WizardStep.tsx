@@ -1,9 +1,25 @@
 'use client';
 
-import React, { useState } from 'react';
-import Image from 'next/image';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import {
   Tag,
   KeyRound,
@@ -15,9 +31,11 @@ import {
   Briefcase,
   Upload,
   X,
+  Star,
   Check,
   ArrowRight,
   ArrowLeft,
+  ArrowUpDown,
   MapPin,
   Bed,
   Bath,
@@ -26,13 +44,18 @@ import {
   Calendar,
   Hash,
   StickyNote,
+  FileEdit,
 } from 'lucide-react';
 import {
   WizardFormData,
   PropertyType,
+  Inmueble,
 } from '@/lib/types';
 import { ESTADOS_VENEZUELA, VENEZUELA } from '@/lib/venezuela';
 import { formatPrice } from '@/lib/utils';
+import { storage } from '@/lib/storage';
+import { STORAGE_KEYS } from '@/lib/storage-keys';
+import { propertiesStore } from '@/lib/properties';
 import { useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -49,16 +72,114 @@ const STEP_TITLES = [
   'Revisar',
 ];
 
-interface WizardStepProps {
-  initialData?: Partial<WizardFormData>;
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+interface SortablePhotoItemProps {
+  url: string;
+  index: number;
+  onRemove: (index: number) => void;
+  onSetCover: (index: number) => void;
 }
 
-export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
+const SortablePhotoItem: React.FC<SortablePhotoItemProps> = ({
+  url,
+  index,
+  onRemove,
+  onSetCover,
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: url });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 20 : 1,
+    opacity: isDragging ? 0.85 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={`relative aspect-[4/3] rounded-xl overflow-hidden border group bg-[#f5f1ea] shadow-xs cursor-grab active:cursor-grabbing ${
+        index === 0
+          ? 'border-brand ring-2 ring-brand/20'
+          : 'border-stone-200/80'
+      }`}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={url}
+        alt={`Foto ${index + 1}`}
+        className="w-full h-full object-cover select-none pointer-events-none"
+      />
+
+      {/* Badge PORTADA elegante en posición 0 */}
+      {index === 0 && (
+        <span className="absolute top-2 left-2 z-10 text-[10px] uppercase tracking-wider bg-brand text-white px-2 py-0.5 rounded-full font-body font-medium shadow-xs">
+          PORTADA
+        </span>
+      )}
+
+      {/* Botón para marcar como portada (mueve al índice 0) */}
+      {index > 0 && (
+        <button
+          type="button"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSetCover(index);
+          }}
+          className="absolute top-2 left-2 z-10 p-1.5 rounded-full bg-brand/85 hover:bg-brand text-white shadow transition-all cursor-pointer opacity-90 group-hover:opacity-100"
+          title="Marcar como portada"
+          aria-label="Marcar como portada"
+        >
+          <Star size={13} strokeWidth={1.75} />
+        </button>
+      )}
+
+      {/* Botón X para eliminar */}
+      <button
+        type="button"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove(index);
+        }}
+        className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow transition-all cursor-pointer"
+        title="Eliminar foto"
+        aria-label="Eliminar foto"
+      >
+        <X size={13} strokeWidth={1.75} />
+      </button>
+    </div>
+  );
+};
+
+interface WizardStepProps {
+  initialData?: Partial<WizardFormData>;
+  editId?: string | null;
+}
+
+export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) => {
   const router = useRouter();
   const { toast } = useToast();
   const prefersReducedMotion = useReducedMotion();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [currentStep, setCurrentStep] = useState(1);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState<WizardFormData | null>(null);
+  const [hasInteracted, setHasInteracted] = useState(false);
+
   const [formData, setFormData] = useState<WizardFormData>({
     operation: initialData?.operation || undefined,
     type: initialData?.type || undefined,
@@ -84,90 +205,323 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
     notes: initialData?.notes || '',
   });
 
+  // Sensores para reordenar fotos con @dnd-kit
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Sincronizar si initialData cambia (modo edición)
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        operation: initialData.operation || undefined,
+        type: initialData.type || undefined,
+        state: initialData.state || '',
+        city: initialData.city || '',
+        sector: initialData.sector || '',
+        address: initialData.address || '',
+        show_exact_location: initialData.show_exact_location || false,
+        bedrooms: initialData.bedrooms,
+        bathrooms: initialData.bathrooms,
+        parking: initialData.parking,
+        built_area: initialData.built_area,
+        land_area: initialData.land_area,
+        year: initialData.year,
+        total_area: initialData.total_area,
+        height: initialData.height,
+        offices: initialData.offices,
+        images: initialData.images || [],
+        title: initialData.title || '',
+        description: initialData.description || '',
+        price: initialData.price,
+        internal_code: initialData.internal_code || '',
+        notes: initialData.notes || '',
+      });
+    }
+  }, [initialData]);
+
+  // Verificar si existe un borrador en progreso en sn_draft al abrir el wizard
+  useEffect(() => {
+    if (editId || initialData) return;
+    const saved = storage.get<WizardFormData | null>(STORAGE_KEYS.DRAFT, null);
+    if (
+      saved &&
+      (saved.operation ||
+        saved.type ||
+        saved.state ||
+        saved.title ||
+        (saved.images && saved.images.length > 0) ||
+        saved.price)
+    ) {
+      setPendingDraft(saved);
+    }
+  }, [editId, initialData]);
+
+  // Autoguardado cada 3 segundos con debounce en sn_draft
+  useEffect(() => {
+    if (editId || pendingDraft || !hasInteracted) return;
+
+    const timer = setTimeout(() => {
+      const hasAnyData =
+        Boolean(formData.operation) ||
+        Boolean(formData.type) ||
+        Boolean(formData.state) ||
+        Boolean(formData.title.trim()) ||
+        formData.images.length > 0 ||
+        Boolean(formData.price);
+
+      if (hasAnyData) {
+        storage.set(STORAGE_KEYS.DRAFT, formData);
+      }
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [formData, editId, pendingDraft, hasInteracted]);
+
+  const updateForm = (updater: (prev: WizardFormData) => WizardFormData) => {
+    setHasInteracted(true);
+    setFormData(updater);
+  };
+
+  const handleContinueDraft = () => {
+    if (!pendingDraft) return;
+    setFormData({
+      operation: pendingDraft.operation || undefined,
+      type: pendingDraft.type || undefined,
+      state: pendingDraft.state || '',
+      city: pendingDraft.city || '',
+      sector: pendingDraft.sector || '',
+      address: pendingDraft.address || '',
+      show_exact_location: pendingDraft.show_exact_location || false,
+      bedrooms: pendingDraft.bedrooms,
+      bathrooms: pendingDraft.bathrooms,
+      parking: pendingDraft.parking,
+      built_area: pendingDraft.built_area,
+      land_area: pendingDraft.land_area,
+      year: pendingDraft.year,
+      total_area: pendingDraft.total_area,
+      height: pendingDraft.height,
+      offices: pendingDraft.offices,
+      images: pendingDraft.images || [],
+      title: pendingDraft.title || '',
+      description: pendingDraft.description || '',
+      price: pendingDraft.price,
+      internal_code: pendingDraft.internal_code || '',
+      notes: pendingDraft.notes || '',
+    });
+    setPendingDraft(null);
+    setHasInteracted(true);
+    toast('Borrador cargado para continuar', 'info');
+  };
+
+  const handleDiscardDraft = () => {
+    storage.remove(STORAGE_KEYS.DRAFT);
+    setPendingDraft(null);
+    toast('Borrador descartado', 'info');
+  };
+
   const availableCities = formData.state ? VENEZUELA[formData.state] || [] : [];
+
+  // Cambio de tipo de inmueble: limpia los campos dinámicos que no aplican al nuevo tipo
+  const handleSelectType = (newType: PropertyType) => {
+    updateForm((prev) => {
+      const next: WizardFormData = { ...prev, type: newType };
+      if (newType === 'Terreno') {
+        next.bedrooms = undefined;
+        next.bathrooms = undefined;
+        next.parking = undefined;
+        next.built_area = undefined;
+        next.land_area = undefined;
+        next.year = undefined;
+        next.height = undefined;
+        next.offices = undefined;
+      } else if (newType === 'Oficina') {
+        next.bedrooms = undefined;
+        next.parking = undefined;
+        next.built_area = undefined;
+        next.land_area = undefined;
+        next.year = undefined;
+        next.height = undefined;
+      } else if (newType === 'Galpón' || newType === 'Local') {
+        next.bedrooms = undefined;
+        next.parking = undefined;
+        next.built_area = undefined;
+        next.land_area = undefined;
+        next.year = undefined;
+      } else if (newType === 'Casa' || newType === 'Apartamento') {
+        next.total_area = undefined;
+        next.height = undefined;
+        next.offices = undefined;
+      }
+      return next;
+    });
+  };
 
   // Cambio de estado geográfico (resetea ciudad)
   const handleStateChange = (newState: string) => {
-    setFormData((prev) => ({
+    updateForm((prev) => ({
       ...prev,
       state: newState,
       city: '',
     }));
   };
 
-  // Subida de imágenes mock / local
-  const handleAddImage = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      if (formData.images.length >= 20) {
-        toast('Límite máximo de 20 fotos alcanzado', 'warning');
-        return;
+  // Procesar múltiples archivos (drag & drop o input file)
+  const processFiles = (files: File[]) => {
+    if (!files.length) return;
+
+    const validFiles = files.filter((f) => ALLOWED_IMAGE_TYPES.includes(f.type));
+    if (validFiles.length < files.length) {
+      toast('⚠️ Solo se permiten imágenes JPG, PNG o WEBP', 'warning');
+    }
+    if (validFiles.length === 0) return;
+
+    updateForm((prev) => {
+      const remainingSlots = 20 - prev.images.length;
+      if (remainingSlots <= 0) {
+        toast('⚠️ Límite máximo de 20 fotos alcanzado', 'warning');
+        return prev;
       }
-      const newUrl = URL.createObjectURL(e.target.files[0]);
-      setFormData((prev) => ({
+
+      const filesToAdd = validFiles.slice(0, remainingSlots);
+      if (validFiles.length > remainingSlots) {
+        toast(`⚠️ Solo se agregaron ${remainingSlots} fotos (máximo 20)`, 'warning');
+      }
+
+      const newUrls = filesToAdd.map((file) => URL.createObjectURL(file));
+      return {
         ...prev,
-        images: [...prev.images, newUrl],
-      }));
+        images: [...prev.images, ...newUrls],
+      };
+    });
+  };
+
+  // Subida desde input file oculto
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      processFiles(Array.from(e.target.files));
+      e.target.value = '';
+    }
+  };
+
+  // Eventos Drag & Drop en zona de carga
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDraggingOver) setIsDraggingOver(true);
+  };
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFiles(Array.from(e.dataTransfer.files));
     }
   };
 
   // Eliminar imagen
   const handleRemoveImage = (index: number) => {
-    setFormData((prev) => ({
+    updateForm((prev) => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
     }));
   };
 
-  // Validaciones obligatorias por paso (sin alterar lógica)
+  // Marcar imagen como portada (mover a índice 0)
+  const handleSetCover = (index: number) => {
+    if (index === 0) return;
+    updateForm((prev) => {
+      const next = [...prev.images];
+      const [selected] = next.splice(index, 1);
+      return {
+        ...prev,
+        images: [selected, ...next],
+      };
+    });
+  };
+
+  // Reordenar miniaturas con @dnd-kit
+  const handleSortEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      updateForm((prev) => {
+        const oldIndex = prev.images.indexOf(String(active.id));
+        const newIndex = prev.images.indexOf(String(over.id));
+        if (oldIndex === -1 || newIndex === -1) return prev;
+        return {
+          ...prev,
+          images: arrayMove(prev.images, oldIndex, newIndex),
+        };
+      });
+    }
+  };
+
+  // Validaciones obligatorias por paso (BUG 6)
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
         if (!formData.operation) {
-          toast('Debe seleccionar una operación (Vender o Alquilar)', 'warning');
+          toast('⚠️ Debes elegir Venta o Alquiler', 'warning');
           return false;
         }
         return true;
       case 2:
         if (!formData.type) {
-          toast('Debe seleccionar el tipo de inmueble', 'warning');
+          toast('⚠️ Debes elegir un tipo de inmueble', 'warning');
           return false;
         }
         return true;
       case 3:
-        if (!formData.state) {
-          toast('Debe seleccionar el Estado de ubicación', 'warning');
-          return false;
-        }
-        if (!formData.city) {
-          toast('Debe seleccionar la Ciudad / Municipio', 'warning');
+        if (!formData.state || !formData.city) {
+          toast('⚠️ El Estado y la Ciudad son obligatorios', 'warning');
           return false;
         }
         return true;
       case 4:
-        return true; // Todos los campos de detalles son opcionales
+        return true;
       case 5:
         if (formData.images.length < 1) {
-          toast('Debe agregar al menos 1 fotografía del inmueble', 'warning');
+          toast('⚠️ Debes subir al menos 1 foto del inmueble', 'warning');
           return false;
         }
         return true;
       case 6:
         if (!formData.title.trim()) {
-          toast('El título del inmueble es obligatorio', 'warning');
+          toast('⚠️ El título del inmueble es obligatorio', 'warning');
           return false;
         }
         if (formData.title.length > 80) {
-          toast('El título no puede exceder los 80 caracteres', 'warning');
+          toast('⚠️ El título no puede exceder los 80 caracteres', 'warning');
           return false;
         }
         if (formData.description.length > 1500) {
-          toast('La descripción no puede exceder 1500 caracteres', 'warning');
+          toast('⚠️ La descripción no puede exceder 1500 caracteres', 'warning');
           return false;
         }
         return true;
       case 7:
         if (!formData.price || formData.price <= 0) {
-          toast('Debe ingresar un precio válido en USD', 'warning');
+          toast('⚠️ El precio en USD es obligatorio', 'warning');
           return false;
         }
         return true;
@@ -186,18 +540,94 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
+  const createInmueblePayload = (status: 'Borrador' | 'Publicado'): Inmueble => {
+    const now = new Date().toISOString();
+    const existing = editId ? propertiesStore.getById(editId) : undefined;
+
+    return {
+      id: editId || `prop-${Date.now()}`,
+      title:
+        formData.title.trim() ||
+        `${formData.type || 'Inmueble'} en ${formData.city || 'Venezuela'}`,
+      description: formData.description.trim(),
+      operation: formData.operation || 'Venta',
+      type: formData.type || 'Casa',
+      state: formData.state || 'Carabobo',
+      city: formData.city || 'Valencia',
+      sector: formData.sector.trim() || undefined,
+      address: formData.address.trim() || undefined,
+      show_exact_location: formData.show_exact_location,
+      bedrooms: formData.bedrooms,
+      bathrooms: formData.bathrooms,
+      parking: formData.parking,
+      built_area: formData.built_area,
+      land_area: formData.land_area,
+      year: formData.year,
+      total_area: formData.total_area,
+      height: formData.height,
+      offices: formData.offices,
+      price: formData.price || 0,
+      currency: 'USD',
+      internal_code: formData.internal_code.trim() || undefined,
+      notes: formData.notes.trim() || undefined,
+      images: formData.images,
+      status,
+      visits: existing?.visits ?? 0,
+      created_at: existing?.created_at ?? now,
+      updated_at: now,
+    };
+  };
+
   const handleSaveDraft = () => {
-    toast('Inmueble guardado como Borrador', 'success');
-    setTimeout(() => router.push('/admin/inmuebles'), 1200);
+    const draftInmueble = createInmueblePayload('Borrador');
+    propertiesStore.save(draftInmueble);
+    storage.remove(STORAGE_KEYS.DRAFT);
+    toast('Borrador guardado', 'success');
+    router.push('/admin/inmuebles');
   };
 
   const handlePublish = () => {
-    toast('¡Inmueble publicado con éxito en tu catálogo!', 'success');
-    setTimeout(() => router.push('/admin/inmuebles'), 1200);
+    const publishedInmueble = createInmueblePayload('Publicado');
+    propertiesStore.save(publishedInmueble);
+    storage.remove(STORAGE_KEYS.DRAFT);
+    toast('Inmueble publicado', 'success');
+    router.push('/admin/inmuebles');
   };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 font-body">
+      {/* BANNER DE BORRADOR EN PROGRESO GUARDADO (BUG 3.5) */}
+      {pendingDraft && (
+        <div className="bg-[#fef7eb] border border-[#f9dfb5] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-800 flex items-center justify-center shrink-0">
+              <FileEdit size={18} strokeWidth={1.5} />
+            </div>
+            <p className="text-xs sm:text-sm font-medium text-[#8f5b12]">
+              Tienes un borrador guardado. ¿Quieres continuar?
+            </p>
+          </div>
+          <div className="flex items-center gap-2.5 shrink-0">
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={handleContinueDraft}
+            >
+              Continuar
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleDiscardDraft}
+            >
+              Descartar
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* BARRA DE PROGRESO */}
       <div className="bg-[#faf9f6] p-5 sm:p-7 rounded-2xl border border-stone-200/80 shadow-card">
         {/* Versión Desktop: círculos numerados conectados con líneas finas */}
@@ -287,7 +717,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
               <button
                 type="button"
-                onClick={() => setFormData({ ...formData, operation: 'Venta' })}
+                onClick={() => updateForm((prev) => ({ ...prev, operation: 'Venta' }))}
                 className={`p-7 rounded-2xl border-2 flex flex-col items-center justify-center gap-3.5 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:shadow-card ${
                   formData.operation === 'Venta'
                     ? 'border-[#1e3a5f] bg-[#1e3a5f]/5 shadow-sm ring-2 ring-brand/10'
@@ -307,7 +737,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
 
               <button
                 type="button"
-                onClick={() => setFormData({ ...formData, operation: 'Alquiler' })}
+                onClick={() => updateForm((prev) => ({ ...prev, operation: 'Alquiler' }))}
                 className={`p-7 rounded-2xl border-2 flex flex-col items-center justify-center gap-3.5 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:shadow-card ${
                   formData.operation === 'Alquiler'
                     ? 'border-[#1e3a5f] bg-[#1e3a5f]/5 shadow-sm ring-2 ring-brand/10'
@@ -357,9 +787,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
                   <button
                     key={item.type}
                     type="button"
-                    onClick={() =>
-                      setFormData({ ...formData, type: item.type as PropertyType })
-                    }
+                    onClick={() => handleSelectType(item.type as PropertyType)}
                     className={`p-5 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:shadow-card ${
                       isSelected
                         ? 'border-[#1e3a5f] bg-[#1e3a5f]/5 ring-2 ring-brand/10 shadow-sm'
@@ -425,7 +853,9 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
                 <select
                   value={formData.city}
                   disabled={!formData.state}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  onChange={(e) =>
+                    updateForm((prev) => ({ ...prev, city: e.target.value }))
+                  }
                   className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-lg text-sm text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all cursor-pointer shadow-xs disabled:bg-[#f5f1ea] disabled:text-stone-400"
                 >
                   <option value="">
@@ -445,7 +875,9 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
               label="Sector / Urbanización (opcional)"
               placeholder="Ej. El Parral, Paso Real, Zona Industrial"
               value={formData.sector}
-              onChange={(e) => setFormData({ ...formData, sector: e.target.value })}
+              onChange={(e) =>
+                updateForm((prev) => ({ ...prev, sector: e.target.value }))
+              }
             />
 
             {/* Dirección exacta */}
@@ -453,7 +885,9 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
               label="Dirección exacta (opcional, uso interno)"
               placeholder="Ej. Calle Los Cedros, Casa #4"
               value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              onChange={(e) =>
+                updateForm((prev) => ({ ...prev, address: e.target.value }))
+              }
             />
 
             {/* Checkbox mostrar en público */}
@@ -463,7 +897,10 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
                 id="show_exact"
                 checked={formData.show_exact_location}
                 onChange={(e) =>
-                  setFormData({ ...formData, show_exact_location: e.target.checked })
+                  updateForm((prev) => ({
+                    ...prev,
+                    show_exact_location: e.target.checked,
+                  }))
                 }
                 className="w-4 h-4 text-brand rounded border-stone-300 focus:ring-brand/20 accent-brand cursor-pointer"
               />
@@ -477,7 +914,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
           </div>
         )}
 
-        {/* PASO 4: DETALLES DINÁMICOS */}
+        {/* PASO 4: DETALLES DINÁMICOS POR TIPO DE INMUEBLE (BUG 1 & BUG 5.1) */}
         {currentStep === 4 && (
           <div className="space-y-5">
             <div>
@@ -492,29 +929,64 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
               </p>
             </div>
 
-            {/* Leyenda de iconos de referencia */}
-            <div className="flex flex-wrap items-center gap-4 text-xs text-stone-500 py-2 px-3.5 bg-white rounded-xl border border-stone-200/70">
-              <span className="inline-flex items-center gap-1.5">
-                <Bed size={14} strokeWidth={1.5} className="text-[#C97B5A]" /> Habitaciones
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <Bath size={14} strokeWidth={1.5} className="text-[#C97B5A]" /> Baños
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <Car size={14} strokeWidth={1.5} className="text-[#C97B5A]" /> Estacionamientos
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <Maximize2 size={14} strokeWidth={1.5} className="text-[#C97B5A]" /> Superficie (m²)
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <Calendar size={14} strokeWidth={1.5} className="text-[#C97B5A]" /> Año
-              </span>
-            </div>
+            {/* Íconos dinámicos según el tipo seleccionado (ocultos para Terreno) */}
+            {formData.type && formData.type !== 'Terreno' && (
+              <div className="flex flex-wrap items-center gap-4 text-xs text-stone-500 py-2 px-3.5 bg-white rounded-xl border border-stone-200/70">
+                {(formData.type === 'Casa' || formData.type === 'Apartamento') && (
+                  <>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Bed size={14} strokeWidth={1.5} className="text-[#C97B5A]" /> Habitaciones
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Bath size={14} strokeWidth={1.5} className="text-[#C97B5A]" /> Baños
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Car size={14} strokeWidth={1.5} className="text-[#C97B5A]" /> Estacionamientos
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Maximize2 size={14} strokeWidth={1.5} className="text-[#C97B5A]" /> Superficie (m²)
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Calendar size={14} strokeWidth={1.5} className="text-[#C97B5A]" /> Año
+                    </span>
+                  </>
+                )}
 
-            {/* Casa o Apartamento u Oficina */}
-            {(formData.type === 'Casa' ||
-              formData.type === 'Apartamento' ||
-              formData.type === 'Oficina') && (
+                {(formData.type === 'Galpón' || formData.type === 'Local') && (
+                  <>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Maximize2 size={14} strokeWidth={1.5} className="text-[#C97B5A]" /> Área total (m²)
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <ArrowUpDown size={14} strokeWidth={1.5} className="text-[#C97B5A]" /> Altura libre (m)
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Bath size={14} strokeWidth={1.5} className="text-[#C97B5A]" /> Baños
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Briefcase size={14} strokeWidth={1.5} className="text-[#C97B5A]" /> Oficinas internas
+                    </span>
+                  </>
+                )}
+
+                {formData.type === 'Oficina' && (
+                  <>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Maximize2 size={14} strokeWidth={1.5} className="text-[#C97B5A]" /> Área total (m²)
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Bath size={14} strokeWidth={1.5} className="text-[#C97B5A]" /> Baños
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Briefcase size={14} strokeWidth={1.5} className="text-[#C97B5A]" /> Oficinas internas
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Casa / Apartamento: Habitaciones, Baños, Estacionamientos, Área construida (m²), Área terreno (m²), Año de construcción */}
+            {(formData.type === 'Casa' || formData.type === 'Apartamento') && (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4.5 pt-2">
                 <Input
                   label="Habitaciones"
@@ -522,10 +994,10 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
                   min="0"
                   value={formData.bedrooms ?? ''}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
+                    updateForm((prev) => ({
+                      ...prev,
                       bedrooms: e.target.value ? Number(e.target.value) : undefined,
-                    })
+                    }))
                   }
                 />
                 <Input
@@ -534,10 +1006,10 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
                   min="0"
                   value={formData.bathrooms ?? ''}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
+                    updateForm((prev) => ({
+                      ...prev,
                       bathrooms: e.target.value ? Number(e.target.value) : undefined,
-                    })
+                    }))
                   }
                 />
                 <Input
@@ -546,10 +1018,10 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
                   min="0"
                   value={formData.parking ?? ''}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
+                    updateForm((prev) => ({
+                      ...prev,
                       parking: e.target.value ? Number(e.target.value) : undefined,
-                    })
+                    }))
                   }
                 />
                 <Input
@@ -558,22 +1030,22 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
                   min="0"
                   value={formData.built_area ?? ''}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
+                    updateForm((prev) => ({
+                      ...prev,
                       built_area: e.target.value ? Number(e.target.value) : undefined,
-                    })
+                    }))
                   }
                 />
                 <Input
-                  label="Área de terreno (m²)"
+                  label="Área terreno (m²)"
                   type="number"
                   min="0"
                   value={formData.land_area ?? ''}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
+                    updateForm((prev) => ({
+                      ...prev,
                       land_area: e.target.value ? Number(e.target.value) : undefined,
-                    })
+                    }))
                   }
                 />
                 <Input
@@ -582,16 +1054,16 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
                   placeholder="Ej. 2018"
                   value={formData.year ?? ''}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
+                    updateForm((prev) => ({
+                      ...prev,
                       year: e.target.value ? Number(e.target.value) : undefined,
-                    })
+                    }))
                   }
                 />
               </div>
             )}
 
-            {/* Galpón o Local */}
+            {/* Galpón / Local: Área total (m²), Altura libre (m), Baños, Oficinas internas */}
             {(formData.type === 'Galpón' || formData.type === 'Local') && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4.5 pt-2">
                 <Input
@@ -600,10 +1072,10 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
                   min="0"
                   value={formData.total_area ?? ''}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
+                    updateForm((prev) => ({
+                      ...prev,
                       total_area: e.target.value ? Number(e.target.value) : undefined,
-                    })
+                    }))
                   }
                 />
                 <Input
@@ -613,10 +1085,10 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
                   placeholder="Ej. 7.5"
                   value={formData.height ?? ''}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
+                    updateForm((prev) => ({
+                      ...prev,
                       height: e.target.value ? Number(e.target.value) : undefined,
-                    })
+                    }))
                   }
                 />
                 <Input
@@ -625,10 +1097,10 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
                   min="0"
                   value={formData.bathrooms ?? ''}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
+                    updateForm((prev) => ({
+                      ...prev,
                       bathrooms: e.target.value ? Number(e.target.value) : undefined,
-                    })
+                    }))
                   }
                 />
                 <Input
@@ -637,28 +1109,70 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
                   min="0"
                   value={formData.offices ?? ''}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
+                    updateForm((prev) => ({
+                      ...prev,
                       offices: e.target.value ? Number(e.target.value) : undefined,
-                    })
+                    }))
                   }
                 />
               </div>
             )}
 
-            {/* Terreno */}
+            {/* Terreno: SOLO Área total (m²). NADA MÁS. */}
             {formData.type === 'Terreno' && (
               <div className="max-w-xs pt-2">
                 <Input
-                  label="Área total del terreno (m²)"
+                  label="Área total (m²)"
                   type="number"
                   min="0"
                   value={formData.total_area ?? ''}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
+                    updateForm((prev) => ({
+                      ...prev,
                       total_area: e.target.value ? Number(e.target.value) : undefined,
-                    })
+                    }))
+                  }
+                />
+              </div>
+            )}
+
+            {/* Oficina: Área total (m²), Baños, Oficinas internas */}
+            {formData.type === 'Oficina' && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4.5 pt-2">
+                <Input
+                  label="Área total (m²)"
+                  type="number"
+                  min="0"
+                  value={formData.total_area ?? ''}
+                  onChange={(e) =>
+                    updateForm((prev) => ({
+                      ...prev,
+                      total_area: e.target.value ? Number(e.target.value) : undefined,
+                    }))
+                  }
+                />
+                <Input
+                  label="Baños"
+                  type="number"
+                  min="0"
+                  value={formData.bathrooms ?? ''}
+                  onChange={(e) =>
+                    updateForm((prev) => ({
+                      ...prev,
+                      bathrooms: e.target.value ? Number(e.target.value) : undefined,
+                    }))
+                  }
+                />
+                <Input
+                  label="Oficinas internas"
+                  type="number"
+                  min="0"
+                  value={formData.offices ?? ''}
+                  onChange={(e) =>
+                    updateForm((prev) => ({
+                      ...prev,
+                      offices: e.target.value ? Number(e.target.value) : undefined,
+                    }))
                   }
                 />
               </div>
@@ -666,7 +1180,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
           </div>
         )}
 
-        {/* PASO 5: FOTOS */}
+        {/* PASO 5: FOTOS (BUG 2 & BUG 5.2 & BUG 5.5) */}
         {currentStep === 5 && (
           <div className="space-y-5">
             <div className="flex items-center justify-between">
@@ -678,7 +1192,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
                   Fotografías del Inmueble
                 </h3>
                 <p className="text-sm text-stone-600 mt-1 font-body">
-                  Mínimo 1 foto, máximo 20 fotos.
+                  Mínimo 1 foto, máximo 20 fotos. Arrastra las miniaturas para reordenar; la primera será la portada.
                 </p>
               </div>
               <span className="text-xs font-mono px-3 py-1 rounded-full bg-[#f5f1ea] text-stone-700 border border-stone-200">
@@ -686,57 +1200,60 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
               </span>
             </div>
 
-            {/* Zona Drag & Drop */}
-            <label className="border-2 border-dashed border-stone-300 hover:border-[#C97B5A] rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer bg-white hover:bg-[#C97B5A]/5 transition-all duration-200">
+            {/* Zona Drag & Drop funcional */}
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={handleDragOver}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 ${
+                isDraggingOver
+                  ? 'border-terracotta bg-terracotta/5 scale-[1.01]'
+                  : 'border-stone-300 hover:border-terracotta bg-white hover:bg-terracotta/5'
+              }`}
+            >
               <Upload size={30} strokeWidth={1.5} className="text-[#C97B5A] mb-2" />
               <span className="text-sm font-medium text-text-heading font-body">
-                Haz clic o arrastra fotos aquí
+                Haz clic o arrastra tus fotos aquí
               </span>
               <span className="text-xs text-stone-500 mt-1 font-body">
-                Formatos JPG, PNG, WEBP (hasta 5MB por foto)
+                Formatos JPG, PNG, WEBP (puedes soltar varias fotos a la vez)
               </span>
               <input
+                ref={fileInputRef}
                 type="file"
                 multiple
                 accept="image/*"
-                onChange={handleAddImage}
+                onChange={handleFileInputChange}
                 className="hidden"
               />
-            </label>
+            </div>
 
-            {/* Grid de fotos */}
+            {/* Grid de fotos reordenable con @dnd-kit */}
             {formData.images.length > 0 && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3.5 pt-3">
-                {formData.images.map((imgUrl, index) => (
-                  <div
-                    key={index}
-                    className="relative aspect-[4/3] rounded-xl overflow-hidden border border-stone-200/80 group bg-[#f5f1ea] shadow-xs"
-                  >
-                    <Image
-                      src={imgUrl}
-                      alt={`Foto ${index + 1}`}
-                      fill
-                      sizes="200px"
-                      unoptimized={imgUrl.includes('placehold.co') || imgUrl.startsWith('blob:')}
-                      className="object-cover"
-                    />
-                    {index === 0 && (
-                      <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-body font-semibold uppercase tracking-wider bg-[#1e3a5f] text-white shadow-xs">
-                        Portada
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveImage(index)}
-                      className="absolute top-2 right-2 p-1 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow transition-all cursor-pointer"
-                      title="Eliminar foto"
-                      aria-label="Eliminar foto"
-                    >
-                      <X size={14} strokeWidth={1.5} />
-                    </button>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleSortEnd}
+              >
+                <SortableContext
+                  items={formData.images}
+                  strategy={rectSortingStrategy}
+                >
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5 pt-3">
+                    {formData.images.map((imgUrl, index) => (
+                      <SortablePhotoItem
+                        key={imgUrl}
+                        url={imgUrl}
+                        index={index}
+                        onRemove={handleRemoveImage}
+                        onSetCover={handleSetCover}
+                      />
+                    ))}
                   </div>
-                ))}
-              </div>
+                </SortableContext>
+              </DndContext>
             )}
           </div>
         )}
@@ -762,7 +1279,9 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
               placeholder="Ej. Hermosa Casa Quinta en Conjunto Cerrado de San Diego"
               value={formData.title}
               characterCount={{ current: formData.title.length, max: 80 }}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) =>
+                updateForm((prev) => ({ ...prev, title: e.target.value }))
+              }
             />
 
             {/* Descripción */}
@@ -784,7 +1303,9 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
               <textarea
                 rows={6}
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  updateForm((prev) => ({ ...prev, description: e.target.value }))
+                }
                 placeholder="Describe los beneficios, amenidades, planta eléctrica, pozo de agua, acabados y cercanías..."
                 className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-lg text-sm text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs transition-all"
               />
@@ -815,10 +1336,10 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
                 placeholder="Ej. 120000"
                 value={formData.price ?? ''}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
+                  updateForm((prev) => ({
+                    ...prev,
                     price: e.target.value ? Number(e.target.value) : undefined,
-                  })
+                  }))
                 }
                 helperText="Siempre en dólares (USD). Para alquileres representa el canon mensual."
               />
@@ -834,7 +1355,9 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
               <Input
                 placeholder="Ej. SN-V-01"
                 value={formData.internal_code}
-                onChange={(e) => setFormData({ ...formData, internal_code: e.target.value })}
+                onChange={(e) =>
+                  updateForm((prev) => ({ ...prev, internal_code: e.target.value }))
+                }
                 helperText="Solo para tu control interno de expedientes."
               />
             </div>
@@ -847,7 +1370,9 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
               <textarea
                 rows={3}
                 value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                onChange={(e) =>
+                  updateForm((prev) => ({ ...prev, notes: e.target.value }))
+                }
                 placeholder="Comentarios confidenciales sobre propietarios, comisiones o llaves (no se publican)..."
                 className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-lg text-sm text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs transition-all"
               />
@@ -914,11 +1439,15 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
         )}
       </motion.div>
 
-      {/* BOTONES DE NAVEGACIÓN INFERIOR */}
+      {/* BOTONES DE NAVEGACIÓN INFERIOR (BUG 5.3 & 5.4) */}
       <div className="flex items-center justify-between bg-[#faf9f6] p-4.5 sm:p-6 rounded-2xl border border-stone-200/80 shadow-card">
         {currentStep > 1 ? (
-          <Button variant="outline" onClick={handlePrev} className="gap-2">
-            <ArrowLeft size={16} strokeWidth={1.5} />
+          <Button variant="outline" onClick={handlePrev} className="gap-2 group">
+            <ArrowLeft
+              size={16}
+              strokeWidth={1.5}
+              className="transition-transform duration-200 group-hover:-translate-x-1"
+            />
             <span>Anterior</span>
           </Button>
         ) : (
@@ -938,7 +1467,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
                 className="gap-2 bg-emerald-700 hover:bg-emerald-800 focus:ring-emerald-600"
               >
                 <Check size={16} strokeWidth={1.5} />
-                <span>Publicar Inmueble</span>
+                <span>Publicar</span>
               </Button>
             </>
           ) : (
