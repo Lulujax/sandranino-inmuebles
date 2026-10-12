@@ -4,6 +4,7 @@ import React, { useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { MOCK_PROPERTIES } from '@/data/mock-properties';
 import { WizardStep } from '@/components/admin/WizardStep';
+import { FadeInUp } from '@/components/ui/FadeInUp';
 
 function PublicarContent() {
   const searchParams = useSearchParams();
@@ -41,20 +42,20 @@ function PublicarContent() {
   }, [editId]);
 
   return (
-    <div className="space-y-6 font-sans animate-fade-in">
-      <div>
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-terracotta block mb-1">
-          {editId ? 'Edición de Ficha' : 'Nueva Publicación'}
+    <div className="space-y-6 font-body">
+      <FadeInUp>
+        <span className="text-[11px] font-medium uppercase tracking-[0.22em] text-[#C97B5A] block mb-1">
+          {editId ? 'EDICIÓN DE FICHA' : 'NUEVA PUBLICACIÓN'}
         </span>
-        <h2 className="font-serif text-2xl sm:text-3xl text-text-heading tracking-tight">
+        <h2 className="font-display text-2xl sm:text-3xl font-semibold text-text-heading tracking-tight">
           {editId ? 'Editar Inmueble' : 'Publicar Nuevo Inmueble'}
         </h2>
-        <p className="text-xs sm:text-sm text-stone-500 mt-1">
+        <p className="text-xs sm:text-sm text-stone-600 mt-1">
           {editId
             ? 'Modifica los datos del inmueble en el asistente de 8 pasos.'
             : 'Completa los 8 sencillos pasos para incorporar una nueva propiedad a tu inventario.'}
         </p>
-      </div>
+      </FadeInUp>
 
       <WizardStep initialData={initialPropertyData} />
     </div>
@@ -65,7 +66,7 @@ export default function PublicarPage() {
   return (
     <Suspense
       fallback={
-        <div className="p-12 text-center text-sm text-stone-500 font-sans">
+        <div className="p-12 text-center text-sm text-stone-500 font-body">
           Cargando asistente de publicación...
         </div>
       }

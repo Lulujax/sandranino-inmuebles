@@ -3,11 +3,12 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Lock, Mail, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, ArrowLeft, KeyRound } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
+import { FadeInUp } from '@/components/ui/FadeInUp';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function LoginPage() {
     e.preventDefault();
 
     if (!email || !password) {
-      toast('⚠️ Por favor completa el correo y la contraseña', 'warning');
+      toast('Por favor completa el correo y la contraseña', 'warning');
       return;
     }
 
@@ -31,7 +32,7 @@ export default function LoginPage() {
     try {
       // Llamada preparada para Supabase Auth
       const supabase = createClient();
-      
+
       // Si la URL es la real de producción, intenta con Supabase Auth
       if (
         process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -42,7 +43,7 @@ export default function LoginPage() {
           password,
         });
         if (error) {
-          toast(`⚠️ ${error.message}`, 'error');
+          toast(error.message, 'error');
           setIsLoading(false);
           return;
         }
@@ -64,30 +65,25 @@ export default function LoginPage() {
       toast('Sesión iniciada con éxito. ¡Bienvenida, Sandra!', 'success');
       router.push('/admin');
     } catch {
-      toast('⚠️ Ocurrió un error al procesar el inicio de sesión', 'error');
+      toast('Ocurrió un error al procesar el inicio de sesión', 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col justify-center items-center p-4 selection:bg-terracotta/20 selection:text-text-heading font-sans">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-luxury border border-stone-200/80 p-8 sm:p-10 animate-fade-in-up">
+    <div className="min-h-screen bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] flex flex-col justify-center items-center p-4 selection:bg-terracotta/20 selection:text-text-heading font-body">
+      <FadeInUp className="w-full max-w-md bg-[#faf9f6] rounded-2xl shadow-luxury border border-stone-200/80 p-8 sm:p-10">
         {/* Monograma SN y encabezado editorial */}
         <div className="flex flex-col items-center mb-8 text-center">
-          <div className="relative mb-3">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand to-brand-darker text-cream-50 flex items-center justify-center font-serif text-2xl shadow-luxury border border-white/20">
-              SN
-            </div>
-            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-terracotta flex items-center justify-center text-white">
-              <Sparkles className="w-2.5 h-2.5" />
-            </div>
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1e3a5f] to-[#152a45] text-white flex items-center justify-center font-display text-2xl font-semibold shadow-luxury border border-white/20 mb-3 select-none">
+            SN
           </div>
-          <h1 className="font-serif text-2xl sm:text-3xl text-text-heading tracking-tight">
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold text-text-heading tracking-tight">
             Sandra Nino
           </h1>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-terracotta mt-1 font-sans">
-            Panel de Gestión Inmobiliaria
+          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-[#C97B5A] mt-1 font-body">
+            PANEL DE GESTIÓN INMOBILIARIA
           </p>
         </div>
 
@@ -115,7 +111,7 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="flex items-center justify-between text-xs pt-1 font-sans">
+          <div className="flex items-center justify-between text-xs pt-1 font-body">
             <label className="flex items-center gap-2 text-stone-600 select-none cursor-pointer">
               <input
                 type="checkbox"
@@ -131,7 +127,7 @@ export default function LoginPage() {
               onClick={() =>
                 toast('Enlace de recuperación enviado al correo registrado', 'info')
               }
-              className="text-terracotta hover:text-terracotta-dark font-medium transition-colors"
+              className="text-[#C97B5A] hover:text-terracotta-dark font-medium transition-colors"
             >
               ¿Olvidaste tu contraseña?
             </button>
@@ -143,29 +139,30 @@ export default function LoginPage() {
               variant="primary"
               fullWidth
               disabled={isLoading}
-              className="py-3.5 text-sm font-semibold tracking-wide"
+              className="py-3.5 text-sm font-medium tracking-wide gap-2"
             >
               <span>{isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}</span>
-              <ArrowRight className="w-4 h-4 ml-1 stroke-[2]" />
+              <ArrowRight size={16} strokeWidth={1.5} />
             </Button>
           </div>
         </form>
 
         {/* Nota de seguridad */}
-        <div className="mt-8 pt-5 border-t border-stone-100 flex items-start gap-3 text-xs text-stone-500 leading-relaxed font-sans">
-          <ShieldCheck className="w-4 h-4 text-terracotta shrink-0 mt-0.5 stroke-[1.5]" />
+        <div className="mt-8 pt-5 border-t border-stone-200/70 flex items-start gap-3 text-xs text-stone-600 leading-relaxed font-body">
+          <KeyRound size={16} strokeWidth={1.5} className="text-[#C97B5A] shrink-0 mt-0.5" />
           <p>
-            Por seguridad bancaria e inmobiliaria, tu sesión se cerrará automáticamente tras 5 minutos de inactividad salvo que mantengas la sesión activa.
+            Por seguridad inmobiliaria, tu sesión se cerrará automáticamente tras 5 minutos de inactividad salvo que mantengas la sesión activa.
           </p>
         </div>
-      </div>
+      </FadeInUp>
 
       <div className="mt-8 text-center">
         <Link
           href="/"
-          className="text-xs text-stone-500 hover:text-brand font-sans tracking-wide transition-colors underline-offset-4 hover:underline"
+          className="inline-flex items-center gap-1.5 text-xs text-stone-600 hover:text-brand font-body tracking-wide transition-colors underline-offset-4 hover:underline"
         >
-          ← Volver al sitio público
+          <ArrowLeft size={14} strokeWidth={1.5} />
+          <span>Volver al sitio público</span>
         </Link>
       </div>
     </div>

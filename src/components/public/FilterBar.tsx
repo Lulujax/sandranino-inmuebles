@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Search, RotateCcw, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { FilterState } from '@/lib/types';
 
 interface FilterBarProps {
@@ -42,18 +42,18 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     filters.sortBy !== 'recent';
 
   return (
-    <div className="bg-white p-5 sm:p-7 rounded-2xl shadow-card border border-stone-200/80 transition-shadow hover:shadow-luxury">
+    <div className="bg-[#faf9f6] p-5 sm:p-7 rounded-2xl shadow-card border border-stone-200/80 font-body">
       {/* Buscador de texto principal */}
       <div className="relative mb-5">
         <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-stone-400">
-          <Search className="w-4 h-4 stroke-[1.75]" />
+          <Search size={18} strokeWidth={1.5} />
         </div>
         <input
           type="text"
           value={filters.searchQuery}
           onChange={(e) => handleChange('searchQuery', e.target.value)}
           placeholder="Buscar por título, municipio, sector, urbanización..."
-          className="w-full pl-11 pr-4 py-3 bg-cream-50/50 border border-stone-200/80 rounded-xl text-sm text-text-heading placeholder-stone-400 font-sans focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all duration-200 shadow-xs"
+          className="w-full pl-11 pr-4 py-3 bg-[#f5f1ea]/50 border border-stone-200 rounded-xl text-sm text-text-heading placeholder-stone-400 font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all duration-200"
         />
       </div>
 
@@ -61,118 +61,108 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
         {/* 1. Tipo de inmueble */}
         <div>
-          <label className="block text-[11px] font-semibold uppercase tracking-wider text-stone-600 mb-1.5 font-sans">
+          <label className="block text-[11px] font-medium uppercase tracking-wider text-stone-600 mb-1.5 font-body">
             Tipo de Inmueble
           </label>
-          <div className="relative">
-            <select
-              value={filters.type}
-              onChange={(e) => handleChange('type', e.target.value)}
-              className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-stone-200/80 rounded-xl text-text-heading font-sans focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all cursor-pointer shadow-xs hover:border-stone-300"
-            >
-              <option value="Todos">Todos los tipos</option>
-              <option value="Casa">Casa</option>
-              <option value="Apartamento">Apartamento</option>
-              <option value="Galpón">Galpón</option>
-              <option value="Local">Local</option>
-              <option value="Terreno">Terreno</option>
-              <option value="Oficina">Oficina</option>
-            </select>
-          </div>
+          <select
+            value={filters.type}
+            onChange={(e) => handleChange('type', e.target.value)}
+            className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-[#faf9f6] border border-stone-200 rounded-xl text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all cursor-pointer"
+          >
+            <option value="Todos">Todos los tipos</option>
+            <option value="Casa">Casa</option>
+            <option value="Apartamento">Apartamento</option>
+            <option value="Galpón">Galpón</option>
+            <option value="Local">Local</option>
+            <option value="Terreno">Terreno</option>
+            <option value="Oficina">Oficina</option>
+          </select>
         </div>
 
         {/* 2. Operación */}
         <div>
-          <label className="block text-[11px] font-semibold uppercase tracking-wider text-stone-600 mb-1.5 font-sans">
+          <label className="block text-[11px] font-medium uppercase tracking-wider text-stone-600 mb-1.5 font-body">
             Operación
           </label>
-          <div className="relative">
-            <select
-              value={filters.operation}
-              onChange={(e) => handleChange('operation', e.target.value)}
-              className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-stone-200/80 rounded-xl text-text-heading font-sans focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all cursor-pointer shadow-xs hover:border-stone-300"
-            >
-              <option value="Todas">Todas (Venta/Alquiler)</option>
-              <option value="Venta">Venta</option>
-              <option value="Alquiler">Alquiler</option>
-            </select>
-          </div>
+          <select
+            value={filters.operation}
+            onChange={(e) => handleChange('operation', e.target.value)}
+            className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-[#faf9f6] border border-stone-200 rounded-xl text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all cursor-pointer"
+          >
+            <option value="Todas">Todas (Venta/Alquiler)</option>
+            <option value="Venta">Venta</option>
+            <option value="Alquiler">Alquiler</option>
+          </select>
         </div>
 
-        {/* 3. Ubicación (Municipios disponibles) */}
+        {/* 3. Ubicación */}
         <div>
-          <label className="block text-[11px] font-semibold uppercase tracking-wider text-stone-600 mb-1.5 font-sans">
+          <label className="block text-[11px] font-medium uppercase tracking-wider text-stone-600 mb-1.5 font-body">
             Municipio
           </label>
-          <div className="relative">
-            <select
-              value={filters.city}
-              onChange={(e) => handleChange('city', e.target.value)}
-              className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-stone-200/80 rounded-xl text-text-heading font-sans focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all cursor-pointer shadow-xs hover:border-stone-300"
-            >
-              <option value="Todas">Todos los municipios</option>
-              {availableCities.map((city) => (
-                <option key={city} value={city}>
-                  {city}
-                </option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={filters.city}
+            onChange={(e) => handleChange('city', e.target.value)}
+            className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-[#faf9f6] border border-stone-200 rounded-xl text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all cursor-pointer"
+          >
+            <option value="Todas">Todos los municipios</option>
+            {availableCities.map((city) => (
+              <option key={city} value={city}>
+                {city}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* 4. Precio Máximo */}
         <div>
-          <label className="block text-[11px] font-semibold uppercase tracking-wider text-stone-600 mb-1.5 font-sans">
+          <label className="block text-[11px] font-medium uppercase tracking-wider text-stone-600 mb-1.5 font-body">
             Precio Máximo
           </label>
-          <div className="relative">
-            <select
-              value={filters.maxPrice}
-              onChange={(e) => handleChange('maxPrice', e.target.value)}
-              className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-stone-200/80 rounded-xl text-text-heading font-sans focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all cursor-pointer shadow-xs hover:border-stone-300"
-            >
-              <option value="all">Sin límite</option>
-              <option value="50000">Hasta $50,000</option>
-              <option value="100000">Hasta $100,000</option>
-              <option value="200000">Hasta $200,000</option>
-            </select>
-          </div>
+          <select
+            value={filters.maxPrice}
+            onChange={(e) => handleChange('maxPrice', e.target.value)}
+            className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-[#faf9f6] border border-stone-200 rounded-xl text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all cursor-pointer"
+          >
+            <option value="all">Sin límite</option>
+            <option value="50000">Hasta $50,000</option>
+            <option value="100000">Hasta $100,000</option>
+            <option value="200000">Hasta $200,000</option>
+          </select>
         </div>
 
-        {/* 5. Ordenamiento con estilo editorial */}
+        {/* 5. Ordenamiento */}
         <div>
-          <label className="block text-[11px] font-semibold uppercase tracking-wider text-stone-600 mb-1.5 font-sans flex items-center gap-1">
-            <ArrowUpDown className="w-3 h-3 text-terracotta stroke-[2]" />
+          <label className="block text-[11px] font-medium uppercase tracking-wider text-stone-600 mb-1.5 font-body flex items-center gap-1.5">
+            <SlidersHorizontal size={13} strokeWidth={1.5} className="text-[#C97B5A]" />
             <span>Ordenar por</span>
           </label>
-          <div className="relative">
-            <select
-              value={filters.sortBy}
-              onChange={(e) => handleChange('sortBy', e.target.value as FilterState['sortBy'])}
-              className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-stone-200/80 rounded-xl text-text-heading font-sans focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all cursor-pointer shadow-xs hover:border-stone-300"
-            >
-              <option value="recent">Más recientes</option>
-              <option value="price_desc">Precio: mayor a menor</option>
-              <option value="price_asc">Precio: menor a mayor</option>
-              <option value="area_desc">Metraje: mayor a menor</option>
-              <option value="area_asc">Metraje: menor a mayor</option>
-            </select>
-          </div>
+          <select
+            value={filters.sortBy}
+            onChange={(e) => handleChange('sortBy', e.target.value as FilterState['sortBy'])}
+            className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-[#faf9f6] border border-stone-200 rounded-xl text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all cursor-pointer"
+          >
+            <option value="recent">Más recientes</option>
+            <option value="price_desc">Precio: mayor a menor</option>
+            <option value="price_asc">Precio: menor a mayor</option>
+            <option value="area_desc">Metraje: mayor a menor</option>
+            <option value="area_asc">Metraje: menor a mayor</option>
+          </select>
         </div>
       </div>
 
-      {/* Botón para reiniciar filtros si hay alguno activo */}
+      {/* Botón para reiniciar filtros */}
       {hasActiveFilters && (
-        <div className="mt-4 pt-4 border-t border-stone-100 flex items-center justify-between">
-          <span className="text-xs text-stone-500 font-sans flex items-center gap-1.5">
-            <SlidersHorizontal className="w-3.5 h-3.5 text-terracotta" />
-            Filtros aplicados
+        <div className="mt-4 pt-4 border-t border-stone-200/70 flex items-center justify-between">
+          <span className="text-xs text-stone-500 font-body flex items-center gap-1.5">
+            <SlidersHorizontal size={14} strokeWidth={1.5} className="text-[#C97B5A]" />
+            Filtros activos
           </span>
           <button
             onClick={handleReset}
-            className="inline-flex items-center gap-1.5 text-xs text-terracotta hover:text-terracotta-dark font-medium font-sans transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-xs text-[#C97B5A] hover:text-[#a85d3d] font-medium font-body transition-colors cursor-pointer"
           >
-            <RotateCcw className="w-3.5 h-3.5 stroke-[1.75]" />
+            <X size={14} strokeWidth={1.5} />
             Limpiar filtros
           </button>
         </div>

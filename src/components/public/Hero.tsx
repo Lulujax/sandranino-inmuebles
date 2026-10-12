@@ -1,15 +1,16 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
-  CheckCircle2,
+  Check,
+  Tag,
+  KeyRound,
   Home,
-  Key,
-  ShieldCheck,
   ArrowRight,
-  Sparkles,
 } from 'lucide-react';
 import { PerfilAsesor } from '@/lib/types';
+import { FadeInUp } from '@/components/ui/FadeInUp';
 
 interface HeroProps {
   asesor: PerfilAsesor;
@@ -17,246 +18,268 @@ interface HeroProps {
 
 export const Hero: React.FC<HeroProps> = ({ asesor }) => {
   return (
-    <div className="flex flex-col min-h-screen bg-cream text-text-body font-sans selection:bg-terracotta/20 selection:text-text-heading">
-      {/* Hero Principal */}
-      <section className="relative overflow-hidden bg-cream-50/60 border-b border-stone-200/60 py-16 md:py-24 lg:py-28">
-        {/* Sutil halo cálido de fondo estilo publicación */}
-        <div className="absolute top-0 right-0 -mr-24 -mt-24 w-96 h-96 rounded-full bg-terracotta/5 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 -ml-24 -mb-24 w-96 h-96 rounded-full bg-brand/5 blur-3xl pointer-events-none" />
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] text-text-body font-body selection:bg-terracotta/20 selection:text-text-heading">
+      {/* Hero Principal con gradiente diagonal y textura SVG noise opacidad 0.03 */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] border-b border-stone-200/60 py-16 md:py-20">
+        {/* Textura de papel sutil (SVG noise, opacidad 0.03) */}
+        <svg
+          className="pointer-events-none absolute inset-0 w-full h-full opacity-[0.03] z-0"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <filter id="hero-paper-noise">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.8"
+              numOctaves="4"
+              stitchTiles="stitch"
+            />
+          </filter>
+          <rect width="100%" height="100%" filter="url(#hero-paper-noise)" />
+        </svg>
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-14 items-center">
-            {/* Foto de perfil con marco elegante (stagger-1) */}
-            <div className="md:col-span-5 flex justify-center order-1 md:order-2 animate-fade-in-up stagger-1">
-              <div className="relative group">
-                {/* Borde exterior decorativo editorial */}
-                <div className="absolute -inset-2.5 rounded-3xl border border-terracotta/30 pointer-events-none transition-transform duration-500 group-hover:scale-[1.02]" />
-                <div className="relative w-64 h-64 sm:w-72 sm:h-72 md:w-84 md:h-84 rounded-2xl overflow-hidden shadow-luxury bg-cream-200 border-2 border-white/80">
-                  <Image
-                    src={asesor.profile_photo_url || 'https://placehold.co/400x400/1e3a5f/ffffff?text=Sandra+Nino'}
-                    alt={asesor.full_name}
-                    fill
-                    sizes="(max-width: 768px) 256px, 340px"
-                    priority
-                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-12 items-center">
+            {/* Bloque de Identidad / Placeholder SN (Delay 0ms - primero en stagger) */}
+            <div className="md:col-span-5 flex justify-center order-1 md:order-2">
+              <FadeInUp duration={0.5} delay={0}>
+                <div className="relative">
+                  {/* Círculo orgánico terracota #C97B5A con opacidad 0.15 desplazado detrás */}
+                  <div
+                    className="absolute -bottom-6 -right-6 w-64 h-64 sm:w-72 sm:h-72 rounded-full bg-[#C97B5A] opacity-[0.15] pointer-events-none"
+                    aria-hidden="true"
                   />
+
+                  {/* // TODO: Reemplazar cuando lleguen las fotos reales */}
+                  <div className="relative w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 rounded-2xl overflow-hidden shadow-luxury bg-[#1e3a5f] border border-white/20 flex items-center justify-center select-none">
+                    {/* Patrón geométrico sutil: líneas finas en diagonal opacidad 0.05 */}
+                    <div
+                      className="absolute inset-0 opacity-[0.05] pointer-events-none"
+                      style={{
+                        backgroundImage:
+                          'repeating-linear-gradient(45deg, #ffffff 0, #ffffff 1px, transparent 0, transparent 14px)',
+                      }}
+                    />
+                    <span className="font-display text-[100px] sm:text-[120px] font-semibold text-white leading-none tracking-tight relative z-10">
+                      SN
+                    </span>
+                  </div>
                 </div>
-              </div>
+              </FadeInUp>
             </div>
 
             {/* Texto de presentación */}
             <div className="md:col-span-7 text-center md:text-left order-2 md:order-1">
-              {/* Título en mayúsculas espaciadas (stagger-2) */}
-              <div className="animate-fade-in-up stagger-2">
-                <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-[0.22em] bg-terracotta/10 text-terracotta-dark border border-terracotta/20 mb-6 font-sans">
-                  <Sparkles className="w-3.5 h-3.5 stroke-[1.75]" />
+              {/* Título y elementos decorativos (Delay 100ms) */}
+              <FadeInUp duration={0.5} delay={0.1}>
+                {/* Elemento decorativo: texto pequeño arriba + línea horizontal terracota de 40px */}
+                <div className="flex flex-col items-center md:items-start mb-5">
+                  <span className="text-[11px] font-body font-medium uppercase tracking-[0.22em] text-[#C97B5A] mb-2">
+                    — Desde 2014 —
+                  </span>
+                  <div className="w-[40px] h-[2px] bg-[#C97B5A]" />
+                </div>
+
+                {/* Badge con borde fino terracota en vez de fondo rosa */}
+                <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-[11px] font-body font-medium uppercase tracking-[0.2em] bg-transparent text-[#C97B5A] border border-[#C97B5A] mb-5">
                   Asesoría Inmobiliaria Exclusiva
                 </span>
-                
-                {/* Nombre con Playfair Display grande */}
-                <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl text-text-heading tracking-tight leading-[1.1] mb-6">
-                  Hola, soy <span className="text-brand font-normal italic">{asesor.full_name}</span>
+
+                {/* Nombre con Fraunces 600 */}
+                <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-semibold text-text-heading leading-[1.1] mb-5">
+                  Hola, soy <span className="text-brand italic font-medium">{asesor.full_name}</span>
                 </h1>
-              </div>
+              </FadeInUp>
 
-              {/* Subtítulo (stagger-3) */}
-              <p className="animate-fade-in-up stagger-3 text-base sm:text-lg text-stone-600 leading-relaxed max-w-xl mx-auto md:mx-0 font-sans font-normal">
-                {asesor.hero_text ||
-                  'Te acompaño en cada paso para encontrar el inmueble perfecto o vender tu propiedad con total confianza, seguridad jurídica y el mejor valor de mercado en Carabobo.'}
-              </p>
+              {/* Subtítulo en Sora 400 (Delay 200ms) */}
+              <FadeInUp duration={0.5} delay={0.2}>
+                <p className="text-base sm:text-lg text-stone-600 leading-relaxed max-w-xl mx-auto md:mx-0 font-body font-normal">
+                  {asesor.hero_text ||
+                    'Te acompaño en cada paso para encontrar el inmueble perfecto o vender tu propiedad con total confianza, seguridad jurídica y el mejor valor de mercado en Carabobo.'}
+                </p>
+              </FadeInUp>
 
-              {/* Botón Ver Inventario (stagger-4) */}
-              <div className="animate-fade-in-up stagger-4 mt-9 flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-                <Link
-                  href="/inventario"
-                  className="group inline-flex items-center justify-center px-7 py-4 rounded-xl bg-brand hover:bg-brand-darker text-white font-sans text-sm font-semibold tracking-wider uppercase shadow-luxury hover:shadow-luxury-hover hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 gap-3"
-                >
-                  <span>Ver Inventario</span>
-                  <ArrowRight className="w-4 h-4 stroke-[2] transition-transform duration-200 group-hover:translate-x-1" />
-                </Link>
-              </div>
+              {/* Botón Ver Inventario (Delay 300ms) */}
+              <FadeInUp duration={0.5} delay={0.3}>
+                <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                  <Link
+                    href="/inventario"
+                    className="group inline-flex items-center justify-center px-7 py-4 rounded-xl bg-brand hover:bg-brand-darker text-white font-body text-sm font-medium tracking-wider uppercase shadow-luxury hover:shadow-luxury-hover hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 gap-2.5"
+                  >
+                    <span>Ver Inventario</span>
+                    <ArrowRight size={20} strokeWidth={1.5} className="transition-transform duration-200 group-hover:translate-x-1" />
+                  </Link>
+                </div>
+              </FadeInUp>
             </div>
           </div>
         </div>
       </section>
 
       {/* Sección: ¿Qué puedo hacer por ti? */}
-      <section className="py-20 md:py-28 bg-cream">
+      <section className="py-16 md:py-24 bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="text-xs font-semibold uppercase tracking-[0.25em] text-terracotta block mb-2 font-sans">
+          <FadeInUp className="text-center max-w-2xl mx-auto mb-14">
+            <span className="text-xs font-body font-medium uppercase tracking-[0.25em] text-[#C97B5A] block mb-2">
               Servicios & Enfoque
             </span>
-            <h2 className="font-serif text-3xl sm:text-4xl text-text-heading tracking-tight">
+            <h2 className="font-display text-3xl sm:text-4xl font-semibold text-text-heading">
               ¿Qué puedo hacer por ti?
             </h2>
-            <div className="w-12 h-0.5 bg-terracotta/40 mx-auto mt-4 mb-4" />
-            <p className="text-stone-600 text-sm sm:text-base leading-relaxed font-sans max-w-lg mx-auto">
+            <div className="w-[40px] h-[2px] bg-[#C97B5A] mx-auto mt-4 mb-4" />
+            <p className="text-stone-600 text-sm sm:text-base leading-relaxed font-body max-w-lg mx-auto">
               Soluciones integrales diseñadas con rigor jurídico y adaptadas a tus metas inmobiliarias residenciales y comerciales.
             </p>
-          </div>
+          </FadeInUp>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Tarjeta 1 */}
-            <div className="group bg-white p-8 sm:p-9 rounded-2xl shadow-card hover:shadow-luxury-hover border border-stone-200/70 hover:border-brand/20 flex flex-col items-start transition-all duration-300 hover:-translate-y-1 animate-fade-in-up stagger-1">
-              <div className="w-13 h-13 p-3.5 rounded-xl bg-brand/5 text-brand flex items-center justify-center mb-6 group-hover:bg-brand group-hover:text-white transition-colors duration-300">
-                <Home className="w-6 h-6 stroke-[1.5]" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
+            {/* Tarjeta 1: Venta */}
+            <FadeInUp delay={0.1}>
+              <div className="group h-full bg-[#faf9f6] p-8 rounded-2xl shadow-card hover:shadow-luxury-hover border border-stone-200/80 hover:border-[#C97B5A]/40 flex flex-col items-start transition-all duration-300 hover:-translate-y-1">
+                <div className="w-12 h-12 rounded-xl bg-brand/5 text-brand flex items-center justify-center mb-6 group-hover:bg-brand group-hover:text-white transition-colors duration-300">
+                  <Tag size={22} strokeWidth={1.5} />
+                </div>
+                <h3 className="font-display text-xl font-semibold text-text-heading mb-3">
+                  Venta de Inmuebles
+                </h3>
+                <p className="text-sm text-stone-600 leading-relaxed font-body">
+                  Promoción estratégica de tu propiedad con alcance efectivo a compradores calificados, asegurando un precio justo y un cierre transparente.
+                </p>
               </div>
-              <h3 className="font-serif text-xl text-text-heading mb-3 tracking-tight">
-                Venta de Inmuebles
-              </h3>
-              <p className="text-sm text-stone-600 leading-relaxed font-sans">
-                Promoción estratégica de tu propiedad con alcance efectivo a compradores calificados, asegurando un precio justo y un cierre transparente.
-              </p>
-            </div>
+            </FadeInUp>
 
-            {/* Tarjeta 2 */}
-            <div className="group bg-white p-8 sm:p-9 rounded-2xl shadow-card hover:shadow-luxury-hover border border-stone-200/70 hover:border-brand/20 flex flex-col items-start transition-all duration-300 hover:-translate-y-1 animate-fade-in-up stagger-2">
-              <div className="w-13 h-13 p-3.5 rounded-xl bg-brand/5 text-brand flex items-center justify-center mb-6 group-hover:bg-brand group-hover:text-white transition-colors duration-300">
-                <Key className="w-6 h-6 stroke-[1.5]" />
+            {/* Tarjeta 2: Alquiler */}
+            <FadeInUp delay={0.2}>
+              <div className="group h-full bg-[#faf9f6] p-8 rounded-2xl shadow-card hover:shadow-luxury-hover border border-stone-200/80 hover:border-[#C97B5A]/40 flex flex-col items-start transition-all duration-300 hover:-translate-y-1">
+                <div className="w-12 h-12 rounded-xl bg-brand/5 text-brand flex items-center justify-center mb-6 group-hover:bg-brand group-hover:text-white transition-colors duration-300">
+                  <KeyRound size={22} strokeWidth={1.5} />
+                </div>
+                <h3 className="font-display text-xl font-semibold text-text-heading mb-3">
+                  Alquileres Seguros
+                </h3>
+                <p className="text-sm text-stone-600 leading-relaxed font-body">
+                  Gestión segura de arrendamientos residenciales, comerciales e industriales, verificando exhaustivamente perfiles para tu absoluta tranquilidad.
+                </p>
               </div>
-              <h3 className="font-serif text-xl text-text-heading mb-3 tracking-tight">
-                Alquileres Seguros
-              </h3>
-              <p className="text-sm text-stone-600 leading-relaxed font-sans">
-                Gestión segura de arrendamientos residenciales, comerciales e industriales, verificando exhaustivamente perfiles para tu absoluta tranquilidad.
-              </p>
-            </div>
+            </FadeInUp>
 
-            {/* Tarjeta 3 */}
-            <div className="group bg-white p-8 sm:p-9 rounded-2xl shadow-card hover:shadow-luxury-hover border border-stone-200/70 hover:border-brand/20 flex flex-col items-start transition-all duration-300 hover:-translate-y-1 animate-fade-in-up stagger-3">
-              <div className="w-13 h-13 p-3.5 rounded-xl bg-brand/5 text-brand flex items-center justify-center mb-6 group-hover:bg-brand group-hover:text-white transition-colors duration-300">
-                <ShieldCheck className="w-6 h-6 stroke-[1.5]" />
+            {/* Tarjeta 3: Asesoría */}
+            <FadeInUp delay={0.3}>
+              <div className="group h-full bg-[#faf9f6] p-8 rounded-2xl shadow-card hover:shadow-luxury-hover border border-stone-200/80 hover:border-[#C97B5A]/40 flex flex-col items-start transition-all duration-300 hover:-translate-y-1">
+                <div className="w-12 h-12 rounded-xl bg-brand/5 text-brand flex items-center justify-center mb-6 group-hover:bg-brand group-hover:text-white transition-colors duration-300">
+                  <Home size={22} strokeWidth={1.5} />
+                </div>
+                <h3 className="font-display text-xl font-semibold text-text-heading mb-3">
+                  Asesoría Personalizada
+                </h3>
+                <p className="text-sm text-stone-600 leading-relaxed font-body">
+                  Acompañamiento legal y comercial desde la primera visita hasta la firma final ante el registro inmobiliario correspondiente.
+                </p>
               </div>
-              <h3 className="font-serif text-xl text-text-heading mb-3 tracking-tight">
-                Asesoría Personalizada
-              </h3>
-              <p className="text-sm text-stone-600 leading-relaxed font-sans">
-                Acompañamiento legal y comercial desde la primera visita hasta la firma final ante el registro inmobiliario correspondiente.
-              </p>
-            </div>
+            </FadeInUp>
           </div>
         </div>
       </section>
 
       {/* Sección: ¿Por qué trabajar conmigo? */}
-      <section className="py-20 md:py-28 bg-cream-50 border-t border-stone-200/60">
+      <section className="py-16 md:py-24 bg-[#f5f1ea]/60 border-t border-stone-200/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="text-xs font-semibold uppercase tracking-[0.25em] text-terracotta block mb-2 font-sans">
+          <FadeInUp className="text-center max-w-2xl mx-auto mb-14">
+            <span className="text-xs font-body font-medium uppercase tracking-[0.25em] text-[#C97B5A] block mb-2">
               Diferenciales
             </span>
-            <h2 className="font-serif text-3xl sm:text-4xl text-text-heading tracking-tight">
+            <h2 className="font-display text-3xl sm:text-4xl font-semibold text-text-heading">
               ¿Por qué trabajar conmigo?
             </h2>
-            <div className="w-12 h-0.5 bg-terracotta/40 mx-auto mt-4 mb-4" />
-            <p className="text-stone-600 text-sm sm:text-base leading-relaxed font-sans max-w-lg mx-auto">
+            <div className="w-[40px] h-[2px] bg-[#C97B5A] mx-auto mt-4 mb-4" />
+            <p className="text-stone-600 text-sm sm:text-base leading-relaxed font-body max-w-lg mx-auto">
               Compromiso real, cercanía humana y resultados garantizados en cada operación inmobiliaria.
             </p>
-          </div>
+          </FadeInUp>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {/* Beneficio 1 */}
-            <div className="flex items-start gap-4.5 p-6 rounded-2xl bg-white border border-stone-200/70 shadow-card hover:shadow-luxury hover:-translate-y-0.5 transition-all duration-200 animate-fade-in-up stagger-1">
-              <div className="w-9 h-9 rounded-full bg-terracotta/10 text-terracotta flex items-center justify-center shrink-0 mt-0.5">
-                <CheckCircle2 className="w-5 h-5 stroke-[2]" />
-              </div>
-              <div>
-                <h4 className="font-serif text-base font-semibold text-text-heading">
-                  Atención 100% personalizada
-                </h4>
-                <p className="text-sm text-stone-600 mt-1 leading-relaxed font-sans">
-                  Trato directo conmigo de principio a fin, sin intermediarios ni desvíos que dilaten tu tiempo.
-                </p>
-              </div>
-            </div>
-
-            {/* Beneficio 2 */}
-            <div className="flex items-start gap-4.5 p-6 rounded-2xl bg-white border border-stone-200/70 shadow-card hover:shadow-luxury hover:-translate-y-0.5 transition-all duration-200 animate-fade-in-up stagger-2">
-              <div className="w-9 h-9 rounded-full bg-terracotta/10 text-terracotta flex items-center justify-center shrink-0 mt-0.5">
-                <CheckCircle2 className="w-5 h-5 stroke-[2]" />
-              </div>
-              <div>
-                <h4 className="font-serif text-base font-semibold text-text-heading">
-                  Seguridad y respaldo jurídico
-                </h4>
-                <p className="text-sm text-stone-600 mt-1 leading-relaxed font-sans">
-                  Revisión minuciosa de documentación legal y solvencias antes de comprometer cualquier firma.
-                </p>
-              </div>
-            </div>
-
-            {/* Beneficio 3 */}
-            <div className="flex items-start gap-4.5 p-6 rounded-2xl bg-white border border-stone-200/70 shadow-card hover:shadow-luxury hover:-translate-y-0.5 transition-all duration-200 animate-fade-in-up stagger-3">
-              <div className="w-9 h-9 rounded-full bg-terracotta/10 text-terracotta flex items-center justify-center shrink-0 mt-0.5">
-                <CheckCircle2 className="w-5 h-5 stroke-[2]" />
-              </div>
-              <div>
-                <h4 className="font-serif text-base font-semibold text-text-heading">
-                  Conocimiento profundo del mercado
-                </h4>
-                <p className="text-sm text-stone-600 mt-1 leading-relaxed font-sans">
-                  Valoración certera de inmuebles en los municipios más demandados de Carabobo (San Diego, Valencia, Naguanagua, Guacara).
-                </p>
-              </div>
-            </div>
-
-            {/* Beneficio 4 */}
-            <div className="flex items-start gap-4.5 p-6 rounded-2xl bg-white border border-stone-200/70 shadow-card hover:shadow-luxury hover:-translate-y-0.5 transition-all duration-200 animate-fade-in-up stagger-4">
-              <div className="w-9 h-9 rounded-full bg-terracotta/10 text-terracotta flex items-center justify-center shrink-0 mt-0.5">
-                <CheckCircle2 className="w-5 h-5 stroke-[2]" />
-              </div>
-              <div>
-                <h4 className="font-serif text-base font-semibold text-text-heading">
-                  Cierre ágil por WhatsApp
-                </h4>
-                <p className="text-sm text-stone-600 mt-1 leading-relaxed font-sans">
-                  Comunicación rápida, directa y transparente por el canal que tú prefieres, sin trámites burocráticos innecesarios.
-                </p>
-              </div>
-            </div>
+            {[
+              {
+                title: 'Atención 100% personalizada',
+                desc: 'Trato directo conmigo de principio a fin, sin intermediarios ni desvíos que dilaten tu tiempo.',
+              },
+              {
+                title: 'Seguridad y respaldo jurídico',
+                desc: 'Revisión minuciosa de documentación legal y solvencias antes de comprometer cualquier firma.',
+              },
+              {
+                title: 'Conocimiento profundo del mercado',
+                desc: 'Valoración certera de inmuebles en los municipios más demandados de Carabobo.',
+              },
+              {
+                title: 'Cierre ágil por WhatsApp',
+                desc: 'Comunicación rápida, directa y transparente por el canal que tú prefieres.',
+              },
+            ].map((item, idx) => (
+              <FadeInUp key={item.title} delay={0.1 * (idx + 1)}>
+                <div className="flex items-start gap-4 p-6 rounded-2xl bg-[#faf9f6] border border-stone-200/80 shadow-card hover:shadow-luxury hover:-translate-y-0.5 transition-all duration-200 h-full">
+                  <div className="w-8 h-8 rounded-full border border-[#C97B5A]/40 bg-[#C97B5A]/10 text-[#C97B5A] flex items-center justify-center shrink-0 mt-0.5">
+                    <Check size={16} strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-base font-semibold text-text-heading">
+                      {item.title}
+                    </h3>
+                    <p className="text-sm text-stone-600 mt-1 leading-relaxed font-body">
+                      {item.desc}
+                    </p>
+                  </div>
+                </div>
+              </FadeInUp>
+            ))}
           </div>
         </div>
       </section>
 
       {/* CTA Final */}
-      <section className="py-20 md:py-28 bg-gradient-to-b from-brand to-brand-darker text-cream-50 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#C97B5A_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
-        
+      <section className="py-16 md:py-24 bg-gradient-to-b from-brand to-brand-darker text-cream-50 relative overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-[0.04] pointer-events-none"
+          style={{
+            backgroundImage:
+              'repeating-linear-gradient(45deg, #ffffff 0, #ffffff 1px, transparent 0, transparent 16px)',
+          }}
+        />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center relative z-10">
-          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-terracotta-light block mb-3 font-sans">
-            Comienza Hoy
-          </span>
-          <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl text-white tracking-tight leading-tight">
-            ¿Listo para dar el siguiente paso?
-          </h2>
-          <p className="mt-5 text-base sm:text-lg text-stone-200 max-w-xl mx-auto leading-relaxed font-sans font-light">
-            Explora las propiedades disponibles en mi catálogo exclusivo o contáctame directamente para una búsqueda personalizada.
-          </p>
-          <div className="mt-10">
-            <Link
-              href="/inventario"
-              className="group inline-flex items-center justify-center px-8 py-4 rounded-xl bg-cream text-brand hover:bg-white font-sans text-sm font-semibold tracking-wider uppercase shadow-luxury hover:shadow-luxury-hover hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 gap-3"
-            >
-              <span>Ver Inventario</span>
-              <ArrowRight className="w-4 h-4 text-brand stroke-[2] transition-transform duration-200 group-hover:translate-x-1" />
-            </Link>
-          </div>
+          <FadeInUp>
+            <span className="text-xs font-body font-medium uppercase tracking-[0.25em] text-[#C97B5A] block mb-3">
+              Comienza Hoy
+            </span>
+            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-semibold text-white leading-tight">
+              ¿Listo para dar el siguiente paso?
+            </h2>
+            <p className="mt-4 text-base sm:text-lg text-stone-200 max-w-xl mx-auto leading-relaxed font-body font-normal">
+              Explora las propiedades disponibles en mi catálogo exclusivo o contáctame directamente para una búsqueda personalizada.
+            </p>
+            <div className="mt-9">
+              <Link
+                href="/inventario"
+                className="group inline-flex items-center justify-center px-8 py-4 rounded-xl bg-[#faf9f6] text-brand hover:bg-white font-body text-sm font-medium tracking-wider uppercase shadow-luxury hover:shadow-luxury-hover hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 gap-2.5"
+              >
+                <span>Ver Inventario</span>
+                <ArrowRight size={20} strokeWidth={1.5} className="text-brand transition-transform duration-200 group-hover:translate-x-1" />
+              </Link>
+            </div>
+          </FadeInUp>
         </div>
       </section>
 
       {/* Footer Minimalista */}
       <footer className="bg-brand-darker text-stone-400 py-10 border-t border-brand/30">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6 text-xs font-sans">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6 text-xs font-body">
           <div className="text-center sm:text-left">
-            <p className="font-serif text-stone-200 text-sm tracking-wide">Sandra Nino</p>
+            <p className="font-display text-stone-200 text-sm font-medium">Sandra Nino</p>
             <p className="text-stone-400 text-[11px] mt-0.5">Asesora Inmobiliaria • Carabobo, Venezuela</p>
           </div>
           <div className="flex items-center gap-6">
             <p className="text-stone-500 text-[11px]">© {new Date().getFullYear()} Todos los derechos reservados.</p>
             <Link
               href="/login"
-              className="text-stone-400 hover:text-terracotta-light transition-colors text-xs font-medium tracking-wide underline-offset-4 hover:underline"
+              className="text-stone-400 hover:text-[#C97B5A] transition-colors text-xs font-medium tracking-wide underline-offset-4 hover:underline"
             >
               Acceso Asesores
             </Link>

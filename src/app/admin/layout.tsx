@@ -62,7 +62,7 @@ export default function AdminLayout({
   }, [handleInactivityLogout]);
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col font-sans selection:bg-terracotta/20 selection:text-text-heading">
+    <div className="min-h-screen bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] flex flex-col font-body selection:bg-terracotta/20 selection:text-text-heading">
       {/* Sidebar fijo */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 

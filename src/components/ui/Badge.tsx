@@ -56,19 +56,19 @@ export const Badge: React.FC<BadgeProps> = ({
   }
 
   const variantStyles = {
-    default: 'bg-brand/10 text-brand-dark border border-brand/20',
-    publicado: 'bg-emerald-50 text-emerald-800 border border-emerald-200/70',
-    borrador: 'bg-amber-50 text-amber-800 border border-amber-200/70',
-    pausado: 'bg-stone-100 text-stone-700 border border-stone-200',
-    vendido: 'bg-terracotta/10 text-terracotta-dark border border-terracotta/30',
-    venta: 'bg-brand/10 text-brand-dark border border-brand/20',
-    alquiler: 'bg-terracotta/10 text-terracotta-dark border border-terracotta/30',
-    gray: 'bg-stone-100 text-stone-600 border border-stone-200',
+    default: 'bg-[#edf3f9] text-[#1e3a5f] border border-[#d4e2f0]',
+    publicado: 'bg-[#edf7ee] text-[#226738] border border-[#cbe8cf]',
+    borrador: 'bg-[#fef7eb] text-[#8f5b12] border border-[#f9dfb5]',
+    pausado: 'bg-[#f3f0e8] text-[#555047] border border-[#ded7c8]',
+    vendido: 'bg-[#f9ede7] text-[#a85d3d] border border-[#f0d4c7]',
+    venta: 'bg-[#edf3f9] text-[#1e3a5f] border border-[#d4e2f0]',
+    alquiler: 'bg-[#f9ede7] text-[#a85d3d] border border-[#f0d4c7]',
+    gray: 'bg-[#f3f0e8] text-[#555047] border border-[#ded7c8]',
   };
 
   const sizeStyles = {
-    sm: 'text-[10px] px-2 py-0.5 font-semibold tracking-wider uppercase',
-    md: 'text-[11px] px-2.5 py-1 font-semibold tracking-widest uppercase',
+    sm: 'text-[10px] px-2.5 py-0.5 font-medium tracking-wider uppercase',
+    md: 'text-[11px] px-3 py-1 font-medium tracking-wider uppercase',
   };
 
   const content = children || status || operation;
@@ -76,7 +76,7 @@ export const Badge: React.FC<BadgeProps> = ({
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full font-sans transition-colors',
+        'inline-flex items-center rounded-full font-body transition-colors',
         variantStyles[computedVariant as keyof typeof variantStyles] || variantStyles.default,
         sizeStyles[size],
         className

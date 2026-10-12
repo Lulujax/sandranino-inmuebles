@@ -9,8 +9,10 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        serif: ["var(--font-playfair)", "Playfair Display", "Georgia", "serif"],
-        sans: ["var(--font-manrope)", "Manrope", "sans-serif"],
+        display: ["var(--font-display)", "Fraunces", "Georgia", "serif"],
+        body: ["var(--font-body)", "Sora", "sans-serif"],
+        serif: ["var(--font-display)", "Fraunces", "Georgia", "serif"],
+        sans: ["var(--font-body)", "Sora", "sans-serif"],
       },
       colors: {
         brand: {
@@ -30,8 +32,9 @@ const config: Config = {
           DEFAULT: "#faf9f6",
           50: "#fdfdfb",
           100: "#faf9f6",
-          200: "#f4f1ea",
-          300: "#e9e4d7",
+          200: "#f5f1ea",
+          300: "#ebe5dc",
+          dark: "#f5f1ea",
         },
         text: {
           heading: "#1a1a1a",

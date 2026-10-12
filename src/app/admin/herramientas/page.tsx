@@ -4,9 +4,9 @@ import React, { useState } from 'react';
 import {
   FileSpreadsheet,
   FileText,
+  Download,
   Eye,
   TrendingUp,
-  Info,
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -16,6 +16,7 @@ import { getPropertyMainArea } from '@/lib/utils';
 import { StatCard } from '@/components/admin/StatCard';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
+import { FadeInUp } from '@/components/ui/FadeInUp';
 
 export default function HerramientasPage() {
   const { toast } = useToast();
@@ -120,7 +121,7 @@ export default function HerramientasPage() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    toast(`¡Excel ${filename} descargado con éxito (${filtered.length} inmuebles)!`, 'success');
+    toast(`Excel ${filename} descargado con éxito (${filtered.length} inmuebles)`, 'success');
   };
 
   // EXPORTACIÓN PDF (Hoja Carta 'letter', jspdf + jspdf-autotable, misma estructura sin fotos)
@@ -223,41 +224,53 @@ export default function HerramientasPage() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      toast(`¡PDF ${filename} en Hoja Carta descargado (${filtered.length} inmuebles)!`, 'success');
+      toast(`PDF ${filename} en Hoja Carta descargado (${filtered.length} inmuebles)`, 'success');
     } catch {
-      toast('⚠️ Ocurrió un error al generar el archivo PDF', 'error');
+      toast('Ocurrió un error al generar el archivo PDF', 'error');
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 font-sans animate-fade-in">
-      <div>
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-terracotta block mb-1">
-          Exportación y Métricas
+    <div className="max-w-4xl mx-auto space-y-8 font-body">
+      <FadeInUp>
+        <span className="text-[11px] font-medium uppercase tracking-[0.22em] text-[#C97B5A] block mb-1">
+          EXPORTACIÓN Y MÉTRICAS
         </span>
-        <h2 className="font-serif text-2xl sm:text-3xl text-text-heading tracking-tight">Herramientas & Estadísticas</h2>
-        <p className="text-xs sm:text-sm text-stone-500 mt-1">
+        <h2 className="font-display text-2xl sm:text-3xl font-semibold text-text-heading tracking-tight">
+          Herramientas & Estadísticas
+        </h2>
+        <p className="text-xs sm:text-sm text-stone-600 mt-1">
           Descarga informes profesionales de tus inmuebles y supervisa el rendimiento de visualizaciones.
         </p>
-      </div>
+      </FadeInUp>
 
       {/* Sección 1: Exportar Inventario */}
-      <div className="bg-white p-6 sm:p-8 rounded-2xl border border-stone-200/80 shadow-card space-y-6">
-        <div>
-          <h3 className="font-serif text-xl text-text-heading">Exportar Inventario</h3>
-          <p className="text-xs sm:text-sm text-stone-500 mt-1">
-            Genera un informe en formato Excel o PDF (Hoja Carta) listo para imprimir o enviar a clientes.
-          </p>
+      <FadeInUp delay={0.06} className="bg-[#faf9f6] p-6 sm:p-8 rounded-2xl border border-stone-200/80 shadow-card space-y-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <span className="text-[11px] font-medium uppercase tracking-[0.22em] text-[#C97B5A] block mb-0.5">
+              DOCUMENTOS
+            </span>
+            <h3 className="font-display text-xl font-semibold text-text-heading">
+              Exportar Inventario
+            </h3>
+            <p className="text-xs sm:text-sm text-stone-600 mt-1">
+              Genera un informe en formato Excel o PDF (Hoja Carta) listo para imprimir o enviar a clientes.
+            </p>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-[#f9ede7] text-[#C97B5A] flex items-center justify-center shrink-0 border border-[#C97B5A]/20">
+            <Download size={18} strokeWidth={1.5} />
+          </div>
         </div>
 
         <div className="max-w-md">
-          <label className="block text-xs font-semibold uppercase tracking-wider text-stone-700 mb-1.5 font-sans">
+          <label className="block text-xs font-medium uppercase tracking-wider text-stone-700 mb-1.5 font-body">
             ¿Qué deseas exportar?
           </label>
           <select
             value={exportOption}
             onChange={(e) => setExportOption(e.target.value)}
-            className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-text-heading focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs transition-all cursor-pointer font-sans"
+            className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-text-heading focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs transition-all cursor-pointer font-body"
           >
             <option value="Todos">Todos</option>
             <option value="Solo venta">Solo venta</option>
@@ -276,16 +289,16 @@ export default function HerramientasPage() {
           </select>
         </div>
 
-        {/* 2 Botones: Excel y PDF con iconos animados en hover */}
+        {/* 2 Botones: Excel y PDF con iconos strokeWidth 1.5 */}
         <div className="flex flex-wrap gap-4 pt-2">
           {/* Botón Excel */}
           <Button
             type="button"
             variant="success"
             onClick={handleExportExcel}
-            className="group gap-2.5 px-6 py-3.5 font-semibold text-xs uppercase tracking-wider shadow-sm hover:shadow-luxury hover:-translate-y-0.5"
+            className="group gap-2.5 px-6 py-3.5 font-medium text-xs uppercase tracking-wider shadow-sm hover:shadow-luxury hover:-translate-y-0.5"
           >
-            <FileSpreadsheet className="w-4 h-4 stroke-[2] transition-transform duration-200 group-hover:scale-110" />
+            <FileSpreadsheet size={16} strokeWidth={1.5} className="transition-transform duration-200 group-hover:scale-110" />
             <span>Descargar Excel</span>
           </Button>
 
@@ -294,19 +307,24 @@ export default function HerramientasPage() {
             type="button"
             variant="terracotta"
             onClick={handleExportPDF}
-            className="group gap-2.5 px-6 py-3.5 font-semibold text-xs uppercase tracking-wider shadow-sm hover:shadow-luxury hover:-translate-y-0.5"
+            className="group gap-2.5 px-6 py-3.5 font-medium text-xs uppercase tracking-wider shadow-sm hover:shadow-luxury hover:-translate-y-0.5"
           >
-            <FileText className="w-4 h-4 stroke-[2] transition-transform duration-200 group-hover:scale-110" />
+            <FileText size={16} strokeWidth={1.5} className="transition-transform duration-200 group-hover:scale-110" />
             <span>Descargar PDF</span>
           </Button>
         </div>
-      </div>
+      </FadeInUp>
 
       {/* Sección 2: Estadísticas con AnimatedCounter */}
-      <div className="bg-white p-6 sm:p-8 rounded-2xl border border-stone-200/80 shadow-card space-y-6">
+      <FadeInUp delay={0.12} className="bg-[#faf9f6] p-6 sm:p-8 rounded-2xl border border-stone-200/80 shadow-card space-y-6">
         <div>
-          <h3 className="font-serif text-xl text-text-heading">Métricas de Alcance</h3>
-          <p className="text-xs sm:text-sm text-stone-500 mt-1">
+          <span className="text-[11px] font-medium uppercase tracking-[0.22em] text-[#C97B5A] block mb-0.5">
+            POPULARIDAD
+          </span>
+          <h3 className="font-display text-xl font-semibold text-text-heading">
+            Métricas de Alcance
+          </h3>
+          <p className="text-xs sm:text-sm text-stone-600 mt-1">
             Visualizaciones reales registradas a través de tu catálogo inmobiliario.
           </p>
         </div>
@@ -317,8 +335,10 @@ export default function HerramientasPage() {
             value={totalVisits}
             subtitle="Acumulado histórico de tu catálogo"
             icon={Eye}
-            iconBg="bg-brand/5"
-            iconColor="text-brand"
+            iconBg="bg-[#1e3a5f]/8"
+            iconColor="text-[#1e3a5f]"
+            topBorderColor="border-t-[#1e3a5f]"
+            className="bg-white"
           />
 
           <StatCard
@@ -326,19 +346,21 @@ export default function HerramientasPage() {
             value={currentMonthVisits}
             subtitle="Últimos 30 días registrados"
             icon={TrendingUp}
-            iconBg="bg-emerald-50"
+            iconBg="bg-[#edf7ee]"
             iconColor="text-emerald-700"
+            topBorderColor="border-t-emerald-600"
+            className="bg-white"
           />
         </div>
 
         {/* Nota sobre estadísticas por inmueble */}
-        <div className="p-4.5 rounded-xl bg-cream-50 border border-stone-200/70 flex items-start gap-3 text-xs text-stone-600 leading-relaxed font-sans">
-          <Info className="w-4 h-4 text-terracotta shrink-0 mt-0.5 stroke-[1.75]" />
+        <div className="p-4.5 rounded-xl bg-white border border-stone-200/70 flex items-start gap-3 text-xs text-stone-600 leading-relaxed font-body">
+          <Eye size={16} strokeWidth={1.5} className="text-[#C97B5A] shrink-0 mt-0.5" />
           <p>
             Cada vez que un cliente abre la ficha técnica de una propiedad, se registra una visita única. Puedes consultar el número detallado de visitas de cada inmueble específico en la tabla de <strong>Mis Inmuebles</strong> y en tu <strong>Dashboard</strong>.
           </p>
         </div>
-      </div>
+      </FadeInUp>
     </div>
   );
 }

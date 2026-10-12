@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useMotionValue, animate, useReducedMotion } from 'framer-motion';
 
 interface AnimatedCounterProps {
   value: number;
@@ -12,44 +13,34 @@ interface AnimatedCounterProps {
 
 export const AnimatedCounter: React.FC<AnimatedCounterProps> = ({
   value,
-  duration = 900,
+  duration = 0.9,
   prefix = '',
   suffix = '',
   className = '',
 }) => {
-  const [displayValue, setDisplayValue] = useState(0);
+  const shouldReduceMotion = useReducedMotion();
+  const count = useMotionValue(0);
+  const [displayValue, setDisplayValue] = useState(value);
 
   useEffect(() => {
-    // If reduced motion is requested, render immediately
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (shouldReduceMotion) {
       setDisplayValue(value);
       return;
     }
 
-    let startTimestamp: number | null = null;
-    const startValue = 0;
-    let animationFrameId: number;
+    // Normalizar duración si se pasó en ms (> 10) a segundos
+    const durationInSeconds = duration > 10 ? duration / 1000 : duration;
 
-    const step = (timestamp: number) => {
-      if (!startTimestamp) startTimestamp = timestamp;
-      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      
-      // Easing: easeOutCubic: 1 - Math.pow(1 - progress, 3)
-      const easeProgress = 1 - Math.pow(1 - progress, 3);
-      const current = Math.floor(startValue + (value - startValue) * easeProgress);
-      setDisplayValue(current);
+    const controls = animate(count, value, {
+      duration: durationInSeconds,
+      ease: [0.16, 1, 0.3, 1],
+      onUpdate: (latest) => {
+        setDisplayValue(Math.round(latest));
+      },
+    });
 
-      if (progress < 1) {
-        animationFrameId = requestAnimationFrame(step);
-      } else {
-        setDisplayValue(value);
-      }
-    };
-
-    animationFrameId = requestAnimationFrame(step);
-
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [value, duration]);
+    return () => controls.stop();
+  }, [value, duration, count, shouldReduceMotion]);
 
   return (
     <span className={className}>
@@ -59,4 +50,3 @@ export const AnimatedCounter: React.FC<AnimatedCounterProps> = ({
     </span>
   );
 };
-

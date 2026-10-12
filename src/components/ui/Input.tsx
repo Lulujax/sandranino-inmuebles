@@ -13,10 +13,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
 
     return (
-      <div className="w-full">
+      <div className="w-full font-body">
         {label && (
           <div className="flex justify-between items-center mb-1.5">
-            <label htmlFor={inputId} className="block text-xs font-semibold uppercase tracking-wider text-stone-700 font-sans">
+            <label htmlFor={inputId} className="block text-xs font-medium uppercase tracking-wider text-stone-700 font-body">
               {label}
             </label>
             {characterCount && (
@@ -24,7 +24,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                 className={cn(
                   'text-[11px] font-mono',
                   characterCount.current > characterCount.max
-                    ? 'text-rose-600 font-bold'
+                    ? 'text-rose-600 font-semibold'
                     : 'text-stone-400'
                 )}
               >
@@ -37,7 +37,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           id={inputId}
           className={cn(
-            'w-full px-3.5 py-2.5 bg-white border rounded-lg text-sm text-text-heading placeholder-stone-400 font-sans',
+            'w-full px-3.5 py-2.5 bg-white border rounded-lg text-sm text-text-heading placeholder-stone-400 font-body',
             'transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs',
             error
               ? 'border-rose-400 focus:ring-rose-200 focus:border-rose-500'
@@ -46,8 +46,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
           {...props}
         />
-        {error && <p className="mt-1 text-xs text-rose-600 font-sans">{error}</p>}
-        {!error && helperText && <p className="mt-1 text-xs text-stone-500 font-sans">{helperText}</p>}
+        {error && <p className="mt-1 text-xs text-rose-600 font-body">{error}</p>}
+        {!error && helperText && <p className="mt-1 text-xs text-stone-500 font-body">{helperText}</p>}
       </div>
     );
   }
