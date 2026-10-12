@@ -9,11 +9,15 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "images.unsplash.com",
+        hostname: "*.supabase.co",
       },
       {
         protocol: "https",
         hostname: "**.supabase.co",
+      },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
       },
     ],
     dangerouslyAllowSVG: true,
@@ -21,4 +25,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-

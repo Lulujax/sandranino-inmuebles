@@ -12,6 +12,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { MOCK_PROPERTIES } from '@/data/mock-properties';
 import { Inmueble } from '@/lib/types';
+import { getPropertyMainArea } from '@/lib/utils';
 import { StatCard } from '@/components/admin/StatCard';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
@@ -60,74 +61,54 @@ export default function HerramientasPage() {
     });
   };
 
-  // Función para escapar celdas CSV
-  const escapeCsv = (val: unknown): string => {
-    if (val === undefined || val === null || val === '') return '""';
-    const str = String(val).replace(/"/g, '""');
-    return `"${str}"`;
+  // Escapar celda CSV solo si contiene comas, comillas o saltos de línea (igual al formato enviado)
+  const formatCsvValue = (val: unknown): string => {
+    if (val === undefined || val === null) return '';
+    const str = String(val);
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
   };
 
-  // EXPORTACIÓN EXCEL (CSV con UTF-8 BOM, sin fotos, metadata completa)
+  // EXPORTACIÓN EXCEL (Estructura exacta solicitada + UTF-8 BOM \uFEFF + sin fotos)
   const handleExportExcel = () => {
     const filtered = getFilteredProperties(exportOption);
-    const dateStr = new Date().toLocaleDateString('es-VE');
     const slug = exportOption.toLowerCase().replace(/\s+/g, '_');
-    const filename = `inmuebles_sandra_nino_${slug}.csv`;
+    const filename = `inventario_sandra_nino_${slug}.csv`;
+
+    const headers = [
+      'N°',
+      'Tipo de Inmueble',
+      'Venta o Alquiler',
+      'Ubicacion',
+      'metros',
+      'Precio de Venta o Canon',
+      'Asesor o Referencia',
+    ];
 
     const rows: string[] = [];
-    // Fila 1: Título con nombre y filtro
-    rows.push(`"Inmuebles Sandra Nino — Filtro: ${exportOption}"`);
-    // Fila 2: Fecha
-    rows.push(`"Fecha: ${dateStr}"`);
-    // Fila 3: Vacía
-    rows.push('');
-    // Fila 4: Encabezados de columna
-    const headers = [
-      'Título',
-      'Operación',
-      'Tipo',
-      'Precio USD',
-      'Estado',
-      'Ciudad/Municipio',
-      'Sector',
-      'Habitaciones',
-      'Baños',
-      'Estacionamientos',
-      'Área construida (m²)',
-      'Área terreno (m²)',
-      'Área total (m²)',
-      'Año',
-      'Código interno',
-      'Estado publicación',
-      'Fecha de publicación',
-    ];
-    rows.push(headers.map(escapeCsv).join(','));
+    rows.push(headers.join(','));
 
-    // Filas 5+: Datos (sin URLs ni imágenes)
-    filtered.forEach((p) => {
-      const dataRow = [
-        p.title,
-        p.operation,
+    filtered.forEach((p, idx) => {
+      const ubicacion = p.sector ? `${p.sector}, ${p.city}` : p.city;
+      const metros = getPropertyMainArea(p) ?? p.built_area ?? p.total_area ?? p.land_area ?? 0;
+      const referencia = p.internal_code || 'Sandra Niño';
+
+      const row = [
+        idx + 1,
         p.type,
+        p.operation,
+        ubicacion,
+        metros,
         p.price,
-        p.state,
-        p.city,
-        p.sector || '-',
-        p.bedrooms ?? '-',
-        p.bathrooms ?? '-',
-        p.parking ?? '-',
-        p.built_area ?? '-',
-        p.land_area ?? '-',
-        p.total_area ?? '-',
-        p.year ?? '-',
-        p.internal_code || '-',
-        p.status,
-        new Date(p.created_at).toLocaleDateString('es-VE'),
+        referencia,
       ];
-      rows.push(dataRow.map(escapeCsv).join(','));
+
+      rows.push(row.map(formatCsvValue).join(','));
     });
 
-    // Añadir BOM \uFEFF para garantizar UTF-8 en Excel
+    // Anteponer BOM \uFEFF para encoding UTF-8 perfecto en Excel
     const csvContent = '\uFEFF' + rows.join('\r\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -139,113 +120,110 @@ export default function HerramientasPage() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    toast(`¡Archivo ${filename} descargado con éxito (${filtered.length} inmuebles)!`, 'success');
+    toast(`¡Excel ${filename} descargado con éxito (${filtered.length} inmuebles)!`, 'success');
   };
 
-  // EXPORTACIÓN PDF (jspdf + jspdf-autotable, sin fotos, tabla estilizada)
+  // EXPORTACIÓN PDF (Hoja Carta 'letter', jspdf + jspdf-autotable, misma estructura sin fotos)
   const handleExportPDF = () => {
     try {
       const filtered = getFilteredProperties(exportOption);
       const dateStr = new Date().toLocaleDateString('es-VE');
       const slug = exportOption.toLowerCase().replace(/\s+/g, '_');
-      const filename = `inmuebles_sandra_nino_${slug}.pdf`;
+      const filename = `inventario_sandra_nino_${slug}.pdf`;
 
-      // Crear documento PDF en formato apaisado (Landscape A4) para dar cabida a la metadata
+      // Hoja Carta ('letter')
       const doc = new jsPDF({
-        orientation: 'landscape',
+        orientation: 'portrait',
         unit: 'mm',
-        format: 'a4',
+        format: 'letter',
       });
 
-      // Header a la izquierda
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(13);
-      doc.setTextColor(30, 58, 95); // #1e3a5f
-      doc.text(`Inmuebles Sandra Nino — Filtro: ${exportOption}`, 14, 15);
+      const pageWidth = doc.internal.pageSize.getWidth(); // 215.9 mm en Carta
 
-      // Fecha a la derecha
+      // Header izquierda: Título + Filtro
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(30, 58, 95); // #1e3a5f
+      doc.text(`Inmuebles Sandra Nino — Filtro: ${exportOption}`, 14, 16);
+
+      // Header derecha: Fecha
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.setTextColor(100, 100, 100);
-      doc.text(`Fecha: ${dateStr}`, 283, 15, { align: 'right' });
+      doc.text(`Fecha: ${dateStr}`, pageWidth - 14, 16, { align: 'right' });
 
-      // Línea divisoria decorativa sutil
-      doc.setDrawColor(201, 123, 90); // #C97B5A (terracotta)
+      // Línea divisoria sutil
+      doc.setDrawColor(201, 123, 90); // #C97B5A
       doc.setLineWidth(0.4);
-      doc.line(14, 18, 283, 18);
+      doc.line(14, 19.5, pageWidth - 14, 19.5);
 
-      // Filas de datos (sin fotos ni URLs)
-      const tableData = filtered.map((p) => [
-        p.title,
-        p.operation,
-        p.type,
-        `$${p.price.toLocaleString('en-US')}`,
-        p.city,
-        p.sector || '-',
-        p.bedrooms ?? '-',
-        p.bathrooms ?? '-',
-        p.parking ?? '-',
-        p.built_area ? `${p.built_area}` : '-',
-        p.land_area ? `${p.land_area}` : '-',
-        p.total_area ? `${p.total_area}` : '-',
-        p.year ? `${p.year}` : '-',
-        p.internal_code || '-',
-        p.status,
-        new Date(p.created_at).toLocaleDateString('es-VE'),
-      ]);
+      const tableData = filtered.map((p, idx) => {
+        const ubicacion = p.sector ? `${p.sector}, ${p.city}` : p.city;
+        const metros = getPropertyMainArea(p) ?? p.built_area ?? p.total_area ?? p.land_area ?? 0;
+        const referencia = p.internal_code || 'Sandra Niño';
 
-      // Generar tabla con jspdf-autotable
+        return [
+          idx + 1,
+          p.type,
+          p.operation,
+          ubicacion,
+          `${metros} m²`,
+          `$${p.price.toLocaleString('en-US')}`,
+          referencia,
+        ];
+      });
+
       autoTable(doc, {
-        startY: 22,
+        startY: 24,
         head: [[
-          'Título',
-          'Operación',
-          'Tipo',
-          'Precio USD',
-          'Ciudad',
-          'Sector',
-          'Hab.',
-          'Baños',
-          'Est.',
-          'Const.(m²)',
-          'Terr.(m²)',
-          'Tot.(m²)',
-          'Año',
-          'Código',
-          'Estado',
-          'Publicado',
+          'N°',
+          'Tipo de Inmueble',
+          'Venta o Alquiler',
+          'Ubicación',
+          'Metros',
+          'Precio de Venta o Canon',
+          'Asesor o Referencia',
         ]],
         body: tableData,
         theme: 'plain',
         styles: {
           font: 'helvetica',
-          fontSize: 7.5,
-          cellPadding: 2.2,
+          fontSize: 8.5,
+          cellPadding: 3,
           lineColor: [225, 225, 225],
-          lineWidth: 0.1,
+          lineWidth: 0.15,
           textColor: [45, 45, 45],
           overflow: 'linebreak',
         },
         headStyles: {
-          fillColor: [30, 58, 95], // Fondo #1e3a5f
-          textColor: [255, 255, 255], // Texto blanco
+          fillColor: [30, 58, 95], // #1e3a5f
+          textColor: [255, 255, 255],
           fontStyle: 'bold',
-          fontSize: 7.5,
-          halign: 'left',
+          fontSize: 8.5,
         },
         alternateRowStyles: {
-          fillColor: [250, 249, 246], // Crema alternado #faf9f6
+          fillColor: [250, 249, 246], // #faf9f6
         },
         columnStyles: {
-          0: { cellWidth: 42 }, // Título
-          3: { halign: 'right', fontStyle: 'bold' }, // Precio
+          0: { cellWidth: 12, halign: 'center' },
+          4: { halign: 'right' },
+          5: { halign: 'right', fontStyle: 'bold' },
         },
-        margin: { left: 14, right: 14, bottom: 12 },
+        margin: { left: 14, right: 14, bottom: 14 },
       });
 
-      // Disparar descarga automática
-      doc.save(filename);
-      toast(`¡Documento ${filename} generado con éxito (${filtered.length} inmuebles)!`, 'success');
+      // Generar como Blob y disparar descarga automática
+      const pdfBlob = doc.output('blob');
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast(`¡PDF ${filename} en Hoja Carta descargado (${filtered.length} inmuebles)!`, 'success');
     } catch {
       toast('⚠️ Ocurrió un error al generar el archivo PDF', 'error');
     }
@@ -268,7 +246,7 @@ export default function HerramientasPage() {
         <div>
           <h3 className="font-serif text-xl text-text-heading">Exportar Inventario</h3>
           <p className="text-xs sm:text-sm text-stone-500 mt-1">
-            Genera un informe listo para imprimir, compartir o enviar a clientes e inversionistas.
+            Genera un informe en formato Excel o PDF (Hoja Carta) listo para imprimir o enviar a clientes.
           </p>
         </div>
 
@@ -300,7 +278,7 @@ export default function HerramientasPage() {
 
         {/* 2 Botones: Excel y PDF con iconos animados en hover */}
         <div className="flex flex-wrap gap-4 pt-2">
-          {/* Botón Excel (Verde Bosque Refinado) */}
+          {/* Botón Excel */}
           <Button
             type="button"
             variant="success"
@@ -311,7 +289,7 @@ export default function HerramientasPage() {
             <span>Descargar Excel</span>
           </Button>
 
-          {/* Botón PDF (Terracota / Burdeos refinado) */}
+          {/* Botón PDF */}
           <Button
             type="button"
             variant="terracotta"

@@ -24,6 +24,12 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+export async function generateStaticParams() {
+  return MOCK_PROPERTIES.map((property) => ({
+    id: property.id,
+  }));
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
   const property = MOCK_PROPERTIES.find((p) => p.id === id);

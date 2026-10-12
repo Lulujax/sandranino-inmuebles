@@ -21,6 +21,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, index = 0 
   return (
     <Link
       href={`/inmueble/${property.id}`}
+      prefetch={true}
       className={`group flex flex-col bg-white rounded-2xl overflow-hidden shadow-card hover:shadow-luxury-hover border border-stone-200/70 hover:border-brand/30 hover:-translate-y-1 transition-all duration-300 ease-out animate-fade-in-up ${staggerClass}`}
     >
       {/* Contenedor de Imagen con zoom sutil */}
@@ -29,6 +30,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, index = 0 
           src={mainImage}
           alt={property.title}
           fill
+          unoptimized={mainImage.includes('placehold.co')}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
         />

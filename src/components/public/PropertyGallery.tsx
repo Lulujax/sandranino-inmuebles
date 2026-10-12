@@ -36,6 +36,7 @@ export const PropertyGallery: React.FC<PropertyGalleryProps> = ({ images, title 
           alt={`${title} - Fotografía ${currentIndex + 1}`}
           fill
           priority
+          unoptimized={displayImages[currentIndex].includes('placehold.co')}
           sizes="(max-width: 1024px) 100vw, 1024px"
           className="object-cover transition-opacity duration-300 animate-fade-in"
         />
@@ -84,6 +85,7 @@ export const PropertyGallery: React.FC<PropertyGalleryProps> = ({ images, title 
                 src={img}
                 alt={`Miniatura ${idx + 1}`}
                 fill
+                unoptimized={img.includes('placehold.co')}
                 sizes="140px"
                 className="object-cover"
               />
