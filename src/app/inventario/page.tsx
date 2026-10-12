@@ -2,12 +2,13 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Building2 } from 'lucide-react';
+import { ArrowLeft, Building2, Sparkles } from 'lucide-react';
 import { MOCK_PROPERTIES } from '@/data/mock-properties';
 import { FilterState } from '@/lib/types';
 import { getPropertyMainArea } from '@/lib/utils';
 import { FilterBar } from '@/components/public/FilterBar';
 import { PropertyCard } from '@/components/public/PropertyCard';
+import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 
 export default function InventarioPage() {
   const [filters, setFilters] = useState<FilterState>({
@@ -89,25 +90,30 @@ export default function InventarioPage() {
   }, [filters]);
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 pb-16">
-      {/* Barra superior */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-xs">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <div className="min-h-screen bg-cream text-text-body font-sans pb-24 selection:bg-terracotta/20 selection:text-text-heading">
+      {/* Barra superior editorial */}
+      <header className="bg-cream-50/90 backdrop-blur-md border-b border-stone-200/60 sticky top-0 z-30 shadow-xs">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-brand hover:text-brand-light transition-colors"
+            className="inline-flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.2em] text-brand hover:text-brand-darker transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 stroke-[2]" />
             <span>Sandra Nino</span>
           </Link>
-          <h1 className="text-base sm:text-lg font-bold text-gray-900">
-            Catálogo de Inmuebles
-          </h1>
+          <div className="text-right">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-terracotta block">
+              Catálogo Exclusivo
+            </span>
+            <h1 className="font-serif text-lg sm:text-xl text-text-heading font-normal">
+              Inventario de Inmuebles
+            </h1>
+          </div>
         </div>
       </header>
 
       {/* Contenido principal */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 space-y-6">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-10 space-y-8">
         {/* Barra de Filtros */}
         <FilterBar
           filters={filters}
@@ -115,25 +121,32 @@ export default function InventarioPage() {
           availableCities={availableCities}
         />
 
-        {/* Contador de resultados */}
+        {/* Contador de resultados animado */}
         <div className="flex items-center justify-between px-1">
-          <p className="text-sm font-medium text-gray-600">
-            <span className="font-bold text-gray-900">{filteredProperties.length}</span>{' '}
-            {filteredProperties.length === 1 ? 'inmueble encontrado' : 'inmuebles encontrados'}
-          </p>
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-stone-600 font-sans">
+            <Sparkles className="w-4 h-4 text-terracotta stroke-[1.75]" />
+            <span>
+              Mostrando{' '}
+              <strong className="text-text-heading font-semibold">
+                <AnimatedCounter value={filteredProperties.length} duration={500} />
+              </strong>{' '}
+              {filteredProperties.length === 1 ? 'propiedad disponible' : 'propiedades disponibles'}
+            </span>
+          </div>
         </div>
 
         {/* Grid de resultados */}
         {filteredProperties.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center shadow-sm">
-            <div className="w-16 h-16 rounded-full bg-blue-50 text-brand flex items-center justify-center mx-auto mb-4">
-              <Building2 className="w-8 h-8" />
+          /* Empty state elegante */
+          <div className="bg-white rounded-2xl border border-stone-200/80 p-12 sm:p-16 text-center shadow-card max-w-xl mx-auto animate-fade-in-up">
+            <div className="w-16 h-16 rounded-full bg-cream-200 text-brand flex items-center justify-center mx-auto mb-5 border border-stone-200/60">
+              <Building2 className="w-7 h-7 stroke-[1.5]" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">
-              No se encontraron inmuebles con esos filtros
+            <h3 className="font-serif text-2xl text-text-heading mb-3 tracking-tight">
+              Sin coincidencias en esta búsqueda
             </h3>
-            <p className="text-sm text-gray-500 max-w-md mx-auto mb-6">
-              Prueba cambiando o limpiando algunos filtros para encontrar más opciones disponibles en nuestro catálogo.
+            <p className="text-sm text-stone-500 max-w-sm mx-auto mb-8 leading-relaxed font-sans font-normal">
+              No hemos encontrado propiedades con los criterios seleccionados. Prueba modificando los filtros para descubrir otras alternativas en nuestro catálogo.
             </p>
             <button
               onClick={() =>
@@ -146,15 +159,15 @@ export default function InventarioPage() {
                   sortBy: 'recent',
                 })
               }
-              className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-brand text-white text-sm font-medium hover:bg-brand-light transition-colors"
+              className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-brand hover:bg-brand-darker text-white text-xs font-semibold uppercase tracking-wider transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
             >
-              Restablecer filtros
+              Restablecer todos los filtros
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProperties.map((property) => (
-              <PropertyCard key={property.id} property={property} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
+            {filteredProperties.map((property, idx) => (
+              <PropertyCard key={property.id} property={property} index={(idx % 5) + 1} />
             ))}
           </div>
         )}
@@ -162,4 +175,3 @@ export default function InventarioPage() {
     </div>
   );
 }
-

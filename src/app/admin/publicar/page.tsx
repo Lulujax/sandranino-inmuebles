@@ -41,12 +41,15 @@ function PublicarContent() {
   }, [editId]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans animate-fade-in">
       <div>
-        <h2 className="text-xl font-bold text-gray-900">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-terracotta block mb-1">
+          {editId ? 'Edición de Ficha' : 'Nueva Publicación'}
+        </span>
+        <h2 className="font-serif text-2xl sm:text-3xl text-text-heading tracking-tight">
           {editId ? 'Editar Inmueble' : 'Publicar Nuevo Inmueble'}
         </h2>
-        <p className="text-sm text-gray-500">
+        <p className="text-xs sm:text-sm text-stone-500 mt-1">
           {editId
             ? 'Modifica los datos del inmueble en el asistente de 8 pasos.'
             : 'Completa los 8 sencillos pasos para incorporar una nueva propiedad a tu inventario.'}
@@ -62,7 +65,7 @@ export default function PublicarPage() {
   return (
     <Suspense
       fallback={
-        <div className="p-8 text-center text-sm text-gray-500">
+        <div className="p-12 text-center text-sm text-stone-500 font-sans">
           Cargando asistente de publicación...
         </div>
       }
@@ -71,4 +74,3 @@ export default function PublicarPage() {
     </Suspense>
   );
 }
-

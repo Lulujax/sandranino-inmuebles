@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Lock, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Lock, Mail, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -71,19 +71,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col justify-center items-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-md border border-gray-200 p-8">
-        {/* Logo Circular SN */}
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-16 h-16 rounded-full bg-brand text-white flex items-center justify-center font-extrabold text-2xl shadow-md mb-3">
-            SN
+    <div className="min-h-screen bg-cream flex flex-col justify-center items-center p-4 selection:bg-terracotta/20 selection:text-text-heading font-sans">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-luxury border border-stone-200/80 p-8 sm:p-10 animate-fade-in-up">
+        {/* Monograma SN y encabezado editorial */}
+        <div className="flex flex-col items-center mb-8 text-center">
+          <div className="relative mb-3">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand to-brand-darker text-cream-50 flex items-center justify-center font-serif text-2xl shadow-luxury border border-white/20">
+              SN
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-terracotta flex items-center justify-center text-white">
+              <Sparkles className="w-2.5 h-2.5" />
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Sandra Nino</h1>
-          <p className="text-xs text-gray-500 font-medium">Panel de Gestión Inmobiliaria</p>
+          <h1 className="font-serif text-2xl sm:text-3xl text-text-heading tracking-tight">
+            Sandra Nino
+          </h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-terracotta mt-1 font-sans">
+            Panel de Gestión Inmobiliaria
+          </p>
         </div>
 
         {/* Formulario */}
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-5">
           <div>
             <Input
               label="Correo Electrónico"
@@ -106,13 +115,13 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="flex items-center justify-between text-xs pt-1">
-            <label className="flex items-center gap-2 text-gray-600 select-none cursor-pointer">
+          <div className="flex items-center justify-between text-xs pt-1 font-sans">
+            <label className="flex items-center gap-2 text-stone-600 select-none cursor-pointer">
               <input
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 text-brand rounded border-gray-300 focus:ring-brand"
+                className="w-4 h-4 text-brand rounded border-stone-300 focus:ring-brand/20 accent-brand cursor-pointer"
               />
               <span>Mantener sesión iniciada</span>
             </label>
@@ -122,44 +131,43 @@ export default function LoginPage() {
               onClick={() =>
                 toast('Enlace de recuperación enviado al correo registrado', 'info')
               }
-              className="text-brand hover:underline font-medium"
+              className="text-terracotta hover:text-terracotta-dark font-medium transition-colors"
             >
               ¿Olvidaste tu contraseña?
             </button>
           </div>
 
-          <div className="pt-2">
+          <div className="pt-3">
             <Button
               type="submit"
               variant="primary"
               fullWidth
               disabled={isLoading}
-              className="py-3 text-base font-semibold"
+              className="py-3.5 text-sm font-semibold tracking-wide"
             >
-              {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
-              <ArrowRight className="w-4 h-4 ml-1" />
+              <span>{isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}</span>
+              <ArrowRight className="w-4 h-4 ml-1 stroke-[2]" />
             </Button>
           </div>
         </form>
 
-        {/* Nota sobre cierre por inactividad */}
-        <div className="mt-6 pt-5 border-t border-gray-100 flex items-start gap-2.5 text-xs text-gray-500 leading-relaxed">
-          <ShieldCheck className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+        {/* Nota de seguridad */}
+        <div className="mt-8 pt-5 border-t border-stone-100 flex items-start gap-3 text-xs text-stone-500 leading-relaxed font-sans">
+          <ShieldCheck className="w-4 h-4 text-terracotta shrink-0 mt-0.5 stroke-[1.5]" />
           <p>
-            Por seguridad bancaria e inmobiliaria, tu sesión se cerrará automáticamente tras 5 minutos de inactividad si no marcas la opción de mantener sesión iniciada.
+            Por seguridad bancaria e inmobiliaria, tu sesión se cerrará automáticamente tras 5 minutos de inactividad salvo que mantengas la sesión activa.
           </p>
         </div>
       </div>
 
-      <div className="mt-6 text-center">
+      <div className="mt-8 text-center">
         <Link
           href="/"
-          className="text-xs text-gray-500 hover:text-brand transition-colors underline-offset-4 hover:underline"
+          className="text-xs text-stone-500 hover:text-brand font-sans tracking-wide transition-colors underline-offset-4 hover:underline"
         >
-          ← Volver a la página pública
+          ← Volver al sitio público
         </Link>
       </div>
     </div>
   );
 }
-

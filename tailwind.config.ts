@@ -8,16 +8,47 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        serif: ["var(--font-playfair)", "Playfair Display", "Georgia", "serif"],
+        sans: ["var(--font-manrope)", "Manrope", "sans-serif"],
+      },
       colors: {
         brand: {
           DEFAULT: "#1e3a5f",
+          dark: "#1e3a5f",
+          darker: "#152a45",
           light: "#2c5282",
-          dark: "#152a45",
+          surface: "#f0f4f9",
         },
+        terracotta: {
+          DEFAULT: "#C97B5A",
+          light: "#d99274",
+          dark: "#a85d3d",
+          subtle: "#faede8",
+        },
+        cream: {
+          DEFAULT: "#faf9f6",
+          50: "#fdfdfb",
+          100: "#faf9f6",
+          200: "#f4f1ea",
+          300: "#e9e4d7",
+        },
+        text: {
+          heading: "#1a1a1a",
+          body: "#2d2d2d",
+          muted: "#666666",
+        },
+      },
+      boxShadow: {
+        luxury: "0 10px 30px -10px rgba(30, 58, 95, 0.08), 0 4px 12px -4px rgba(30, 58, 95, 0.04)",
+        "luxury-hover": "0 20px 40px -15px rgba(30, 58, 95, 0.15), 0 8px 16px -6px rgba(30, 58, 95, 0.08)",
+        card: "0 2px 8px -2px rgba(26, 26, 26, 0.04), 0 1px 3px -1px rgba(26, 26, 26, 0.02)",
+      },
+      transitionTimingFunction: {
+        editorial: "cubic-bezier(0.16, 1, 0.3, 1)",
       },
     },
   },
   plugins: [],
 };
 export default config;
-

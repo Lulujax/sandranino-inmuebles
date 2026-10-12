@@ -27,7 +27,6 @@ export const Badge: React.FC<BadgeProps> = ({
   className,
   size = 'md',
 }) => {
-  // Determine variant automatically if status or operation is provided
   let computedVariant = variant || 'default';
 
   if (status) {
@@ -57,19 +56,19 @@ export const Badge: React.FC<BadgeProps> = ({
   }
 
   const variantStyles = {
-    default: 'bg-brand/10 text-brand border border-brand/20',
-    publicado: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
-    borrador: 'bg-amber-100 text-amber-800 border border-amber-200',
-    pausado: 'bg-gray-100 text-gray-700 border border-gray-200',
-    vendido: 'bg-red-100 text-red-800 border border-red-200',
-    venta: 'bg-blue-100 text-blue-800 border border-blue-200',
-    alquiler: 'bg-purple-100 text-purple-800 border border-purple-200',
-    gray: 'bg-gray-100 text-gray-700 border border-gray-200',
+    default: 'bg-brand/10 text-brand-dark border border-brand/20',
+    publicado: 'bg-emerald-50 text-emerald-800 border border-emerald-200/70',
+    borrador: 'bg-amber-50 text-amber-800 border border-amber-200/70',
+    pausado: 'bg-stone-100 text-stone-700 border border-stone-200',
+    vendido: 'bg-terracotta/10 text-terracotta-dark border border-terracotta/30',
+    venta: 'bg-brand/10 text-brand-dark border border-brand/20',
+    alquiler: 'bg-terracotta/10 text-terracotta-dark border border-terracotta/30',
+    gray: 'bg-stone-100 text-stone-600 border border-stone-200',
   };
 
   const sizeStyles = {
-    sm: 'text-xs px-2 py-0.5 font-medium',
-    md: 'text-xs px-2.5 py-1 font-semibold',
+    sm: 'text-[10px] px-2 py-0.5 font-semibold tracking-wider uppercase',
+    md: 'text-[11px] px-2.5 py-1 font-semibold tracking-widest uppercase',
   };
 
   const content = children || status || operation;
@@ -77,7 +76,7 @@ export const Badge: React.FC<BadgeProps> = ({
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full tracking-wide',
+        'inline-flex items-center rounded-full font-sans transition-colors',
         variantStyles[computedVariant as keyof typeof variantStyles] || variantStyles.default,
         sizeStyles[size],
         className
@@ -87,4 +86,3 @@ export const Badge: React.FC<BadgeProps> = ({
     </span>
   );
 };
-

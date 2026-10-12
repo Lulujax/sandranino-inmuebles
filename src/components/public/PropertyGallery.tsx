@@ -29,14 +29,15 @@ export const PropertyGallery: React.FC<PropertyGalleryProps> = ({ images, title 
   return (
     <div className="w-full select-none">
       {/* Contenedor Principal */}
-      <div className="relative aspect-[16/10] sm:aspect-[16/9] w-full rounded-2xl overflow-hidden bg-gray-900 shadow-md">
+      <div className="relative aspect-[16/10] sm:aspect-[16/9] w-full rounded-2xl overflow-hidden bg-brand-darker shadow-luxury border border-stone-200/60 group">
         <Image
+          key={currentIndex}
           src={displayImages[currentIndex]}
-          alt={`${title} - Foto ${currentIndex + 1}`}
+          alt={`${title} - Fotografía ${currentIndex + 1}`}
           fill
           priority
           sizes="(max-width: 1024px) 100vw, 1024px"
-          className="object-cover transition-opacity duration-300"
+          className="object-cover transition-opacity duration-300 animate-fade-in"
         />
 
         {/* Flechas de navegación (solo si hay más de 1 imagen) */}
@@ -44,46 +45,46 @@ export const PropertyGallery: React.FC<PropertyGalleryProps> = ({ images, title 
           <>
             <button
               onClick={handlePrev}
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/75 text-white flex items-center justify-center backdrop-blur-sm transition-all focus:outline-none"
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-brand-darker/60 hover:bg-brand-darker/90 text-white flex items-center justify-center backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none shadow-md"
               aria-label="Foto anterior"
             >
-              <ChevronLeft className="w-6 h-6" />
+              <ChevronLeft className="w-6 h-6 stroke-[1.5]" />
             </button>
             <button
               onClick={handleNext}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/75 text-white flex items-center justify-center backdrop-blur-sm transition-all focus:outline-none"
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-brand-darker/60 hover:bg-brand-darker/90 text-white flex items-center justify-center backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none shadow-md"
               aria-label="Foto siguiente"
             >
-              <ChevronRight className="w-6 h-6" />
+              <ChevronRight className="w-6 h-6 stroke-[1.5]" />
             </button>
 
-            {/* Contador de fotos (ej: 1 / 5) */}
-            <div className="absolute bottom-3 right-3 px-3 py-1 rounded-full bg-black/60 backdrop-blur-sm text-white text-xs font-semibold">
+            {/* Contador de fotos elegante */}
+            <div className="absolute bottom-4 right-4 px-3.5 py-1.5 rounded-full bg-brand-darker/70 backdrop-blur-md text-cream-50 text-xs font-mono tracking-widest border border-white/10 shadow-sm">
               {currentIndex + 1} / {displayImages.length}
             </div>
           </>
         )}
       </div>
 
-      {/* Miniaturas inferiores (hasta 6 visibles directamente) */}
+      {/* Miniaturas con borde activo terracota */}
       {displayImages.length > 1 && (
-        <div className="mt-3 grid grid-cols-4 sm:grid-cols-6 gap-2">
+        <div className="mt-3.5 grid grid-cols-4 sm:grid-cols-6 gap-2.5">
           {displayImages.slice(0, 6).map((img, idx) => (
             <button
               key={idx}
               onClick={() => setCurrentIndex(idx)}
               className={cn(
-                'relative aspect-[4/3] rounded-lg overflow-hidden border-2 transition-all',
+                'relative aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all duration-200 cursor-pointer',
                 currentIndex === idx
-                  ? 'border-brand ring-2 ring-brand/30 opacity-100'
-                  : 'border-transparent opacity-70 hover:opacity-100'
+                  ? 'border-terracotta ring-2 ring-terracotta/25 opacity-100 scale-[1.02] shadow-sm'
+                  : 'border-transparent opacity-60 hover:opacity-100 hover:scale-[1.01]'
               )}
             >
               <Image
                 src={img}
                 alt={`Miniatura ${idx + 1}`}
                 fill
-                sizes="120px"
+                sizes="140px"
                 className="object-cover"
               />
             </button>
@@ -93,4 +94,3 @@ export const PropertyGallery: React.FC<PropertyGalleryProps> = ({ images, title 
     </div>
   );
 };
-

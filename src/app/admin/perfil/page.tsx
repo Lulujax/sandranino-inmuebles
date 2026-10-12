@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { Camera, AlertTriangle, Save, KeyRound } from 'lucide-react';
+import { Camera, AlertTriangle, Save, KeyRound, Sparkles } from 'lucide-react';
 import { MOCK_ASESOR } from '@/data/mock-properties';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -29,7 +29,7 @@ export default function MiPerfilPage() {
     if (e.target.files && e.target.files[0]) {
       const url = URL.createObjectURL(e.target.files[0]);
       setPhotoUrl(url);
-      toast('Foto de perfil actualizada', 'success');
+      toast('Foto de perfil actualizada con éxito', 'success');
     }
   };
 
@@ -57,7 +57,7 @@ export default function MiPerfilPage() {
       return;
     }
 
-    if (newPassword.length < 6) {
+    if (!newPassword.length || newPassword.length < 6) {
       toast('⚠️ La nueva contraseña debe tener al menos 6 caracteres', 'warning');
       return;
     }
@@ -68,65 +68,76 @@ export default function MiPerfilPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
+    <div className="max-w-3xl mx-auto space-y-8 font-sans animate-fade-in">
       <div>
-        <h2 className="text-xl font-bold text-gray-900">Mi Perfil</h2>
-        <p className="text-sm text-gray-500">
-          Actualiza tus datos de contacto y la información que ven tus clientes.
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-terracotta block mb-1">
+          Ajustes de Cuenta
+        </span>
+        <h2 className="font-serif text-2xl sm:text-3xl text-text-heading tracking-tight">Mi Perfil Profesional</h2>
+        <p className="text-xs sm:text-sm text-stone-500 mt-1">
+          Actualiza tus datos de contacto y la información pública que ven tus clientes e inversionistas.
         </p>
       </div>
 
       <form onSubmit={handleSaveProfile} className="space-y-6">
         {/* Foto de Perfil */}
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row items-center gap-6">
-          <div className="relative w-28 h-28 rounded-full overflow-hidden border-4 border-white shadow-md bg-gray-100 shrink-0">
-            <Image
-              src={photoUrl}
-              alt={fullName}
-              fill
-              sizes="112px"
-              className="object-cover"
-            />
-          </div>
-          <div className="text-center sm:text-left space-y-2">
-            <h3 className="text-base font-bold text-gray-900">Foto de Perfil</h3>
-            <p className="text-xs text-gray-500 max-w-sm">
-              Esta foto se muestra en la portada de tu sitio público y en la cabecera.
-            </p>
-            <label className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold cursor-pointer transition-colors">
-              <Camera className="w-4 h-4" />
-              <span>Cambiar foto</span>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoUpload}
-                className="hidden"
+        <div className="bg-white p-6 sm:p-7 rounded-2xl border border-stone-200/80 shadow-card flex flex-col sm:flex-row items-center gap-7">
+          <div className="relative group">
+            <div className="relative w-28 h-28 rounded-2xl overflow-hidden border-2 border-stone-200/80 shadow-luxury bg-cream-200 shrink-0">
+              <Image
+                src={photoUrl}
+                alt={fullName}
+                fill
+                sizes="112px"
+                className="object-cover"
               />
-            </label>
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-terracotta text-white flex items-center justify-center shadow-xs">
+              <Sparkles className="w-3 h-3" />
+            </div>
+          </div>
+          
+          <div className="text-center sm:text-left space-y-2 flex-1">
+            <h3 className="font-serif text-lg text-text-heading">Fotografía de Presentación</h3>
+            <p className="text-xs text-stone-500 max-w-sm leading-relaxed">
+              Esta imagen se exhibe de forma prominente en la portada de tu catálogo público y en la cabecera del sitio.
+            </p>
+            <div className="pt-1">
+              <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cream-100 hover:bg-cream-200 text-stone-700 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-all border border-stone-200/70 shadow-2xs">
+                <Camera className="w-4 h-4 text-terracotta stroke-[1.75]" />
+                <span>Cambiar fotografía</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                />
+              </label>
+            </div>
           </div>
         </div>
 
         {/* Datos Personales */}
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
-          <h3 className="text-base font-bold text-gray-900">Datos Personales</h3>
+        <div className="bg-white p-6 sm:p-7 rounded-2xl border border-stone-200/80 shadow-card space-y-4">
+          <h3 className="font-serif text-lg text-text-heading">Información Personal</h3>
           <Input
             label="Nombre Completo *"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             required
-            helperText="Tu nombre como aparecerá en el catálogo público."
+            helperText="Tu nombre tal como se presentará en la cabecera y ficha técnica."
           />
         </div>
 
         {/* Datos de Contacto */}
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-5">
-          <h3 className="text-base font-bold text-gray-900">Datos de Contacto</h3>
+        <div className="bg-white p-6 sm:p-7 rounded-2xl border border-stone-200/80 shadow-card space-y-5">
+          <h3 className="font-serif text-lg text-text-heading">Canales de Contacto Directo</h3>
 
-          {/* Aviso amarillo de WhatsApp */}
-          <div className="p-3.5 rounded-lg bg-amber-50 border border-amber-200 flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-            <p className="text-xs sm:text-sm text-amber-800 leading-snug">
-              ⚠️ El número de WhatsApp se usa en todos los botones de tu página pública.
+          {/* Aviso estilizado de WhatsApp */}
+          <div className="p-4 rounded-xl bg-terracotta/10 border border-terracotta/25 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-terracotta shrink-0 mt-0.5 stroke-[1.75]" />
+            <p className="text-xs sm:text-sm text-stone-800 leading-relaxed">
+              El número de WhatsApp es el canal principal para recibir prospectos de compradores e interesados en cada una de tus fichas inmobiliarias.
             </p>
           </div>
 
@@ -136,7 +147,7 @@ export default function MiPerfilPage() {
             value={whatsapp}
             onChange={(e) => setWhatsapp(e.target.value)}
             required
-            helperText="Formato internacional sin el signo +, ej: 584241234567"
+            helperText="Formato internacional sin el símbolo +, ej: 584241234567"
           />
 
           <Input
@@ -145,7 +156,7 @@ export default function MiPerfilPage() {
             placeholder="sandra@ejemplo.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            helperText="Si lo dejas vacío, no aparecerá el botón de correo"
+            helperText="Si lo dejas vacío, no se habilitará el botón de contacto por correo"
           />
 
           <Input
@@ -153,7 +164,7 @@ export default function MiPerfilPage() {
             placeholder="sandranino.inmuebles"
             value={instagram}
             onChange={(e) => setInstagram(e.target.value)}
-            helperText="Si lo dejas vacío, el botón no aparece"
+            helperText="Tu usuario en Instagram sin @"
           />
 
           <Input
@@ -161,24 +172,28 @@ export default function MiPerfilPage() {
             placeholder="sandranino.asesora"
             value={facebook}
             onChange={(e) => setFacebook(e.target.value)}
-            helperText="Si lo dejas vacío, el botón no aparece"
+            helperText="Nombre de tu página o perfil profesional en Facebook"
           />
         </div>
 
-        {/* Botón Guardar Cambios */}
+        {/* Botón Guardar Cambios con hover elevado */}
         <div className="flex justify-end">
-          <Button type="submit" variant="primary" className="px-6 py-3 font-semibold">
-            <Save className="w-4 h-4 mr-1.5" />
-            Guardar cambios
+          <Button
+            type="submit"
+            variant="primary"
+            className="px-7 py-3.5 font-semibold text-xs uppercase tracking-wider shadow-sm hover:shadow-luxury hover:-translate-y-0.5"
+          >
+            <Save className="w-4 h-4 mr-2 stroke-[2]" />
+            <span>Guardar cambios</span>
           </Button>
         </div>
       </form>
 
       {/* Seguridad: Cambiar Contraseña */}
-      <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
-        <div className="flex items-center gap-2">
-          <KeyRound className="w-5 h-5 text-brand" />
-          <h3 className="text-base font-bold text-gray-900">Seguridad de la Cuenta</h3>
+      <div className="bg-white p-6 sm:p-7 rounded-2xl border border-stone-200/80 shadow-card space-y-4">
+        <div className="flex items-center gap-2.5">
+          <KeyRound className="w-5 h-5 text-terracotta stroke-[1.75]" />
+          <h3 className="font-serif text-lg text-text-heading">Seguridad de la Cuenta</h3>
         </div>
 
         <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
@@ -198,12 +213,11 @@ export default function MiPerfilPage() {
             onChange={(e) => setNewPassword(e.target.value)}
           />
 
-          <Button type="submit" variant="outline" size="sm">
-            Cambiar contraseña
+          <Button type="submit" variant="outline" size="sm" className="mt-1">
+            Actualizar contraseña
           </Button>
         </form>
       </div>
     </div>
   );
 }
-

@@ -43,33 +43,33 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <ToastContext.Provider value={{ toast, removeToast }}>
       {children}
       {/* Toast container bottom right */}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full px-4 sm:px-0 pointer-events-none">
+      <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 max-w-sm w-full px-4 sm:px-0 pointer-events-none">
         {toasts.map((t) => {
           const icons = {
-            success: <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />,
-            warning: <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />,
-            error: <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />,
-            info: <Info className="w-5 h-5 text-blue-400 shrink-0" />,
+            success: <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 stroke-[1.75]" />,
+            warning: <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0 stroke-[1.75]" />,
+            error: <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 stroke-[1.75]" />,
+            info: <Info className="w-4 h-4 text-terracotta-light shrink-0 stroke-[1.75]" />,
           };
 
           return (
             <div
               key={t.id}
               className={cn(
-                'pointer-events-auto flex items-center justify-between p-3.5 rounded-lg shadow-lg',
-                'bg-gray-900 text-white text-sm border border-gray-800 transition-all transform duration-200'
+                'pointer-events-auto flex items-center justify-between p-4 rounded-xl shadow-luxury-hover',
+                'bg-brand-darker text-cream-50 text-xs font-sans border border-brand/40 animate-fade-in-up'
               )}
             >
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-3">
                 {icons[t.type]}
-                <span className="font-medium text-gray-100">{t.message}</span>
+                <span className="font-medium text-stone-100 tracking-wide">{t.message}</span>
               </div>
               <button
                 onClick={() => removeToast(t.id)}
-                className="text-gray-400 hover:text-white transition-colors p-1"
+                className="text-stone-400 hover:text-white transition-colors p-1 ml-2 rounded"
                 aria-label="Cerrar notificación"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5 stroke-[1.75]" />
               </button>
             </div>
           );
@@ -86,4 +86,3 @@ export function useToast() {
   }
   return context;
 }
-

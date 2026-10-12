@@ -62,7 +62,7 @@ export default function AdminLayout({
   }, [handleInactivityLogout]);
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+    <div className="min-h-screen bg-cream flex flex-col font-sans selection:bg-terracotta/20 selection:text-text-heading">
       {/* Sidebar fijo */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -79,4 +79,3 @@ export default function AdminLayout({
     </div>
   );
 }
-

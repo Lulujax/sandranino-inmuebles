@@ -16,16 +16,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       <div className="w-full">
         {label && (
           <div className="flex justify-between items-center mb-1.5">
-            <label htmlFor={inputId} className="block text-sm font-medium text-gray-700">
+            <label htmlFor={inputId} className="block text-xs font-semibold uppercase tracking-wider text-stone-700 font-sans">
               {label}
             </label>
             {characterCount && (
               <span
                 className={cn(
-                  'text-xs',
+                  'text-[11px] font-mono',
                   characterCount.current > characterCount.max
-                    ? 'text-red-500 font-semibold'
-                    : 'text-gray-400'
+                    ? 'text-rose-600 font-bold'
+                    : 'text-stone-400'
                 )}
               >
                 {characterCount.current}/{characterCount.max}
@@ -37,21 +37,20 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           id={inputId}
           className={cn(
-            'w-full px-3.5 py-2.5 bg-white border rounded-lg text-sm text-gray-900 placeholder-gray-400',
-            'transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand',
+            'w-full px-3.5 py-2.5 bg-white border rounded-lg text-sm text-text-heading placeholder-stone-400 font-sans',
+            'transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs',
             error
-              ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-              : 'border-gray-300',
+              ? 'border-rose-400 focus:ring-rose-200 focus:border-rose-500'
+              : 'border-stone-200 hover:border-stone-300',
             className
           )}
           {...props}
         />
-        {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
-        {!error && helperText && <p className="mt-1 text-xs text-gray-500">{helperText}</p>}
+        {error && <p className="mt-1 text-xs text-rose-600 font-sans">{error}</p>}
+        {!error && helperText && <p className="mt-1 text-xs text-stone-500 font-sans">{helperText}</p>}
       </div>
     );
   }
 );
 
 Input.displayName = 'Input';
-

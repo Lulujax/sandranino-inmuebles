@@ -16,15 +16,12 @@ import {
   Check,
   ArrowRight,
   ArrowLeft,
-  Eye,
   Save,
   CheckCircle2,
 } from 'lucide-react';
 import {
   WizardFormData,
-  OperationType,
   PropertyType,
-  Inmueble,
 } from '@/lib/types';
 import { ESTADOS_VENEZUELA, VENEZUELA } from '@/lib/venezuela';
 import { formatPrice } from '@/lib/utils';
@@ -112,7 +109,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
     }));
   };
 
-  // Validaciones obligatorias por paso
+  // Validaciones obligatorias por paso (sin alterar lógica)
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
@@ -191,12 +188,14 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 font-sans">
       {/* BARRA DE PROGRESO */}
-      <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
-        {/* Versión Desktop: círculos numerados compactos sin scroll */}
-        <div className="hidden md:flex items-center justify-between relative">
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-gray-200 -z-0" />
+      <div className="bg-white p-5 sm:p-7 rounded-2xl border border-stone-200/80 shadow-card">
+        {/* Versión Desktop: círculos numerados conectados con líneas finas */}
+        <div className="hidden md:flex items-center justify-between relative px-2">
+          {/* Línea conectora fina */}
+          <div className="absolute left-6 right-6 top-4 h-0.5 bg-stone-200 -z-0" />
+          
           {STEP_TITLES.map((title, index) => {
             const stepNumber = index + 1;
             const isCompleted = stepNumber < currentStep;
@@ -209,19 +208,19 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
                   onClick={() => {
                     if (stepNumber < currentStep) setCurrentStep(stepNumber);
                   }}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                  className={`w-8.5 h-8.5 rounded-full flex items-center justify-center text-xs font-semibold font-sans transition-all duration-200 ${
                     isCompleted
-                      ? 'bg-emerald-600 text-white shadow-sm'
+                      ? 'bg-emerald-700 text-white shadow-xs cursor-pointer hover:bg-emerald-800'
                       : isCurrent
-                      ? 'bg-brand text-white ring-4 ring-brand/20 shadow-md'
-                      : 'bg-white border-2 border-gray-300 text-gray-500'
+                      ? 'bg-brand text-white ring-4 ring-brand/15 shadow-sm scale-110'
+                      : 'bg-white border border-stone-300 text-stone-400 cursor-not-allowed'
                   }`}
                 >
-                  {isCompleted ? <Check className="w-4 h-4" /> : stepNumber}
+                  {isCompleted ? <Check className="w-4 h-4 stroke-[2]" /> : stepNumber}
                 </button>
                 <span
-                  className={`text-[11px] font-medium mt-1.5 whitespace-nowrap ${
-                    isCurrent ? 'text-brand font-bold' : 'text-gray-500'
+                  className={`text-[11px] font-sans uppercase tracking-wider mt-2 whitespace-nowrap transition-colors ${
+                    isCurrent ? 'text-brand font-bold' : isCompleted ? 'text-emerald-800 font-medium' : 'text-stone-400'
                   }`}
                 >
                   {title}
@@ -231,65 +230,68 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
           })}
         </div>
 
-        {/* Versión Mobile: 'Paso X de 8: Nombre' + barra horizontal */}
+        {/* Versión Mobile: 'Paso X de 8: Nombre' + barra horizontal animada */}
         <div className="md:hidden">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-brand uppercase tracking-wider">
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="text-[11px] font-bold text-brand uppercase tracking-wider font-sans">
               Paso {currentStep} de 8
             </span>
-            <span className="text-xs font-semibold text-gray-700">
+            <span className="text-xs font-serif font-semibold text-text-heading">
               {STEP_TITLES[currentStep - 1]}
             </span>
           </div>
-          <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+          <div className="w-full bg-cream-200 h-2 rounded-full overflow-hidden">
             <div
-              className="bg-brand h-full transition-all duration-300"
+              className="bg-brand h-full rounded-full transition-all duration-300 ease-editorial"
               style={{ width: `${(currentStep / 8) * 100}%` }}
             />
           </div>
         </div>
       </div>
 
-      {/* CONTENIDO DEL PASO */}
-      <div className="bg-white p-5 sm:p-8 rounded-xl border border-gray-200 shadow-sm min-h-[380px]">
+      {/* CONTENIDO DEL PASO (Animado con fade-in-up) */}
+      <div key={currentStep} className="bg-white p-6 sm:p-9 rounded-2xl border border-stone-200/80 shadow-card min-h-[400px] animate-fade-in-up">
         {/* PASO 1: OPERACIÓN */}
         {currentStep === 1 && (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-bold text-gray-900">Tipo de Operación</h3>
-              <p className="text-sm text-gray-500">¿Qué deseas realizar con este inmueble?</p>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-terracotta block mb-1">
+                Paso 1 de 8
+              </span>
+              <h3 className="font-serif text-2xl text-text-heading">Tipo de Operación</h3>
+              <p className="text-sm text-stone-500 mt-1 font-sans">¿Qué deseas realizar con este inmueble?</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, operation: 'Venta' })}
-                className={`p-6 rounded-xl border-2 flex flex-col items-center justify-center gap-3 transition-all ${
+                className={`p-7 rounded-2xl border-2 flex flex-col items-center justify-center gap-3.5 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:shadow-card ${
                   formData.operation === 'Venta'
-                    ? 'border-brand bg-brand/5 ring-2 ring-brand/30'
-                    : 'border-gray-200 hover:border-gray-300 bg-white'
+                    ? 'border-brand bg-brand/5 shadow-sm ring-2 ring-brand/10'
+                    : 'border-stone-200 hover:border-stone-300 bg-white'
                 }`}
               >
-                <div className="w-14 h-14 rounded-full bg-blue-100 text-brand flex items-center justify-center">
-                  <Home className="w-7 h-7" />
+                <div className="w-14 h-14 rounded-2xl bg-brand/10 text-brand flex items-center justify-center">
+                  <Home className="w-7 h-7 stroke-[1.5]" />
                 </div>
-                <span className="text-lg font-bold text-gray-900">🏠 Vender Inmueble</span>
-                <span className="text-xs text-gray-500 text-center">Para venta de propiedad completa</span>
+                <span className="font-serif text-lg font-semibold text-text-heading">Vender Inmueble</span>
+                <span className="text-xs text-stone-500 text-center font-sans">Para venta de propiedad completa</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, operation: 'Alquiler' })}
-                className={`p-6 rounded-xl border-2 flex flex-col items-center justify-center gap-3 transition-all ${
+                className={`p-7 rounded-2xl border-2 flex flex-col items-center justify-center gap-3.5 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:shadow-card ${
                   formData.operation === 'Alquiler'
-                    ? 'border-brand bg-brand/5 ring-2 ring-brand/30'
-                    : 'border-gray-200 hover:border-gray-300 bg-white'
+                    ? 'border-brand bg-brand/5 shadow-sm ring-2 ring-brand/10'
+                    : 'border-stone-200 hover:border-stone-300 bg-white'
                 }`}
               >
-                <div className="w-14 h-14 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center">
-                  <Key className="w-7 h-7" />
+                <div className="w-14 h-14 rounded-2xl bg-terracotta/10 text-terracotta flex items-center justify-center">
+                  <Key className="w-7 h-7 stroke-[1.5]" />
                 </div>
-                <span className="text-lg font-bold text-gray-900">🔑 Alquilar Inmueble</span>
-                <span className="text-xs text-gray-500 text-center">Canon mensual residencial o comercial</span>
+                <span className="font-serif text-lg font-semibold text-text-heading">Alquilar Inmueble</span>
+                <span className="text-xs text-stone-500 text-center font-sans">Canon mensual residencial o comercial</span>
               </button>
             </div>
           </div>
@@ -299,10 +301,13 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
         {currentStep === 2 && (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-bold text-gray-900">Categoría del Inmueble</h3>
-              <p className="text-sm text-gray-500">Selecciona el tipo de propiedad</p>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-terracotta block mb-1">
+                Paso 2 de 8
+              </span>
+              <h3 className="font-serif text-2xl text-text-heading">Categoría del Inmueble</h3>
+              <p className="text-sm text-stone-500 mt-1 font-sans">Selecciona el tipo de propiedad que publicarás.</p>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-2">
               {[
                 { type: 'Casa', icon: Home, label: 'Casa' },
                 { type: 'Apartamento', icon: Building, label: 'Apartamento' },
@@ -320,14 +325,14 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
                     onClick={() =>
                       setFormData({ ...formData, type: item.type as PropertyType })
                     }
-                    className={`p-4 sm:p-5 rounded-xl border-2 flex flex-col items-center gap-2.5 transition-all ${
+                    className={`p-5 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:shadow-card ${
                       isSelected
-                        ? 'border-brand bg-brand/5 ring-2 ring-brand/30'
-                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                        ? 'border-brand bg-brand/5 ring-2 ring-brand/10 shadow-sm'
+                        : 'border-stone-200 hover:border-stone-300 bg-white'
                     }`}
                   >
-                    <Icon className={`w-6 h-6 ${isSelected ? 'text-brand' : 'text-gray-500'}`} />
-                    <span className="text-sm font-bold text-gray-900">{item.label}</span>
+                    <Icon className={`w-6 h-6 stroke-[1.5] ${isSelected ? 'text-brand' : 'text-stone-500'}`} />
+                    <span className="text-sm font-semibold text-text-heading font-sans">{item.label}</span>
                   </button>
                 );
               })}
@@ -339,20 +344,23 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
         {currentStep === 3 && (
           <div className="space-y-5">
             <div>
-              <h3 className="text-lg font-bold text-gray-900">Ubicación Geográfica</h3>
-              <p className="text-sm text-gray-500">Indica el estado y municipio del inmueble</p>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-terracotta block mb-1">
+                Paso 3 de 8
+              </span>
+              <h3 className="font-serif text-2xl text-text-heading">Ubicación Geográfica</h3>
+              <p className="text-sm text-stone-500 mt-1 font-sans">Indica el estado y municipio del inmueble.</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4.5 pt-2">
               {/* Estado */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-stone-700 mb-1.5 font-sans">
                   Estado *
                 </label>
                 <select
                   value={formData.state}
                   onChange={(e) => handleStateChange(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-lg text-sm text-text-heading font-sans focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all cursor-pointer shadow-xs"
                 >
                   <option value="">Selecciona un Estado...</option>
                   {ESTADOS_VENEZUELA.map((st) => (
@@ -365,14 +373,14 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
 
               {/* Municipio dependiente */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-stone-700 mb-1.5 font-sans">
                   Ciudad / Municipio *
                 </label>
                 <select
                   value={formData.city}
                   disabled={!formData.state}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand disabled:bg-gray-100 disabled:text-gray-400"
+                  className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-lg text-sm text-text-heading font-sans focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all cursor-pointer shadow-xs disabled:bg-cream-200 disabled:text-stone-400"
                 >
                   <option value="">
                     {formData.state ? 'Selecciona un Municipio...' : 'Primero elige el Estado'}
@@ -403,7 +411,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
             />
 
             {/* Checkbox mostrar en público */}
-            <div className="flex items-center gap-2.5 pt-2">
+            <div className="flex items-center gap-2.5 pt-2 font-sans">
               <input
                 type="checkbox"
                 id="show_exact"
@@ -411,9 +419,9 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
                 onChange={(e) =>
                   setFormData({ ...formData, show_exact_location: e.target.checked })
                 }
-                className="w-4 h-4 text-brand rounded border-gray-300 focus:ring-brand"
+                className="w-4 h-4 text-brand rounded border-stone-300 focus:ring-brand/20 accent-brand cursor-pointer"
               />
-              <label htmlFor="show_exact" className="text-sm text-gray-700 select-none">
+              <label htmlFor="show_exact" className="text-xs sm:text-sm text-stone-700 select-none cursor-pointer">
                 Mostrar dirección exacta en la página pública
               </label>
             </div>
@@ -424,17 +432,20 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
         {currentStep === 4 && (
           <div className="space-y-5">
             <div>
-              <h3 className="text-lg font-bold text-gray-900">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-terracotta block mb-1">
+                Paso 4 de 8
+              </span>
+              <h3 className="font-serif text-2xl text-text-heading">
                 Características de {formData.type || 'Inmueble'}
               </h3>
-              <p className="text-sm text-gray-500">
-                Todos los campos son opcionales. Completa los que apliquen.
+              <p className="text-sm text-stone-500 mt-1 font-sans">
+                Todos los campos son opcionales. Completa aquellos que apliquen a la propiedad.
               </p>
             </div>
 
             {/* Casa o Apartamento */}
             {(formData.type === 'Casa' || formData.type === 'Apartamento' || formData.type === 'Oficina') && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4.5 pt-2">
                 <Input
                   label="Habitaciones"
                   type="number"
@@ -512,7 +523,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
 
             {/* Galpón o Local */}
             {(formData.type === 'Galpón' || formData.type === 'Local') && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4.5 pt-2">
                 <Input
                   label="Área total (m²)"
                   type="number"
@@ -567,7 +578,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
 
             {/* Terreno */}
             {formData.type === 'Terreno' && (
-              <div className="max-w-xs">
+              <div className="max-w-xs pt-2">
                 <Input
                   label="Área total del terreno (m²)"
                   type="number"
@@ -590,21 +601,24 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
           <div className="space-y-5">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Fotografías del Inmueble</h3>
-                <p className="text-sm text-gray-500">Mínimo 1 foto, máximo 20 fotos.</p>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-terracotta block mb-1">
+                  Paso 5 de 8
+                </span>
+                <h3 className="font-serif text-2xl text-text-heading">Fotografías del Inmueble</h3>
+                <p className="text-sm text-stone-500 mt-1 font-sans">Mínimo 1 foto, máximo 20 fotos.</p>
               </div>
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">
+              <span className="text-xs font-mono px-3 py-1 rounded-full bg-cream-200 text-stone-700 border border-stone-200">
                 {formData.images.length} / 20 fotos
               </span>
             </div>
 
             {/* Zona Drag & Drop */}
-            <label className="border-2 border-dashed border-gray-300 hover:border-brand rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer bg-gray-50 hover:bg-blue-50/30 transition-colors">
-              <Upload className="w-8 h-8 text-brand mb-2" />
-              <span className="text-sm font-semibold text-gray-800">
+            <label className="border-2 border-dashed border-stone-300 hover:border-brand rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer bg-cream-50/50 hover:bg-brand/5 transition-all duration-200">
+              <Upload className="w-8 h-8 text-brand mb-2 stroke-[1.5]" />
+              <span className="text-sm font-semibold text-text-heading font-sans">
                 Haz clic o arrastra fotos aquí
               </span>
-              <span className="text-xs text-gray-500 mt-1">
+              <span className="text-xs text-stone-500 mt-1 font-sans">
                 Formatos JPG, PNG, WEBP (hasta 5MB por foto)
               </span>
               <input
@@ -618,11 +632,11 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
 
             {/* Grid de fotos */}
             {formData.images.length > 0 && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 pt-3">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3.5 pt-3">
                 {formData.images.map((imgUrl, index) => (
                   <div
                     key={index}
-                    className="relative aspect-[4/3] rounded-lg overflow-hidden border border-gray-200 group bg-gray-100"
+                    className="relative aspect-[4/3] rounded-xl overflow-hidden border border-stone-200/80 group bg-cream-200 shadow-xs"
                   >
                     <Image
                       src={imgUrl}
@@ -632,17 +646,17 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
                       className="object-cover"
                     />
                     {index === 0 && (
-                      <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-brand text-white shadow">
+                      <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-sans font-bold uppercase tracking-wider bg-brand text-white shadow-xs">
                         Portada
                       </span>
                     )}
                     <button
                       type="button"
                       onClick={() => handleRemoveImage(index)}
-                      className="absolute top-1.5 right-1.5 p-1 rounded-full bg-red-600 hover:bg-red-700 text-white shadow transition-all"
+                      className="absolute top-2 right-2 p-1 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow transition-all cursor-pointer"
                       title="Eliminar foto"
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <X className="w-3.5 h-3.5 stroke-[2]" />
                     </button>
                   </div>
                 ))}
@@ -655,9 +669,12 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
         {currentStep === 6 && (
           <div className="space-y-5">
             <div>
-              <h3 className="text-lg font-bold text-gray-900">Título y Descripción</h3>
-              <p className="text-sm text-gray-500">
-                Atrae el interés de los compradores con una descripción detallada.
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-terracotta block mb-1">
+                Paso 6 de 8
+              </span>
+              <h3 className="font-serif text-2xl text-text-heading">Título y Descripción</h3>
+              <p className="text-sm text-stone-500 mt-1 font-sans">
+                Atrae el interés de los clientes con una redacción clara y detallada.
               </p>
             </div>
 
@@ -672,15 +689,15 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
 
             {/* Descripción */}
             <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-sm font-medium text-gray-700">
+              <div className="flex justify-between items-center mb-1.5 font-sans">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-stone-700">
                   Descripción Detallada (opcional)
                 </label>
                 <span
-                  className={`text-xs ${
+                  className={`text-xs font-mono ${
                     formData.description.length > 1500
-                      ? 'text-red-500 font-bold'
-                      : 'text-gray-400'
+                      ? 'text-rose-600 font-bold'
+                      : 'text-stone-400'
                   }`}
                 >
                   {formData.description.length}/1500
@@ -691,7 +708,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Describe los beneficios, amenidades, planta eléctrica, pozo de agua, acabados y cercanías..."
-                className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
+                className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-lg text-sm text-text-heading font-sans focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs transition-all"
               />
             </div>
           </div>
@@ -701,13 +718,16 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
         {currentStep === 7 && (
           <div className="space-y-5">
             <div>
-              <h3 className="text-lg font-bold text-gray-900">Precio y Control Interno</h3>
-              <p className="text-sm text-gray-500">
-                Define el valor del inmueble y tus anotaciones privadas.
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-terracotta block mb-1">
+                Paso 7 de 8
+              </span>
+              <h3 className="font-serif text-2xl text-text-heading">Precio y Control Interno</h3>
+              <p className="text-sm text-stone-500 mt-1 font-sans">
+                Define el valor del inmueble y tus anotaciones de control personal.
               </p>
             </div>
 
-            <div className="max-w-md">
+            <div className="max-w-md pt-2">
               <Input
                 label="Precio en USD (obligatorio) *"
                 type="number"
@@ -735,7 +755,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-stone-700 mb-1.5 font-sans">
                 Notas Privadas (opcional)
               </label>
               <textarea
@@ -743,7 +763,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="Comentarios confidenciales sobre propietarios, comisiones o llaves (no se publican)..."
-                className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand"
+                className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-lg text-sm text-text-heading font-sans focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs transition-all"
               />
             </div>
           </div>
@@ -753,28 +773,31 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
         {currentStep === 8 && (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-bold text-gray-900">Revisión Final del Inmueble</h3>
-              <p className="text-sm text-gray-500">
-                Verifica todos los datos antes de publicar o guardar como borrador.
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-terracotta block mb-1">
+                Paso 8 de 8
+              </span>
+              <h3 className="font-serif text-2xl text-text-heading">Revisión Final del Inmueble</h3>
+              <p className="text-sm text-stone-500 mt-1 font-sans">
+                Verifica todos los datos antes de publicar en tu catálogo o guardar como borrador.
               </p>
             </div>
 
-            {/* Resumen Card */}
-            <div className="bg-gray-50 rounded-xl p-5 border border-gray-200 space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+            {/* Resumen Card Editorial */}
+            <div className="bg-cream-50 rounded-2xl p-6 sm:p-7 border border-stone-200/80 space-y-4 shadow-card">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                 <div>
-                  <h4 className="text-xl font-bold text-gray-900">{formData.title}</h4>
-                  <p className="text-sm text-gray-600">
+                  <h4 className="font-serif text-2xl text-text-heading">{formData.title}</h4>
+                  <p className="text-xs text-stone-500 mt-1 font-sans">
                     {formData.sector ? `${formData.sector}, ` : ''}
                     {formData.city}, {formData.state}
                   </p>
                 </div>
-                <div className="text-2xl font-extrabold text-brand">
+                <div className="font-serif text-2xl sm:text-3xl font-normal text-brand whitespace-nowrap">
                   {formatPrice(formData.price || 0, formData.operation)}
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 pt-2">
                 <Badge variant={formData.operation === 'Venta' ? 'venta' : 'alquiler'}>
                   {formData.type} en {formData.operation}
                 </Badge>
@@ -787,8 +810,8 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
               </div>
 
               {formData.description && (
-                <div className="pt-3 border-t border-gray-200">
-                  <p className="text-xs text-gray-700 line-clamp-3 leading-relaxed">
+                <div className="pt-3 border-t border-stone-200/60 font-sans">
+                  <p className="text-xs text-stone-700 line-clamp-3 leading-relaxed">
                     {formData.description}
                   </p>
                 </div>
@@ -799,10 +822,10 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
       </div>
 
       {/* BOTONES DE NAVEGACIÓN INFERIOR */}
-      <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+      <div className="flex items-center justify-between bg-white p-4.5 sm:p-6 rounded-2xl border border-stone-200/80 shadow-card">
         {currentStep > 1 ? (
-          <Button variant="outline" onClick={handlePrev}>
-            <ArrowLeft className="w-4 h-4" />
+          <Button variant="outline" onClick={handlePrev} className="gap-2">
+            <ArrowLeft className="w-4 h-4 stroke-[2]" />
             <span>Anterior</span>
           </Button>
         ) : (
@@ -812,19 +835,19 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
         <div className="flex items-center gap-3">
           {currentStep === 8 ? (
             <>
-              <Button variant="secondary" onClick={handleSaveDraft}>
-                <Save className="w-4 h-4" />
+              <Button variant="secondary" onClick={handleSaveDraft} className="gap-2">
+                <Save className="w-4 h-4 stroke-[1.75]" />
                 <span>Guardar borrador</span>
               </Button>
-              <Button variant="primary" onClick={handlePublish}>
-                <CheckCircle2 className="w-4 h-4" />
+              <Button variant="primary" onClick={handlePublish} className="gap-2 bg-emerald-700 hover:bg-emerald-800 focus:ring-emerald-600">
+                <CheckCircle2 className="w-4 h-4 stroke-[2]" />
                 <span>Publicar Inmueble</span>
               </Button>
             </>
           ) : (
-            <Button variant="primary" onClick={handleNext}>
+            <Button variant="primary" onClick={handleNext} className="gap-2 group">
               <span>Siguiente</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4 stroke-[2] transition-transform duration-200 group-hover:translate-x-1" />
             </Button>
           )}
         </div>
@@ -832,4 +855,3 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData }) => {
     </div>
   );
 };
-
