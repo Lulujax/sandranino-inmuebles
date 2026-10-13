@@ -98,21 +98,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Header con iniciales SN y nombre */}
         <div className="p-6 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center font-display font-semibold text-white">
+            <div className="w-10 h-10 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center font-display font-semibold text-white">
               SN
             </div>
             <div>
               <h2 className="font-display text-base font-semibold leading-tight text-white">
                 Sandra Nino
               </h2>
-              <p className="text-[11px] font-body text-[#C97B5A] uppercase tracking-wider font-medium">
+              <p className="text-[11px] font-body text-[#f0a888] uppercase tracking-wider font-semibold mt-0.5">
                 Asesora Inmobiliaria
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-stone-300 hover:text-white lg:hidden cursor-pointer"
+            className="p-1 rounded-lg text-stone-200 hover:text-white lg:hidden cursor-pointer"
             aria-label="Cerrar menú"
           >
             <X size={18} strokeWidth={1.5} />
@@ -120,7 +120,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {onToggleDesktop && (
             <button
               onClick={onToggleDesktop}
-              className="hidden lg:inline-flex p-1.5 rounded-lg text-stone-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="hidden lg:inline-flex p-1.5 rounded-lg text-stone-200 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               title="Ocultar menú lateral"
               aria-label="Ocultar menú lateral"
             >
@@ -129,7 +129,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
-        {/* Links de navegación: tamaño 18, strokeWidth 1.5, borde izquierdo terracota 2px en activo */}
+        {/* Links de navegación: alto contraste WCAG AA/AAA sobre fondo azul oscuro */}
         <nav className="flex-1 p-3.5 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -144,18 +144,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 href={item.href}
                 onClick={onClose}
                 className={cn(
-                  'flex items-center gap-3 px-3.5 py-3 rounded-r-xl text-xs font-body font-medium tracking-wide transition-all duration-200 group',
+                  'flex items-center gap-3 px-3.5 py-3 rounded-r-xl text-xs font-body tracking-wide transition-all duration-200 group',
                   isActive
-                    ? 'bg-white/10 text-white border-l-2 border-[#C97B5A] pl-3.5'
-                    : 'text-stone-300 hover:bg-white/5 hover:text-white border-l-2 border-transparent'
+                    ? 'bg-white/15 text-white font-semibold border-l-2 border-[#f0a888] pl-3.5'
+                    : 'text-stone-100 font-medium hover:bg-white/10 hover:text-white border-l-2 border-transparent'
                 )}
               >
                 <Icon
                   size={18}
-                  strokeWidth={1.5}
+                  strokeWidth={1.6}
                   className={cn(
                     'transition-colors shrink-0',
-                    isActive ? 'text-[#C97B5A]' : 'text-stone-400 group-hover:text-stone-200'
+                    isActive ? 'text-[#f0a888]' : 'text-stone-200 group-hover:text-white'
                   )}
                 />
                 <span>{item.label}</span>
@@ -168,9 +168,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="p-4 border-t border-white/10">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-3.5 py-2.5 rounded-xl text-xs font-body font-medium text-rose-300 hover:bg-rose-500/10 hover:text-rose-100 transition-colors cursor-pointer"
+            className="flex items-center gap-3 w-full px-3.5 py-2.5 rounded-xl text-xs font-body font-medium text-rose-200 hover:bg-rose-500/20 hover:text-white transition-colors cursor-pointer"
           >
-            <LogOut size={18} strokeWidth={1.5} className="text-rose-300 shrink-0" />
+            <LogOut size={18} strokeWidth={1.6} className="text-rose-200 shrink-0" />
             <span>Cerrar sesión</span>
           </button>
         </div>

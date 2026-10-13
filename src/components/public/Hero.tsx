@@ -338,7 +338,7 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
         />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center relative z-10">
           <FadeInUp>
-            <span className="text-xs font-body font-medium uppercase tracking-[0.25em] text-[#C97B5A] block mb-3">
+            <span className="text-xs font-body font-semibold uppercase tracking-[0.25em] text-[#f0a888] block mb-3">
               Comienza Hoy
             </span>
             <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-semibold text-white leading-tight">
@@ -370,17 +370,17 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
       </section>
 
       {/* Footer Minimalista */}
-      <footer className="bg-brand-darker text-stone-400 py-10 border-t border-brand/30">
+      <footer className="bg-brand-darker text-stone-300 py-10 border-t border-brand/30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6 text-xs font-body">
           <div className="text-center sm:text-left">
-            <p className="font-display text-stone-200 text-sm font-medium">{asesor.full_name}</p>
-            <p className="text-stone-400 text-[11px] mt-0.5">Asesora Inmobiliaria • Carabobo, Venezuela</p>
+            <p className="font-display text-white text-sm font-semibold">{asesor.full_name}</p>
+            <p className="text-stone-300 text-[11px] mt-0.5">Asesora Inmobiliaria • Carabobo, Venezuela</p>
           </div>
           <div className="flex items-center gap-6">
-            <p className="text-stone-500 text-[11px]">© {new Date().getFullYear()} Todos los derechos reservados.</p>
+            <p className="text-stone-300 text-[11px]">© {new Date().getFullYear()} Todos los derechos reservados.</p>
             <Link
               href="/login"
-              className="text-stone-400 hover:text-[#C97B5A] transition-colors text-xs font-medium tracking-wide underline-offset-4 hover:underline"
+              className="text-[#f0a888] hover:text-white transition-colors text-xs font-medium tracking-wide underline-offset-4 hover:underline"
             >
               Acceso Asesores
             </Link>

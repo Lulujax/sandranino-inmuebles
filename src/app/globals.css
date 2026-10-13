@@ -30,7 +30,6 @@ body {
 /* Headings font inheritance: Fraunces with reduced letter-spacing */
 h1, h2, h3, h4, .font-display, .font-serif {
   font-family: var(--font-display), Georgia, serif;
-  color: var(--text-heading);
   letter-spacing: -0.02em;
 }
 
