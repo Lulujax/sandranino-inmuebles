@@ -241,10 +241,10 @@ export default function AdminDashboardPage() {
           </div>
           <Link
             href="/admin/inmuebles"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-text-heading hover:text-brand-darker font-body uppercase tracking-wider py-1.5 px-3 rounded-lg border border-[#C97B5A]/60 hover:bg-[#C97B5A]/15 transition-all"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-text-heading hover:text-brand font-body uppercase tracking-wider py-1.5 px-3 rounded-lg bg-white border border-stone-300 hover:border-brand/40 hover:bg-[#f5f1ea] transition-all"
           >
             <span>Ver inventario completo</span>
-            <ArrowRight size={14} strokeWidth={1.5} className="text-[#C97B5A]" />
+            <ArrowRight size={14} strokeWidth={1.5} className="text-brand" />
           </Link>
         </div>
 

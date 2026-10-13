@@ -47,6 +47,8 @@ function PublicarContent() {
       description: existing.description || '',
       price: existing.price,
       internal_code: existing.internal_code || '',
+      owner_name: existing.owner_name || '',
+      owner_phone: existing.owner_phone || '',
       notes: existing.notes || '',
     });
   }, [editId]);

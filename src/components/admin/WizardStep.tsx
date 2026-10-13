@@ -45,6 +45,8 @@ import {
   Hash,
   StickyNote,
   FileEdit,
+  User,
+  Phone,
 } from 'lucide-react';
 import {
   WizardFormData,
@@ -202,6 +204,8 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
     description: initialData?.description || '',
     price: initialData?.price,
     internal_code: initialData?.internal_code || '',
+    owner_name: initialData?.owner_name || '',
+    owner_phone: initialData?.owner_phone || '',
     notes: initialData?.notes || '',
   });
 
@@ -242,6 +246,8 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
         description: initialData.description || '',
         price: initialData.price,
         internal_code: initialData.internal_code || '',
+        owner_name: initialData.owner_name || '',
+        owner_phone: initialData.owner_phone || '',
         notes: initialData.notes || '',
       });
     }
@@ -314,6 +320,8 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
       description: pendingDraft.description || '',
       price: pendingDraft.price,
       internal_code: pendingDraft.internal_code || '',
+      owner_name: pendingDraft.owner_name || '',
+      owner_phone: pendingDraft.owner_phone || '',
       notes: pendingDraft.notes || '',
     });
     setPendingDraft(null);
@@ -373,6 +381,43 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
     }));
   };
 
+  // Comprimir archivo de imagen a Data URL persistente para localStorage
+  const fileToCompressedDataUrl = (file: File, fallbackBlobUrl: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.onload = () => {
+        try {
+          const maxDim = 960;
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(fallbackBlobUrl);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+          resolve(dataUrl);
+        } catch {
+          resolve(fallbackBlobUrl);
+        }
+      };
+      img.onerror = () => resolve(fallbackBlobUrl);
+      img.src = fallbackBlobUrl;
+    });
+  };
+
   // Procesar múltiples archivos (drag & drop o input file)
   const processFiles = (files: File[]) => {
     if (!files.length) return;
@@ -383,23 +428,42 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
     }
     if (validFiles.length === 0) return;
 
-    updateForm((prev) => {
-      const remainingSlots = 20 - prev.images.length;
-      if (remainingSlots <= 0) {
-        toast('⚠️ Límite máximo de 20 fotos alcanzado', 'warning');
-        return prev;
-      }
+    const remainingSlots = 20 - formData.images.length;
+    if (remainingSlots <= 0) {
+      toast('⚠️ Límite máximo de 20 fotos alcanzado', 'warning');
+      return;
+    }
 
-      const filesToAdd = validFiles.slice(0, remainingSlots);
-      if (validFiles.length > remainingSlots) {
-        toast(`⚠️ Solo se agregaron ${remainingSlots} fotos (máximo 20)`, 'warning');
-      }
+    const filesToAdd = validFiles.slice(0, remainingSlots);
+    if (validFiles.length > remainingSlots) {
+      toast(`⚠️ Solo se agregaron ${remainingSlots} fotos (máximo 20)`, 'warning');
+    }
 
-      const newUrls = filesToAdd.map((file) => URL.createObjectURL(file));
-      return {
+    // 1. Vista previa instantánea con URL.createObjectURL(file)
+    const entries = filesToAdd.map((file) => ({
+      file,
+      blobUrl: URL.createObjectURL(file),
+    }));
+
+    updateForm((prev) => ({
+      ...prev,
+      images: [...prev.images, ...entries.map((e) => e.blobUrl)],
+    }));
+
+    // 2. Convertir en segundo plano a Data URL comprimida para persistir en localStorage y nuevas pestañas
+    Promise.all(
+      entries.map(async ({ file, blobUrl }) => ({
+        blobUrl,
+        dataUrl: await fileToCompressedDataUrl(file, blobUrl),
+      }))
+    ).then((results) => {
+      setFormData((prev) => ({
         ...prev,
-        images: [...prev.images, ...newUrls],
-      };
+        images: prev.images.map((imgUrl) => {
+          const match = results.find((r) => r.blobUrl === imgUrl);
+          return match ? match.dataUrl : imgUrl;
+        }),
+      }));
     });
   };
 
@@ -569,6 +633,8 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
       price: formData.price || 0,
       currency: 'USD',
       internal_code: formData.internal_code.trim() || undefined,
+      owner_name: formData.owner_name.trim() || undefined,
+      owner_phone: formData.owner_phone.trim() || undefined,
       notes: formData.notes.trim() || undefined,
       images: formData.images,
       status,
@@ -1362,6 +1428,51 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
               />
             </div>
 
+            {/* Datos del Propietario / Aliado (Uso Interno) */}
+            <div className="bg-white rounded-xl p-4 sm:p-5 border border-stone-200/80 space-y-4">
+              <div>
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-text-heading flex items-center gap-1.5 font-body">
+                  <User size={14} strokeWidth={1.5} className="text-[#C97B5A]" />
+                  <span>Datos del Propietario — Uso Interno (opcional)</span>
+                </h4>
+                <p className="text-[11px] text-stone-500 mt-0.5 font-body">
+                  Información 100% privada. Solo se mostrará en tu tabla de &quot;Mis Inmuebles&quot; y nunca será visible al público.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <User size={13} strokeWidth={1.5} className="text-stone-400" />
+                    <span className="text-xs font-medium uppercase tracking-wider text-stone-700 font-body">
+                      Nombre del Propietario
+                    </span>
+                  </div>
+                  <Input
+                    placeholder="Ej. Sr. Carlos Mendoza"
+                    value={formData.owner_name}
+                    onChange={(e) =>
+                      updateForm((prev) => ({ ...prev, owner_name: e.target.value }))
+                    }
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Phone size={13} strokeWidth={1.5} className="text-stone-400" />
+                    <span className="text-xs font-medium uppercase tracking-wider text-stone-700 font-body">
+                      Teléfono del Propietario
+                    </span>
+                  </div>
+                  <Input
+                    placeholder="Ej. +58 414-0000000"
+                    value={formData.owner_phone}
+                    onChange={(e) =>
+                      updateForm((prev) => ({ ...prev, owner_phone: e.target.value }))
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
             <div>
               <label className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-stone-700 mb-1.5 font-body">
                 <StickyNote size={14} strokeWidth={1.5} className="text-[#C97B5A]" />
@@ -1395,36 +1506,106 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
               </p>
             </div>
 
-            {/* Resumen Card Editorial */}
-            <div className="bg-white rounded-2xl p-6 sm:p-7 border border-stone-200/80 space-y-4 shadow-card">
-              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-                <div>
-                  <h4 className="font-display text-2xl font-semibold text-text-heading">
-                    {formData.title}
-                  </h4>
-                  <p className="text-xs text-stone-500 mt-1 font-body flex items-center gap-1.5">
-                    <MapPin size={13} strokeWidth={1.5} className="text-[#C97B5A]" />
-                    <span>
-                      {formData.sector ? `${formData.sector}, ` : ''}
-                      {formData.city}, {formData.state}
+            {/* Resumen Card Editorial con Foto de Portada y Detalles Técnicos */}
+            <div className="bg-white rounded-2xl p-6 sm:p-7 border border-stone-200/80 space-y-5 shadow-card">
+              <div className="flex flex-col sm:flex-row gap-5">
+                {formData.images[0] && (
+                  <div className="relative w-full sm:w-44 aspect-[4/3] rounded-xl overflow-hidden bg-[#f5f1ea] border border-stone-200 shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={formData.images[0]}
+                      alt="Foto de portada"
+                      className="w-full h-full object-cover"
+                    />
+                    <span className="absolute top-2 left-2 text-[10px] uppercase tracking-wider bg-brand text-white px-2 py-0.5 rounded-full font-body font-medium">
+                      PORTADA
                     </span>
-                  </p>
-                </div>
-                <div className="font-display text-2xl sm:text-3xl font-semibold text-brand whitespace-nowrap">
-                  {formatPrice(formData.price || 0, formData.operation)}
-                </div>
-              </div>
+                  </div>
+                )}
 
-              <div className="flex flex-wrap gap-2 pt-2">
-                <Badge variant={formData.operation === 'Venta' ? 'venta' : 'alquiler'}>
-                  {formData.type} en {formData.operation}
-                </Badge>
-                {formData.images.length > 0 && (
-                  <Badge variant="gray">{formData.images.length} Fotos cargadas</Badge>
-                )}
-                {formData.internal_code && (
-                  <Badge variant="gray">Código: {formData.internal_code}</Badge>
-                )}
+                <div className="flex-1 flex flex-col justify-between gap-3">
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
+                    <div>
+                      <h4 className="font-display text-2xl font-semibold text-text-heading">
+                        {formData.title || 'Sin título asignado'}
+                      </h4>
+                      <p className="text-xs text-stone-500 mt-1 font-body flex items-center gap-1.5">
+                        <MapPin size={13} strokeWidth={1.5} className="text-[#C97B5A]" />
+                        <span>
+                          {formData.sector ? `${formData.sector}, ` : ''}
+                          {formData.city || 'Ciudad'}, {formData.state || 'Estado'}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="font-display text-2xl sm:text-3xl font-semibold text-brand whitespace-nowrap">
+                      {formatPrice(formData.price || 0, formData.operation)}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Badge variant={formData.operation === 'Venta' ? 'venta' : 'alquiler'}>
+                      {formData.type} en {formData.operation}
+                    </Badge>
+                    {formData.images.length > 0 && (
+                      <Badge variant="gray">{formData.images.length} Fotos cargadas</Badge>
+                    )}
+                    {formData.internal_code && (
+                      <Badge variant="gray">Código: {formData.internal_code}</Badge>
+                    )}
+                    {formData.owner_name && (
+                      <Badge variant="gray">Propietario: {formData.owner_name}</Badge>
+                    )}
+                  </div>
+
+                  {/* Resumen de características cargadas según el tipo */}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-stone-600 pt-1">
+                    {formData.built_area !== undefined && (
+                      <span>
+                        <strong>Construcción:</strong> {formData.built_area} m²
+                      </span>
+                    )}
+                    {formData.land_area !== undefined && (
+                      <span>
+                        <strong>Terreno:</strong> {formData.land_area} m²
+                      </span>
+                    )}
+                    {formData.total_area !== undefined && (
+                      <span>
+                        <strong>Área total:</strong> {formData.total_area} m²
+                      </span>
+                    )}
+                    {formData.bedrooms !== undefined && (
+                      <span>
+                        <strong>Hab:</strong> {formData.bedrooms}
+                      </span>
+                    )}
+                    {formData.bathrooms !== undefined && (
+                      <span>
+                        <strong>Baños:</strong> {formData.bathrooms}
+                      </span>
+                    )}
+                    {formData.parking !== undefined && (
+                      <span>
+                        <strong>Estac:</strong> {formData.parking}
+                      </span>
+                    )}
+                    {formData.height !== undefined && (
+                      <span>
+                        <strong>Altura:</strong> {formData.height} m
+                      </span>
+                    )}
+                    {formData.offices !== undefined && (
+                      <span>
+                        <strong>Oficinas:</strong> {formData.offices}
+                      </span>
+                    )}
+                    {formData.year !== undefined && (
+                      <span>
+                        <strong>Año:</strong> {formData.year}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {formData.description && (
@@ -1439,8 +1620,8 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
         )}
       </motion.div>
 
-      {/* BOTONES DE NAVEGACIÓN INFERIOR (BUG 5.3 & 5.4) */}
-      <div className="flex items-center justify-between bg-[#faf9f6] p-4.5 sm:p-6 rounded-2xl border border-stone-200/80 shadow-card">
+      {/* BOTONES DE NAVEGACIÓN INFERIOR (BUG 5.3 & 5.4 + Guardar borrador en cualquier paso) */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#faf9f6] p-4.5 sm:p-6 rounded-2xl border border-stone-200/80 shadow-card">
         {currentStep > 1 ? (
           <Button variant="outline" onClick={handlePrev} className="gap-2 group">
             <ArrowLeft
@@ -1455,21 +1636,25 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
         )}
 
         <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handleSaveDraft}
+            className="gap-2"
+          >
+            <FileEdit size={15} strokeWidth={1.5} />
+            <span>Guardar borrador</span>
+          </Button>
+
           {currentStep === 8 ? (
-            <>
-              <Button variant="secondary" onClick={handleSaveDraft} className="gap-2">
-                <Check size={16} strokeWidth={1.5} />
-                <span>Guardar borrador</span>
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handlePublish}
-                className="gap-2 bg-emerald-700 hover:bg-emerald-800 focus:ring-emerald-600"
-              >
-                <Check size={16} strokeWidth={1.5} />
-                <span>Publicar</span>
-              </Button>
-            </>
+            <Button
+              variant="primary"
+              onClick={handlePublish}
+              className="gap-2 bg-emerald-700 hover:bg-emerald-800 focus:ring-emerald-600"
+            >
+              <Check size={16} strokeWidth={1.5} />
+              <span>Publicar</span>
+            </Button>
           ) : (
             <Button variant="primary" onClick={handleNext} className="gap-2 group">
               <span>Siguiente</span>

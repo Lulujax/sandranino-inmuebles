@@ -32,9 +32,9 @@ export const Topbar: React.FC<TopbarProps> = ({ title, onOpenSidebar }) => {
         <Link
           href="/"
           target="_blank"
-          className="inline-flex items-center gap-2 text-xs font-body font-medium uppercase tracking-wider text-text-heading hover:text-brand-darker transition-all py-1.5 px-3.5 rounded-lg bg-[#faf9f6] hover:bg-[#C97B5A]/15 border border-[#C97B5A]/60 hover:border-[#C97B5A] shadow-2xs"
+          className="inline-flex items-center gap-2 text-xs font-body font-medium uppercase tracking-wider text-text-heading hover:text-brand transition-all py-1.5 px-3.5 rounded-lg bg-white hover:bg-[#f5f1ea] border border-stone-300 hover:border-brand/40 shadow-2xs"
         >
-          <Eye size={15} strokeWidth={1.5} className="text-[#C97B5A]" />
+          <Eye size={15} strokeWidth={1.5} className="text-brand" />
           <span className="hidden sm:inline">Ver catálogo público</span>
         </Link>
 

@@ -26,11 +26,18 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // Solo refrescar la sesión si hay configuración real
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://placeholder.supabase.co') {
-    await supabase.auth.getUser();
+  // Solo refrescar y verificar la sesión si hay configuración real
+  let user = null;
+  if (
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://placeholder.supabase.co' &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== 'placeholder-anon-key'
+  ) {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
   }
 
-  return supabaseResponse;
+  return { response: supabaseResponse, user };
 }
 

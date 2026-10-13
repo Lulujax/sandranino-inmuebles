@@ -23,9 +23,9 @@ export const Button: React.FC<ButtonProps> = ({
     primary:
       'bg-brand hover:bg-brand-darker text-white shadow-sm hover:shadow-md hover:-translate-y-0.5 focus:ring-brand rounded-lg',
     secondary:
-      'border border-[#C97B5A] bg-transparent hover:bg-[#C97B5A]/15 text-[#a85d3d] focus:ring-[#C97B5A] rounded-lg hover:-translate-y-0.5',
+      'border border-brand/25 bg-brand/5 hover:bg-brand/10 text-brand-darker focus:ring-brand rounded-lg hover:-translate-y-0.5',
     outline:
-      'border border-[#C97B5A]/70 bg-transparent hover:bg-[#C97B5A]/10 text-[#2d2d2d] hover:text-[#1a1a1a] focus:ring-[#C97B5A] rounded-lg hover:-translate-y-0.5',
+      'border border-stone-300 bg-white hover:bg-[#f5f1ea] hover:border-stone-400 text-[#2d2d2d] hover:text-[#1a1a1a] focus:ring-stone-300 rounded-lg hover:-translate-y-0.5',
     terracotta:
       'bg-terracotta hover:bg-terracotta-dark text-white shadow-sm hover:shadow-md hover:-translate-y-0.5 focus:ring-terracotta rounded-lg',
     danger:

@@ -2,8 +2,30 @@ import { Inmueble } from './types';
 import { storage } from './storage';
 import { STORAGE_KEYS } from './storage-keys';
 
+export function toPublicProperty(inmueble: Inmueble): Inmueble {
+  const {
+    owner_name: _ownerName,
+    owner_phone: _ownerPhone,
+    notes: _notes,
+    internal_code: _internalCode,
+    address,
+    ...rest
+  } = inmueble;
+
+  return {
+    ...rest,
+    address: inmueble.show_exact_location ? address : undefined,
+  };
+}
+
 export const propertiesStore = {
   getAll: (): Inmueble[] => storage.get<Inmueble[]>(STORAGE_KEYS.PROPERTIES, []),
+
+  getPublicAll: (): Inmueble[] =>
+    propertiesStore
+      .getAll()
+      .filter((p) => p.status === 'Publicado')
+      .map(toPublicProperty),
 
   getById: (id: string): Inmueble | undefined =>
     propertiesStore.getAll().find((p) => p.id === id),

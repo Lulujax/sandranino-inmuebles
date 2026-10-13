@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowRight, ArrowLeft, KeyRound } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { Button } from '@/components/ui/Button';
@@ -27,6 +27,16 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const getSafeRedirect = (): string => {
+    if (typeof window === 'undefined') return '/admin';
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get('redirect');
+    if (redirect && redirect.startsWith('/admin') && !redirect.startsWith('//')) {
+      return redirect;
+    }
+    return '/admin';
+  };
+
   // Si ya tiene sesión activa con keepSession en localStorage, redirigir al panel
   useEffect(() => {
     const savedSession = storage.get<SessionPayload | null>(STORAGE_KEYS.SESSION, null);
@@ -34,6 +44,31 @@ export default function LoginPage() {
       router.replace('/admin');
     }
   }, [router]);
+
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      toast('Ingresa tu correo electrónico primero para enviarte el enlace', 'warning');
+      return;
+    }
+
+    if (isSupabaseConfigured()) {
+      try {
+        const supabase = createClient();
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: `${window.location.origin}/admin/perfil`,
+        });
+        if (error) {
+          toast(error.message, 'error');
+          return;
+        }
+      } catch {
+        toast('No se pudo enviar el correo de recuperación', 'error');
+        return;
+      }
+    }
+
+    toast('Enlace de recuperación enviado al correo registrado', 'info');
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,27 +81,27 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const supabase = createClient();
-
-      if (
-        process.env.NEXT_PUBLIC_SUPABASE_URL &&
-        process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://placeholder.supabase.co'
-      ) {
+      if (isSupabaseConfigured()) {
+        const supabase = createClient();
         const { error } = await supabase.auth.signInWithPassword({
-          email,
+          email: email.trim(),
           password,
         });
         if (error) {
-          toast(error.message, 'error');
+          toast('Credenciales inválidas. Verifica tu correo y contraseña.', 'error');
           setIsLoading(false);
           return;
         }
+      } else if (process.env.NODE_ENV === 'production') {
+        toast('El servicio de autenticación no está configurado en el servidor', 'error');
+        setIsLoading(false);
+        return;
       }
 
       // Persistencia de sesión con storage.ts (BUG 4)
       if (rememberMe) {
         storage.set(STORAGE_KEYS.SESSION, {
-          email,
+          email: email.trim(),
           loggedAt: Date.now(),
           keepSession: true,
         });
@@ -74,14 +109,14 @@ export default function LoginPage() {
       } else {
         storage.remove(STORAGE_KEYS.SESSION);
         storage.sessionSet(STORAGE_KEYS.SESSION, {
-          email,
+          email: email.trim(),
           loggedAt: Date.now(),
           keepSession: false,
         });
       }
 
       toast('Sesión iniciada con éxito. ¡Bienvenida, Sandra!', 'success');
-      router.push('/admin');
+      router.push(getSafeRedirect());
     } catch {
       toast('Ocurrió un error al procesar el inicio de sesión', 'error');
     } finally {
@@ -142,9 +177,7 @@ export default function LoginPage() {
 
             <button
               type="button"
-              onClick={() =>
-                toast('Enlace de recuperación enviado al correo registrado', 'info')
-              }
+              onClick={handleForgotPassword}
               className="text-[#C97B5A] hover:text-terracotta-dark font-medium transition-colors"
             >
               ¿Olvidaste tu contraseña?

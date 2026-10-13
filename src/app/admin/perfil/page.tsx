@@ -10,6 +10,7 @@ import {
 import { FaWhatsapp, FaInstagram, FaFacebook } from 'react-icons/fa';
 import { MOCK_ASESOR } from '@/data/mock-properties';
 import { PerfilAsesor } from '@/lib/types';
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { Input } from '@/components/ui/Input';
@@ -29,6 +30,7 @@ export default function MiPerfilPage() {
   // Seguridad
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   useEffect(() => {
     const savedProfile = storage.get<PerfilAsesor | null>(STORAGE_KEYS.PROFILE, null);
@@ -41,6 +43,14 @@ export default function MiPerfilPage() {
     }
   }, []);
 
+  const cleanSocialHandle = (val: string, domain: string): string => {
+    return val
+      .trim()
+      .replace(new RegExp(`^https?:\\/\\/(www\\.)?${domain}\\/`, 'i'), '')
+      .replace(/^@/, '')
+      .replace(/\/+$/, '');
+  };
+
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -49,25 +59,33 @@ export default function MiPerfilPage() {
       return;
     }
 
-    if (!whatsapp.trim()) {
+    const cleanWhatsapp = whatsapp.replace(/\D/g, '');
+    if (!cleanWhatsapp) {
       toast('El número de WhatsApp es obligatorio', 'warning');
       return;
     }
 
+    const cleanIg = cleanSocialHandle(instagram, 'instagram\\.com');
+    const cleanFb = cleanSocialHandle(facebook, 'facebook\\.com');
+
+    setWhatsapp(cleanWhatsapp);
+    setInstagram(cleanIg);
+    setFacebook(cleanFb);
+
     storage.set<PerfilAsesor>(STORAGE_KEYS.PROFILE, {
       ...MOCK_ASESOR,
       full_name: fullName.trim(),
-      whatsapp: whatsapp.trim(),
+      whatsapp: cleanWhatsapp,
       email: email.trim(),
-      instagram: instagram.trim(),
-      facebook: facebook.trim(),
+      instagram: cleanIg,
+      facebook: cleanFb,
       updated_at: new Date().toISOString(),
     });
 
     toast('Perfil guardado correctamente', 'success');
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!currentPassword || !newPassword) {
@@ -75,14 +93,43 @@ export default function MiPerfilPage() {
       return;
     }
 
-    if (!newPassword.length || newPassword.length < 6) {
+    if (newPassword.length < 6) {
       toast('La nueva contraseña debe tener al menos 6 caracteres', 'warning');
       return;
     }
 
-    toast('Contraseña modificada con éxito', 'success');
-    setCurrentPassword('');
-    setNewPassword('');
+    setIsUpdatingPassword(true);
+    try {
+      if (isSupabaseConfigured()) {
+        const supabase = createClient();
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData.user?.email) {
+          const { error: verifyError } = await supabase.auth.signInWithPassword({
+            email: userData.user.email,
+            password: currentPassword,
+          });
+          if (verifyError) {
+            toast('La contraseña actual es incorrecta', 'error');
+            return;
+          }
+        }
+        const { error } = await supabase.auth.updateUser({
+          password: newPassword,
+        });
+        if (error) {
+          toast(error.message, 'error');
+          return;
+        }
+      }
+
+      toast('Contraseña modificada con éxito', 'success');
+      setCurrentPassword('');
+      setNewPassword('');
+    } catch {
+      toast('No se pudo actualizar la contraseña', 'error');
+    } finally {
+      setIsUpdatingPassword(false);
+    }
   };
 
   return (

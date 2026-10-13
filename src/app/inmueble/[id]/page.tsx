@@ -23,7 +23,7 @@ import {
 import { FaWhatsapp } from 'react-icons/fa';
 import { MOCK_PROPERTIES, MOCK_ASESOR } from '@/data/mock-properties';
 import { Inmueble, PerfilAsesor, PropertyType } from '@/lib/types';
-import { propertiesStore } from '@/lib/properties';
+import { propertiesStore, toPublicProperty } from '@/lib/properties';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import {
@@ -61,6 +61,7 @@ export default function PropertyDetailPage() {
 
   const [property, setProperty] = useState<Inmueble | null>(null);
   const [asesor, setAsesor] = useState<PerfilAsesor>(MOCK_ASESOR);
+  const [isAdminPreview, setIsAdminPreview] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -71,18 +72,48 @@ export default function PropertyDetailPage() {
       setAsesor(savedProfile);
     }
 
+    const persistentSession = storage.get<{ keepSession?: boolean } | null>(
+      STORAGE_KEYS.SESSION,
+      null
+    );
+    const temporarySession = storage.sessionGet<{ email?: string } | null>(
+      STORAGE_KEYS.SESSION,
+      null
+    );
+    const hasAdminSession = Boolean(
+      (persistentSession && persistentSession.keepSession) || temporarySession
+    );
+    setIsAdminPreview(hasAdminSession);
+
     const fromStore = propertiesStore.getById(id);
     if (fromStore) {
-      const updated = propertiesStore.update(id, {
-        visits: (fromStore.visits || 0) + 1,
-      });
-      setProperty(updated || fromStore);
+      if (fromStore.status !== 'Publicado' && !hasAdminSession) {
+        setProperty(null);
+        setLoaded(true);
+        return;
+      }
+
+      // Solo sumar visita cuando es un visitante público y el inmueble está publicado
+      const targetProp =
+        !hasAdminSession && fromStore.status === 'Publicado'
+          ? propertiesStore.update(id, {
+              visits: (fromStore.visits || 0) + 1,
+            }) || fromStore
+          : fromStore;
+
+      setProperty(toPublicProperty(targetProp));
       setLoaded(true);
       return;
     }
 
     const fromMock = MOCK_PROPERTIES.find((p) => p.id === id) || null;
-    setProperty(fromMock);
+    if (fromMock && fromMock.status !== 'Publicado' && !hasAdminSession) {
+      setProperty(null);
+      setLoaded(true);
+      return;
+    }
+
+    setProperty(fromMock ? toPublicProperty(fromMock) : null);
     setLoaded(true);
   }, [id]);
 
@@ -95,10 +126,10 @@ export default function PropertyDetailPage() {
       <div className="min-h-screen bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] flex flex-col items-center justify-center p-6 text-center font-body">
         <div className="bg-[#faf9f6] p-10 rounded-2xl border border-stone-200/80 shadow-card max-w-md space-y-4">
           <h1 className="font-display text-2xl font-semibold text-text-heading">
-            Inmueble no encontrado
+            Inmueble no disponible
           </h1>
           <p className="text-sm text-stone-600">
-            No pudimos encontrar el inmueble solicitado. Es posible que haya sido eliminado.
+            El inmueble solicitado no se encuentra disponible públicamente o ha sido retirado del catálogo.
           </p>
           <Link
             href="/inventario"
@@ -142,6 +173,21 @@ export default function PropertyDetailPage() {
 
       {/* Contenido principal */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-8 sm:pt-10 space-y-9 animate-fade-in-up">
+        {isAdminPreview && property.status !== 'Publicado' && (
+          <div className="px-4 py-3 rounded-xl bg-[#fef7eb] border border-amber-300/80 text-amber-900 text-xs sm:text-sm flex items-center justify-between gap-3">
+            <span>
+              <strong>Modo Vista Previa (Admin):</strong> Este inmueble está en estado{' '}
+              <strong>{property.status}</strong> y permanece oculto para el público general.
+            </span>
+            <Link
+              href="/admin/inmuebles"
+              className="text-xs font-semibold uppercase tracking-wider text-[#1e3a5f] hover:underline shrink-0"
+            >
+              Ir al Panel
+            </Link>
+          </div>
+        )}
+
         {/* Encabezado del Inmueble */}
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
@@ -288,6 +334,33 @@ export default function PropertyDetailPage() {
                     <span>
                       <strong className="text-text-heading font-medium">Dirección:</strong>{' '}
                       {property.address}
+                    </span>
+                  </div>
+                )}
+                {property.built_area !== undefined && (
+                  <div className="flex items-center gap-3 text-stone-700">
+                    <Maximize2 size={18} strokeWidth={1.5} className="text-[#C97B5A]" />
+                    <span>
+                      <strong className="text-text-heading font-medium">Área construida:</strong>{' '}
+                      {formatArea(property.built_area)}
+                    </span>
+                  </div>
+                )}
+                {property.land_area !== undefined && (
+                  <div className="flex items-center gap-3 text-stone-700">
+                    <Maximize2 size={18} strokeWidth={1.5} className="text-[#C97B5A]" />
+                    <span>
+                      <strong className="text-text-heading font-medium">Área de terreno:</strong>{' '}
+                      {formatArea(property.land_area)}
+                    </span>
+                  </div>
+                )}
+                {property.total_area !== undefined && (
+                  <div className="flex items-center gap-3 text-stone-700">
+                    <Maximize2 size={18} strokeWidth={1.5} className="text-[#C97B5A]" />
+                    <span>
+                      <strong className="text-text-heading font-medium">Área total:</strong>{' '}
+                      {formatArea(property.total_area)}
                     </span>
                   </div>
                 )}

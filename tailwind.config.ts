@@ -8,6 +8,13 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      spacing: {
+        "4.5": "1.125rem",
+        "8.5": "2.125rem",
+        "9.5": "2.375rem",
+        "13": "3.25rem",
+        "18": "4.5rem",
+      },
       fontFamily: {
         display: ["var(--font-display)", "Fraunces", "Georgia", "serif"],
         body: ["var(--font-body)", "Sora", "sans-serif"],
@@ -43,9 +50,14 @@ const config: Config = {
         },
       },
       boxShadow: {
+        "2xs": "0 1px 2px 0 rgba(26, 26, 26, 0.03)",
+        xs: "0 1px 2px 0 rgba(26, 26, 26, 0.05)",
         luxury: "0 10px 30px -10px rgba(30, 58, 95, 0.08), 0 4px 12px -4px rgba(30, 58, 95, 0.04)",
         "luxury-hover": "0 20px 40px -15px rgba(30, 58, 95, 0.15), 0 8px 16px -6px rgba(30, 58, 95, 0.08)",
         card: "0 2px 8px -2px rgba(26, 26, 26, 0.04), 0 1px 3px -1px rgba(26, 26, 26, 0.02)",
+      },
+      backdropBlur: {
+        xs: "2px",
       },
       transitionTimingFunction: {
         editorial: "cubic-bezier(0.16, 1, 0.3, 1)",

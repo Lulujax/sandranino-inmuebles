@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { cn } from '@/lib/utils';
@@ -55,7 +56,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     },
   ];
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (isSupabaseConfigured()) {
+      try {
+        await createClient().auth.signOut();
+      } catch {}
+    }
     storage.remove(STORAGE_KEYS.SESSION);
     storage.sessionRemove(STORAGE_KEYS.SESSION);
     router.push('/login');

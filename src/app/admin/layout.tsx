@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { Sidebar } from '@/components/admin/Sidebar';
@@ -36,53 +37,80 @@ export default function AdminLayout({
   };
 
   // Auto-logout por inactividad de 5 minutos (solo si keepSession es false)
-  const handleInactivityLogout = useCallback(() => {
+  const handleInactivityLogout = useCallback(async () => {
     toast('Sesión cerrada por 5 minutos de inactividad', 'info');
+    if (isSupabaseConfigured()) {
+      try {
+        await createClient().auth.signOut();
+      } catch {}
+    }
     storage.remove(STORAGE_KEYS.SESSION);
     storage.sessionRemove(STORAGE_KEYS.SESSION);
     router.replace('/login');
   }, [router, toast]);
 
   useEffect(() => {
-    const persistentSession = storage.get<SessionPayload | null>(
-      STORAGE_KEYS.SESSION,
-      null
-    );
-    const temporarySession = storage.sessionGet<SessionPayload | null>(
-      STORAGE_KEYS.SESSION,
-      null
-    );
+    let cleanupInactivity: (() => void) | undefined;
 
-    // Si existe en localStorage y keepSession es true, permitir acceso sin auto-logout
-    if (persistentSession && persistentSession.keepSession) {
-      setIsAuthorized(true);
-      return;
-    }
+    const verifySession = async () => {
+      if (isSupabaseConfigured()) {
+        const supabase = createClient();
+        const { data } = await supabase.auth.getUser();
+        if (!data.user) {
+          storage.remove(STORAGE_KEYS.SESSION);
+          storage.sessionRemove(STORAGE_KEYS.SESSION);
+          router.replace('/login');
+          return;
+        }
+      }
 
-    // Si existe sesión temporal en sessionStorage (keepSession es false), permitir acceso + auto-logout 5 min
-    if (temporarySession) {
-      setIsAuthorized(true);
+      const persistentSession = storage.get<SessionPayload | null>(
+        STORAGE_KEYS.SESSION,
+        null
+      );
+      const temporarySession = storage.sessionGet<SessionPayload | null>(
+        STORAGE_KEYS.SESSION,
+        null
+      );
 
-      let timeoutId: ReturnType<typeof setTimeout>;
+      // Si existe en localStorage y keepSession es true, permitir acceso sin auto-logout
+      if (persistentSession && persistentSession.keepSession) {
+        setIsAuthorized(true);
+        return;
+      }
 
-      const resetTimer = () => {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(handleInactivityLogout, 5 * 60 * 1000);
-      };
+      // Si existe sesión temporal en sessionStorage (keepSession es false), permitir acceso + auto-logout 5 min
+      if (temporarySession) {
+        setIsAuthorized(true);
 
-      const events = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'];
-      events.forEach((evt) => window.addEventListener(evt, resetTimer));
+        let timeoutId: ReturnType<typeof setTimeout>;
 
-      resetTimer();
+        const resetTimer = () => {
+          clearTimeout(timeoutId);
+          timeoutId = setTimeout(handleInactivityLogout, 5 * 60 * 1000);
+        };
 
-      return () => {
-        clearTimeout(timeoutId);
-        events.forEach((evt) => window.removeEventListener(evt, resetTimer));
-      };
-    }
+        const events = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'];
+        events.forEach((evt) => window.addEventListener(evt, resetTimer));
 
-    // Si no hay sesión válida, redirigir a /login
-    router.replace('/login');
+        resetTimer();
+
+        cleanupInactivity = () => {
+          clearTimeout(timeoutId);
+          events.forEach((evt) => window.removeEventListener(evt, resetTimer));
+        };
+        return;
+      }
+
+      // Si no hay sesión válida, redirigir a /login
+      router.replace('/login');
+    };
+
+    verifySession();
+
+    return () => {
+      if (cleanupInactivity) cleanupInactivity();
+    };
   }, [handleInactivityLogout, router]);
 
   if (!isAuthorized) {

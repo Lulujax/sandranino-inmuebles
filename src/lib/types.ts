@@ -34,6 +34,8 @@ export interface Inmueble {
   price: number;
   currency: 'USD';
   internal_code?: string; // Interno
+  owner_name?: string; // Interno
+  owner_phone?: string; // Interno
   notes?: string; // Interno
   images: string[];
   status: PropertyStatus;
@@ -98,6 +100,7 @@ export interface WizardFormData {
   // Price & internals
   price?: number;
   internal_code: string;
+  owner_name: string;
+  owner_phone: string;
   notes: string;
 }
-

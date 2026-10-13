@@ -12,7 +12,10 @@ import {
   Trash2,
   Eye,
   Home,
+  CheckCircle2,
+  User,
 } from 'lucide-react';
+import { FaWhatsapp } from 'react-icons/fa';
 import { Inmueble, AdminFilterState, PropertyStatus } from '@/lib/types';
 import { propertiesStore } from '@/lib/properties';
 import { formatPrice } from '@/lib/utils';
@@ -40,6 +43,12 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
 
   const { toast } = useToast();
 
+  const handleStatusChange = (id: string, nextStatus: PropertyStatus) => {
+    propertiesStore.update(id, { status: nextStatus });
+    setProperties(propertiesStore.getAll());
+    toast(`Estado actualizado a "${nextStatus}"`, 'success');
+  };
+
   const handleStatusToggle = (id: string) => {
     const target = properties.find((p) => p.id === id);
     if (!target) return;
@@ -47,12 +56,17 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
     const nextStatus: PropertyStatus =
       target.status === 'Pausado' ? 'Publicado' : 'Pausado';
 
-    propertiesStore.update(id, { status: nextStatus });
-    setProperties(propertiesStore.getAll());
-    toast(
-      `Inmueble ${nextStatus === 'Pausado' ? 'pausado' : 'reactivado'} correctamente`,
-      'info'
-    );
+    handleStatusChange(id, nextStatus);
+  };
+
+  const handleMarkSold = (id: string) => {
+    const target = properties.find((p) => p.id === id);
+    if (!target) return;
+
+    const nextStatus: PropertyStatus =
+      target.status === 'Vendido' ? 'Publicado' : 'Vendido';
+
+    handleStatusChange(id, nextStatus);
   };
 
   const handleDelete = (id: string, title: string) => {
@@ -73,7 +87,18 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
           const matchCity = prop.city.toLowerCase().includes(q);
           const matchSector = prop.sector?.toLowerCase().includes(q) || false;
           const matchCode = prop.internal_code?.toLowerCase().includes(q) || false;
-          if (!matchTitle && !matchCity && !matchSector && !matchCode) return false;
+          const matchOwnerName = prop.owner_name?.toLowerCase().includes(q) || false;
+          const matchOwnerPhone = prop.owner_phone?.toLowerCase().includes(q) || false;
+          if (
+            !matchTitle &&
+            !matchCity &&
+            !matchSector &&
+            !matchCode &&
+            !matchOwnerName &&
+            !matchOwnerPhone
+          ) {
+            return false;
+          }
         }
 
         if (filters.status !== 'Todos' && prop.status !== filters.status) {
@@ -106,7 +131,7 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
       });
   }, [properties, filters]);
 
-  // Empty state cuando aún no hay inmuebles en sn_properties (BUG 3.8)
+  // Empty state cuando aún no hay inmuebles en sn_properties
   if (properties.length === 0) {
     return (
       <div className="space-y-6 font-body">
@@ -184,7 +209,7 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
           />
           <input
             type="text"
-            placeholder="Buscar por título, código..."
+            placeholder="Buscar por título, código, propietario..."
             value={filters.searchQuery}
             onChange={(e) => setFilters((f) => ({ ...f, searchQuery: e.target.value }))}
             className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm bg-white border border-stone-200 rounded-xl text-text-heading placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all shadow-xs font-body"
@@ -262,6 +287,7 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
         ) : (
           filteredProperties.map((prop, idx) => {
             const thumbUrl = prop.images[0] || 'https://placehold.co/100x100?text=SN';
+            const cleanOwnerPhone = prop.owner_phone?.replace(/\D/g, '') || '';
             return (
               <FadeInUp
                 key={prop.id}
@@ -308,11 +334,46 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-stone-200/60 flex items-center justify-between">
-                  <span className="text-[11px] text-stone-500 font-body">
-                    {prop.city}, {prop.state}
-                  </span>
-                  <div className="flex items-center gap-1.5">
+                {/* Datos internos del propietario en vista móvil */}
+                {(prop.owner_name || prop.owner_phone) && (
+                  <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white border border-stone-200/80 text-xs">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <User size={13} strokeWidth={1.5} className="text-[#C97B5A] shrink-0" />
+                      <span className="font-medium text-text-heading truncate">
+                        {prop.owner_name || 'Propietario'}
+                      </span>
+                    </div>
+                    {prop.owner_phone && (
+                      <a
+                        href={`https://wa.me/${cleanOwnerPhone}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 px-2 py-0.5 rounded-full transition-colors shrink-0"
+                        title={`Escribir por WhatsApp a ${prop.owner_name || prop.owner_phone}`}
+                      >
+                        <FaWhatsapp size={12} />
+                        <span>{prop.owner_phone}</span>
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                <div className="pt-2 border-t border-stone-200/60 flex items-center justify-between gap-2">
+                  <select
+                    value={prop.status}
+                    onChange={(e) =>
+                      handleStatusChange(prop.id, e.target.value as PropertyStatus)
+                    }
+                    className="px-2.5 py-1 text-[11px] bg-white border border-stone-200 rounded-lg text-stone-700 font-medium cursor-pointer focus:outline-none focus:border-brand"
+                    aria-label="Cambiar estado"
+                  >
+                    <option value="Publicado">Publicado</option>
+                    <option value="Borrador">Borrador</option>
+                    <option value="Pausado">Pausado</option>
+                    <option value="Vendido">Vendido</option>
+                  </select>
+
+                  <div className="flex items-center gap-1">
                     <Link
                       href={`/inmueble/${prop.id}`}
                       target="_blank"
@@ -330,6 +391,22 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                     >
                       <Pencil size={16} strokeWidth={1.5} />
                     </Link>
+                    <button
+                      onClick={() => handleMarkSold(prop.id)}
+                      className="p-2 text-stone-500 hover:text-terracotta hover:bg-stone-200/60 rounded-lg transition-colors"
+                      title={
+                        prop.status === 'Vendido'
+                          ? 'Desmarcar como vendido'
+                          : 'Marcar como vendido'
+                      }
+                      aria-label="Marcar como vendido"
+                    >
+                      <CheckCircle2
+                        size={16}
+                        strokeWidth={1.5}
+                        className={prop.status === 'Vendido' ? 'text-terracotta' : ''}
+                      />
+                    </button>
                     <button
                       onClick={() => handleStatusToggle(prop.id)}
                       className="p-2 text-stone-500 hover:text-amber-600 hover:bg-stone-200/60 rounded-lg transition-colors"
@@ -375,6 +452,7 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
               <thead>
                 <tr className="border-b border-stone-200/80 bg-[#faf9f6] text-[11px] font-medium text-stone-600 uppercase tracking-wider font-body">
                   <th className="py-3.5 px-5">Inmueble</th>
+                  <th className="py-3.5 px-5">Propietario</th>
                   <th className="py-3.5 px-5">Tipo / Operación</th>
                   <th className="py-3.5 px-5">Precio</th>
                   <th className="py-3.5 px-5">Estado</th>
@@ -384,6 +462,7 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
               <tbody className="divide-y divide-stone-100 text-sm font-body">
                 {filteredProperties.map((prop) => {
                   const thumbUrl = prop.images[0] || 'https://placehold.co/100x100?text=SN';
+                  const cleanOwnerPhone = prop.owner_phone?.replace(/\D/g, '') || '';
                   return (
                     <tr key={prop.id} className="hover:bg-[#faf9f6] transition-colors duration-150">
                       {/* Miniatura + Título */}
@@ -419,6 +498,34 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                         </div>
                       </td>
 
+                      {/* Propietario (Uso interno) */}
+                      <td className="py-4 px-5 whitespace-nowrap">
+                        {prop.owner_name || prop.owner_phone ? (
+                          <div className="flex flex-col gap-1">
+                            {prop.owner_name && (
+                              <span className="text-xs font-medium text-text-heading flex items-center gap-1.5">
+                                <User size={13} strokeWidth={1.5} className="text-[#C97B5A] shrink-0" />
+                                <span className="truncate max-w-[160px]">{prop.owner_name}</span>
+                              </span>
+                            )}
+                            {prop.owner_phone && (
+                              <a
+                                href={`https://wa.me/${cleanOwnerPhone}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 px-2 py-0.5 rounded-full transition-colors w-fit"
+                                title={`Contactar por WhatsApp a ${prop.owner_name || prop.owner_phone}`}
+                              >
+                                <FaWhatsapp size={12} />
+                                <span>{prop.owner_phone}</span>
+                              </a>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-stone-400 italic">Sin asignar</span>
+                        )}
+                      </td>
+
                       {/* Tipo + Operación */}
                       <td className="py-4 px-5 whitespace-nowrap">
                         <div className="flex items-center gap-2">
@@ -441,11 +548,27 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                         </span>
                       </td>
 
-                      {/* Estado */}
+                      {/* Estado con selector directo */}
                       <td className="py-4 px-5 whitespace-nowrap">
-                        <Badge status={prop.status} size="sm">
-                          {prop.status}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge status={prop.status} size="sm">
+                            {prop.status}
+                          </Badge>
+                          <select
+                            value={prop.status}
+                            onChange={(e) =>
+                              handleStatusChange(prop.id, e.target.value as PropertyStatus)
+                            }
+                            className="text-[11px] bg-white border border-stone-200 rounded-lg px-2 py-1 text-stone-600 hover:border-stone-300 focus:outline-none focus:border-brand cursor-pointer"
+                            title="Cambiar estado del inmueble"
+                            aria-label="Cambiar estado del inmueble"
+                          >
+                            <option value="Publicado">Publicado</option>
+                            <option value="Borrador">Borrador</option>
+                            <option value="Pausado">Pausado</option>
+                            <option value="Vendido">Vendido</option>
+                          </select>
+                        </div>
                       </td>
 
                       {/* Acciones */}
@@ -471,6 +594,24 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                           >
                             <Pencil size={16} strokeWidth={1.5} />
                           </Link>
+
+                          {/* Marcar como Vendido */}
+                          <button
+                            onClick={() => handleMarkSold(prop.id)}
+                            className="p-2 text-stone-500 hover:text-terracotta hover:bg-stone-200/50 rounded-lg transition-colors cursor-pointer"
+                            title={
+                              prop.status === 'Vendido'
+                                ? 'Reactivar como Publicado'
+                                : 'Marcar como Vendido'
+                            }
+                            aria-label="Marcar como Vendido"
+                          >
+                            <CheckCircle2
+                              size={16}
+                              strokeWidth={1.5}
+                              className={prop.status === 'Vendido' ? 'text-terracotta' : ''}
+                            />
+                          </button>
 
                           {/* Pausar / Reactivar */}
                           <button

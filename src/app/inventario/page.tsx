@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Building2 } from 'lucide-react';
 import { MOCK_PROPERTIES } from '@/data/mock-properties';
-import { propertiesStore } from '@/lib/properties';
+import { propertiesStore, toPublicProperty } from '@/lib/properties';
 import { FilterState, Inmueble } from '@/lib/types';
 import { getPropertyMainArea } from '@/lib/utils';
 import { FilterBar } from '@/components/public/FilterBar';
@@ -12,7 +12,9 @@ import { PropertyCard } from '@/components/public/PropertyCard';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 
 export default function InventarioPage() {
-  const [allProperties, setAllProperties] = useState<Inmueble[]>(MOCK_PROPERTIES);
+  const [allProperties, setAllProperties] = useState<Inmueble[]>(() =>
+    MOCK_PROPERTIES.map(toPublicProperty)
+  );
   const [filters, setFilters] = useState<FilterState>({
     searchQuery: '',
     type: 'Todos',
@@ -25,7 +27,11 @@ export default function InventarioPage() {
   useEffect(() => {
     const stored = propertiesStore.getAll();
     if (stored.length > 0) {
-      setAllProperties(stored);
+      const merged = [
+        ...stored,
+        ...MOCK_PROPERTIES.filter((m) => !stored.some((s) => s.id === m.id)),
+      ].map(toPublicProperty);
+      setAllProperties(merged);
     }
   }, []);
 

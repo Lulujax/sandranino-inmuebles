@@ -21,6 +21,7 @@ import { FadeInUp } from '@/components/ui/FadeInUp';
 export default function HerramientasPage() {
   const { toast } = useToast();
   const [exportOption, setExportOption] = useState('Todos');
+  const [includeInternalCode, setIncludeInternalCode] = useState(false);
   const [properties, setProperties] = useState<Inmueble[]>([]);
 
   useEffect(() => {
@@ -67,11 +68,17 @@ export default function HerramientasPage() {
     });
   };
 
-  // Escapar celda CSV solo si contiene comas, comillas o saltos de línea
+  // Escapar celda CSV protegiendo contra inyección de fórmulas en Excel
   const formatCsvValue = (val: unknown): string => {
     if (val === undefined || val === null) return '';
-    const str = String(val);
-    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    if (typeof val === 'number') return String(val);
+
+    let str = String(val);
+    if (/^[=+\-@\t\r]/.test(str)) {
+      str = `'${str}`;
+    }
+
+    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
       return `"${str.replace(/"/g, '""')}"`;
     }
     return str;
@@ -99,7 +106,8 @@ export default function HerramientasPage() {
     filtered.forEach((p, idx) => {
       const ubicacion = p.sector ? `${p.sector}, ${p.city}` : p.city;
       const metros = getPropertyMainArea(p) ?? p.built_area ?? p.total_area ?? p.land_area ?? 0;
-      const referencia = p.internal_code || 'Sandra Niño';
+      const referencia =
+        includeInternalCode && p.internal_code ? p.internal_code : 'Sandra Niño';
 
       const row = [
         idx + 1,
@@ -161,7 +169,8 @@ export default function HerramientasPage() {
       const tableData = filtered.map((p, idx) => {
         const ubicacion = p.sector ? `${p.sector}, ${p.city}` : p.city;
         const metros = getPropertyMainArea(p) ?? p.built_area ?? p.total_area ?? p.land_area ?? 0;
-        const referencia = p.internal_code || 'Sandra Niño';
+        const referencia =
+          includeInternalCode && p.internal_code ? p.internal_code : 'Sandra Niño';
 
         return [
           idx + 1,
@@ -286,6 +295,16 @@ export default function HerramientasPage() {
             <option value="Solo vendidos">Solo vendidos</option>
             <option value="Solo borradores">Solo borradores</option>
           </select>
+
+          <label className="flex items-center gap-2.5 text-xs text-stone-600 mt-3 select-none cursor-pointer font-body">
+            <input
+              type="checkbox"
+              checked={includeInternalCode}
+              onChange={(e) => setIncludeInternalCode(e.target.checked)}
+              className="w-4 h-4 text-brand rounded border-stone-300 focus:ring-brand/20 accent-brand cursor-pointer"
+            />
+            <span>Incluir código interno en la columna de referencia (uso administrativo)</span>
+          </label>
         </div>
 
         <div className="flex flex-wrap gap-4 pt-2">
