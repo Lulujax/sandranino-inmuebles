@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { FaWhatsapp, FaInstagram, FaFacebook } from 'react-icons/fa';
 import { PerfilAsesor } from '@/lib/types';
+import { createClient } from '@/lib/supabase/client';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { FadeInUp } from '@/components/ui/FadeInUp';
@@ -28,11 +29,23 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
     if (savedProfile) {
       setAsesor(savedProfile);
     }
+
+    const supabase = createClient();
+    supabase
+      .from('perfil_asesor')
+      .select('*')
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setAsesor(data as PerfilAsesor);
+        }
+      });
   }, []);
 
   const cleanWhatsapp = asesor.whatsapp.replace(/\D/g, '');
   const whatsappUrl = `https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(
-    'Hola Sandra, vi tu catálogo inmobiliario y me gustaría recibir asesoría.'
+    'Hola Sandra, vi tu inventario de inmuebles exclusivos y me gustaría recibir asesoría.'
   )}`;
 
   return (
@@ -68,16 +81,26 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
                   />
 
                   <div className="relative w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 rounded-2xl overflow-hidden shadow-luxury bg-[#1e3a5f] border border-white/20 flex items-center justify-center select-none">
-                    <div
-                      className="absolute inset-0 opacity-[0.05] pointer-events-none"
-                      style={{
-                        backgroundImage:
-                          'repeating-linear-gradient(45deg, #ffffff 0, #ffffff 1px, transparent 0, transparent 14px)',
-                      }}
-                    />
-                    <span className="font-display text-[100px] sm:text-[120px] font-semibold text-white leading-none tracking-tight relative z-10">
-                      SN
-                    </span>
+                    {asesor.profile_photo_url ? (
+                      <img
+                        src={asesor.profile_photo_url}
+                        alt={asesor.full_name}
+                        className="w-full h-full object-cover relative z-10"
+                      />
+                    ) : (
+                      <>
+                        <div
+                          className="absolute inset-0 opacity-[0.05] pointer-events-none"
+                          style={{
+                            backgroundImage:
+                              'repeating-linear-gradient(45deg, #ffffff 0, #ffffff 1px, transparent 0, transparent 14px)',
+                          }}
+                        />
+                        <span className="font-display text-[100px] sm:text-[120px] font-semibold text-white leading-none tracking-tight relative z-10">
+                          SN
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               </FadeInUp>
@@ -322,7 +345,7 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
               ¿Listo para dar el siguiente paso?
             </h2>
             <p className="mt-4 text-base sm:text-lg text-stone-200 max-w-xl mx-auto leading-relaxed font-body font-normal">
-              Explora las propiedades disponibles en mi catálogo exclusivo o contáctame directamente para una búsqueda personalizada.
+              Explora las propiedades disponibles en mi inventario exclusivo o contáctame directamente para una búsqueda personalizada.
             </p>
             <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link

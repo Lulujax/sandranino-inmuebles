@@ -21,6 +21,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -39,11 +40,9 @@ export default function AdminLayout({
   // Auto-logout por inactividad de 5 minutos (solo si keepSession es false)
   const handleInactivityLogout = useCallback(async () => {
     toast('Sesión cerrada por 5 minutos de inactividad', 'info');
-    if (isSupabaseConfigured()) {
-      try {
-        await createClient().auth.signOut();
-      } catch {}
-    }
+    try {
+      await createClient().auth.signOut();
+    } catch {}
     storage.remove(STORAGE_KEYS.SESSION);
     storage.sessionRemove(STORAGE_KEYS.SESSION);
     router.replace('/login');
@@ -53,22 +52,17 @@ export default function AdminLayout({
     let cleanupInactivity: (() => void) | undefined;
 
     const verifySession = async () => {
-      if (isSupabaseConfigured()) {
-        const supabase = createClient();
-        const { data } = await supabase.auth.getUser();
-        if (!data.user) {
-          storage.remove(STORAGE_KEYS.SESSION);
-          storage.sessionRemove(STORAGE_KEYS.SESSION);
-          router.replace('/login');
-          return;
-        }
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+
+      if (!data.user) {
+        storage.remove(STORAGE_KEYS.SESSION);
+        storage.sessionRemove(STORAGE_KEYS.SESSION);
+        router.replace('/login');
+        return;
       }
 
       const persistentSession = storage.get<SessionPayload | null>(
-        STORAGE_KEYS.SESSION,
-        null
-      );
-      const temporarySession = storage.sessionGet<SessionPayload | null>(
         STORAGE_KEYS.SESSION,
         null
       );
@@ -79,31 +73,25 @@ export default function AdminLayout({
         return;
       }
 
-      // Si existe sesión temporal en sessionStorage (keepSession es false), permitir acceso + auto-logout 5 min
-      if (temporarySession) {
-        setIsAuthorized(true);
+      // Si no marcó mantener sesión, permitir acceso + auto-logout de 5 minutos por inactividad
+      setIsAuthorized(true);
 
-        let timeoutId: ReturnType<typeof setTimeout>;
+      let timeoutId: ReturnType<typeof setTimeout>;
 
-        const resetTimer = () => {
-          clearTimeout(timeoutId);
-          timeoutId = setTimeout(handleInactivityLogout, 5 * 60 * 1000);
-        };
+      const resetTimer = () => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(handleInactivityLogout, 5 * 60 * 1000);
+      };
 
-        const events = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'];
-        events.forEach((evt) => window.addEventListener(evt, resetTimer));
+      const events = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'];
+      events.forEach((evt) => window.addEventListener(evt, resetTimer));
 
-        resetTimer();
+      resetTimer();
 
-        cleanupInactivity = () => {
-          clearTimeout(timeoutId);
-          events.forEach((evt) => window.removeEventListener(evt, resetTimer));
-        };
-        return;
-      }
-
-      // Si no hay sesión válida, redirigir a /login
-      router.replace('/login');
+      cleanupInactivity = () => {
+        clearTimeout(timeoutId);
+        events.forEach((evt) => window.removeEventListener(evt, resetTimer));
+      };
     };
 
     verifySession();
@@ -119,14 +107,25 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] flex flex-col font-body selection:bg-terracotta/20 selection:text-text-heading">
-      {/* Sidebar fijo */}
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {/* Sidebar fijo ocultable en móvil y desktop */}
+      <Sidebar
+        isOpen={sidebarOpen}
+        desktopOpen={desktopSidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        onToggleDesktop={() => setDesktopSidebarOpen((prev) => !prev)}
+      />
 
-      {/* Contenido derecho */}
-      <div className="lg:pl-64 flex flex-col flex-1 min-w-0">
+      {/* Contenido derecho que aprovecha el 100% cuando se oculta el sidebar */}
+      <div
+        className={`flex flex-col flex-1 min-w-0 transition-all duration-300 ease-out ${
+          desktopSidebarOpen ? 'lg:pl-64' : 'lg:pl-0'
+        }`}
+      >
         <Topbar
           title={getSectionTitle()}
+          sidebarDesktopOpen={desktopSidebarOpen}
           onOpenSidebar={() => setSidebarOpen(true)}
+          onToggleDesktopSidebar={() => setDesktopSidebarOpen((prev) => !prev)}
         />
         <main className="p-4 sm:p-6 lg:p-8 flex-1">
           {children}

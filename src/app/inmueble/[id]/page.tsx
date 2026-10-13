@@ -21,9 +21,10 @@ import {
   Calendar,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
-import { MOCK_PROPERTIES, MOCK_ASESOR } from '@/data/mock-properties';
+import { MOCK_ASESOR } from '@/data/mock-properties';
 import { Inmueble, PerfilAsesor, PropertyType } from '@/lib/types';
 import { propertiesStore, toPublicProperty } from '@/lib/properties';
+import { createClient } from '@/lib/supabase/client';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import {
@@ -67,54 +68,58 @@ export default function PropertyDetailPage() {
   useEffect(() => {
     if (!id) return;
 
-    const savedProfile = storage.get<PerfilAsesor | null>(STORAGE_KEYS.PROFILE, null);
-    if (savedProfile) {
-      setAsesor(savedProfile);
-    }
+    const loadDetail = async () => {
+      const supabase = createClient();
 
-    const persistentSession = storage.get<{ keepSession?: boolean } | null>(
-      STORAGE_KEYS.SESSION,
-      null
-    );
-    const temporarySession = storage.sessionGet<{ email?: string } | null>(
-      STORAGE_KEYS.SESSION,
-      null
-    );
-    const hasAdminSession = Boolean(
-      (persistentSession && persistentSession.keepSession) || temporarySession
-    );
-    setIsAdminPreview(hasAdminSession);
-
-    const fromStore = propertiesStore.getById(id);
-    if (fromStore) {
-      if (fromStore.status !== 'Publicado' && !hasAdminSession) {
-        setProperty(null);
-        setLoaded(true);
-        return;
+      // Cargar perfil del asesor desde Supabase (con respaldo local)
+      const savedProfile = storage.get<PerfilAsesor | null>(STORAGE_KEYS.PROFILE, null);
+      if (savedProfile) {
+        setAsesor(savedProfile);
       }
+      try {
+        const { data: profileData } = await supabase
+          .from('perfil_asesor')
+          .select('*')
+          .limit(1)
+          .maybeSingle();
+        if (profileData) {
+          setAsesor(profileData as PerfilAsesor);
+        }
+      } catch {}
 
-      // Solo sumar visita cuando es un visitante público y el inmueble está publicado
-      const targetProp =
-        !hasAdminSession && fromStore.status === 'Publicado'
-          ? propertiesStore.update(id, {
-              visits: (fromStore.visits || 0) + 1,
-            }) || fromStore
-          : fromStore;
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const hasAdminSession = Boolean(user);
+      setIsAdminPreview(hasAdminSession);
 
-      setProperty(toPublicProperty(targetProp));
-      setLoaded(true);
-      return;
-    }
+      try {
+        const fromStore = hasAdminSession
+          ? await propertiesStore.getById(id)
+          : await propertiesStore.getPublicById(id);
 
-    const fromMock = MOCK_PROPERTIES.find((p) => p.id === id) || null;
-    if (fromMock && fromMock.status !== 'Publicado' && !hasAdminSession) {
+        if (fromStore) {
+          if (fromStore.status !== 'Publicado' && !hasAdminSession) {
+            setProperty(null);
+            setLoaded(true);
+            return;
+          }
+
+          if (!hasAdminSession && fromStore.status === 'Publicado') {
+            await propertiesStore.incrementVisits(id);
+          }
+
+          setProperty(toPublicProperty(fromStore));
+          setLoaded(true);
+          return;
+        }
+      } catch {}
+
       setProperty(null);
       setLoaded(true);
-      return;
-    }
+    };
 
-    setProperty(fromMock ? toPublicProperty(fromMock) : null);
-    setLoaded(true);
+    loadDetail();
   }, [id]);
 
   if (!loaded) {
@@ -129,14 +134,14 @@ export default function PropertyDetailPage() {
             Inmueble no disponible
           </h1>
           <p className="text-sm text-stone-600">
-            El inmueble solicitado no se encuentra disponible públicamente o ha sido retirado del catálogo.
+            El inmueble solicitado no se encuentra disponible públicamente o ha sido retirado del inventario.
           </p>
           <Link
             href="/inventario"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand text-white text-xs font-medium uppercase tracking-wider"
           >
             <ArrowLeft size={15} strokeWidth={1.5} />
-            <span>Volver al Catálogo</span>
+            <span>Volver al Inventario</span>
           </Link>
         </div>
       </div>
@@ -154,7 +159,7 @@ export default function PropertyDetailPage() {
   const OperationIcon = property.operation === 'Venta' ? Tag : KeyRound;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] text-text-body font-body pb-28 selection:bg-terracotta/20 selection:text-text-heading">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] text-text-body font-body selection:bg-terracotta/20 selection:text-text-heading">
       {/* Barra superior editorial */}
       <header className="bg-[#faf9f6]/90 backdrop-blur-md border-b border-stone-200/60 sticky top-0 z-30 shadow-xs">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
@@ -163,16 +168,16 @@ export default function PropertyDetailPage() {
             className="inline-flex items-center gap-2 text-xs font-body font-medium uppercase tracking-[0.2em] text-brand hover:text-brand-darker transition-colors"
           >
             <ArrowLeft size={16} strokeWidth={1.5} />
-            <span>Volver al Catálogo</span>
+            <span>Volver al Inventario</span>
           </Link>
           <span className="text-[11px] font-body font-medium uppercase tracking-[0.25em] text-[#C97B5A] hidden sm:inline">
-            Sandra Nino • Catálogo Exclusivo
+            Sandra Nino • Inventario Exclusivo
           </span>
         </div>
       </header>
 
       {/* Contenido principal */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-8 sm:pt-10 space-y-9 animate-fade-in-up">
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 pt-8 sm:pt-10 pb-20 space-y-8 animate-fade-in-up">
         {isAdminPreview && property.status !== 'Publicado' && (
           <div className="px-4 py-3 rounded-xl bg-[#fef7eb] border border-amber-300/80 text-amber-900 text-xs sm:text-sm flex items-center justify-between gap-3">
             <span>
@@ -222,7 +227,7 @@ export default function PropertyDetailPage() {
         {/* Galería de Fotos */}
         <PropertyGallery images={property.images} title={property.title} />
 
-        {/* Grid de tarjetas de detalles principales */}
+        {/* Grid de tarjetas de detalles principales (Tipo / Operación / Superficie) */}
         <div
           className={`grid grid-cols-2 ${
             property.type === 'Casa' || property.type === 'Apartamento'
@@ -267,7 +272,7 @@ export default function PropertyDetailPage() {
                 Habitaciones
               </span>
               <span className="text-base font-display font-semibold text-text-heading mt-0.5">
-                {property.bedrooms !== undefined && property.bedrooms > 0
+                {property.bedrooms != null && property.bedrooms > 0
                   ? `${property.bedrooms}`
                   : 'N/A'}
               </span>
@@ -275,149 +280,175 @@ export default function PropertyDetailPage() {
           )}
         </div>
 
-        {/* Botón WhatsApp de Acción Directa Principal */}
-        <div className="bg-[#faf9f6] p-7 sm:p-8 rounded-2xl border border-stone-200/80 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-          <div className="max-w-md">
-            <span className="text-[11px] font-body font-medium uppercase tracking-[0.2em] text-[#C97B5A] block mb-1">
-              Contacto Directo
-            </span>
-            <h3 className="font-display text-2xl font-semibold text-text-heading">
-              ¿Deseas visitar este inmueble?
-            </h3>
-            <p className="text-sm text-stone-600 mt-1.5 leading-relaxed font-body">
-              Escríbeme directamente por WhatsApp para coordinar una cita privada o resolver inquietudes legales y técnicas.
-            </p>
-          </div>
-          <a
-            href={whatsappLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl bg-[#1d6447] hover:bg-[#164e37] text-white font-body font-medium text-sm tracking-wide shadow-md hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200 whitespace-nowrap cursor-pointer"
-          >
-            <FaWhatsapp size={22} />
-            <span>Contactar a Sandra por WhatsApp</span>
-          </a>
-        </div>
-
-        {/* Sección: Descripción y Detalles Adicionales */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-7">
-            <div className="bg-[#faf9f6] p-7 sm:p-8 rounded-2xl border border-stone-200/80 shadow-card">
+        {/* Fila 2: Izquierda (Descripción con cuadro más estrecho) y Derecha (Rectángulo Visitar + Compartir) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Columna izquierda: Cuadro blanco reducido en ancho (~6 pts más compacto) */}
+          <div className="lg:col-span-6">
+            <div className="bg-[#faf9f6] p-6 sm:p-7 rounded-2xl border border-stone-200/80 shadow-card lg:max-w-[440px]">
               <span className="text-[11px] font-body font-medium uppercase tracking-[0.2em] text-[#C97B5A] block mb-1">
                 Detalles del Inmueble
               </span>
-              <h2 className="font-display text-2xl font-semibold text-text-heading mb-4">
+              <h2 className="font-display text-2xl font-semibold text-text-heading mb-3.5">
                 Descripción
               </h2>
-              <div className="text-stone-700 leading-relaxed text-sm sm:text-base whitespace-pre-line font-body font-normal max-w-prose">
+              <div className="text-stone-700 leading-relaxed text-sm sm:text-[15px] whitespace-pre-line font-body font-normal">
                 {property.description ||
                   'No se incluye descripción adicional para este inmueble. Comunícate con Sandra para más información.'}
               </div>
             </div>
-
-            {/* Especificaciones técnicas */}
-            <div className="bg-[#faf9f6] p-7 sm:p-8 rounded-2xl border border-stone-200/80 shadow-card space-y-5">
-              <h3 className="font-display text-xl font-semibold text-text-heading">
-                Especificaciones Técnicas
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4.5 text-sm font-body">
-                <div className="flex items-center gap-3 text-stone-700">
-                  <MapPin size={18} strokeWidth={1.5} className="text-[#C97B5A]" />
-                  <span>
-                    <strong className="text-text-heading font-medium">Ubicación:</strong>{' '}
-                    {property.city}, {property.state}
-                  </span>
-                </div>
-                {property.show_exact_location && property.address && (
-                  <div className="flex items-center gap-3 text-stone-700">
-                    <MapPin size={18} strokeWidth={1.5} className="text-[#C97B5A]" />
-                    <span>
-                      <strong className="text-text-heading font-medium">Dirección:</strong>{' '}
-                      {property.address}
-                    </span>
-                  </div>
-                )}
-                {property.built_area !== undefined && (
-                  <div className="flex items-center gap-3 text-stone-700">
-                    <Maximize2 size={18} strokeWidth={1.5} className="text-[#C97B5A]" />
-                    <span>
-                      <strong className="text-text-heading font-medium">Área construida:</strong>{' '}
-                      {formatArea(property.built_area)}
-                    </span>
-                  </div>
-                )}
-                {property.land_area !== undefined && (
-                  <div className="flex items-center gap-3 text-stone-700">
-                    <Maximize2 size={18} strokeWidth={1.5} className="text-[#C97B5A]" />
-                    <span>
-                      <strong className="text-text-heading font-medium">Área de terreno:</strong>{' '}
-                      {formatArea(property.land_area)}
-                    </span>
-                  </div>
-                )}
-                {property.total_area !== undefined && (
-                  <div className="flex items-center gap-3 text-stone-700">
-                    <Maximize2 size={18} strokeWidth={1.5} className="text-[#C97B5A]" />
-                    <span>
-                      <strong className="text-text-heading font-medium">Área total:</strong>{' '}
-                      {formatArea(property.total_area)}
-                    </span>
-                  </div>
-                )}
-                {property.bathrooms !== undefined && (
-                  <div className="flex items-center gap-3 text-stone-700">
-                    <Bath size={18} strokeWidth={1.5} className="text-[#C97B5A]" />
-                    <span>
-                      <strong className="text-text-heading font-medium">Baños:</strong>{' '}
-                      {property.bathrooms}
-                    </span>
-                  </div>
-                )}
-                {property.parking !== undefined && (
-                  <div className="flex items-center gap-3 text-stone-700">
-                    <Car size={18} strokeWidth={1.5} className="text-[#C97B5A]" />
-                    <span>
-                      <strong className="text-text-heading font-medium">Estacionamientos:</strong>{' '}
-                      {property.parking}
-                    </span>
-                  </div>
-                )}
-                {property.year !== undefined && (
-                  <div className="flex items-center gap-3 text-stone-700">
-                    <Calendar size={18} strokeWidth={1.5} className="text-[#C97B5A]" />
-                    <span>
-                      <strong className="text-text-heading font-medium">Año:</strong>{' '}
-                      {property.year}
-                    </span>
-                  </div>
-                )}
-                {property.height !== undefined && (
-                  <div className="flex items-center gap-3 text-stone-700">
-                    <Maximize2 size={18} strokeWidth={1.5} className="text-[#C97B5A]" />
-                    <span>
-                      <strong className="text-text-heading font-medium">Altura libre:</strong>{' '}
-                      {property.height} m
-                    </span>
-                  </div>
-                )}
-                {property.offices !== undefined && (
-                  <div className="flex items-center gap-3 text-stone-700">
-                    <Briefcase size={18} strokeWidth={1.5} className="text-[#C97B5A]" />
-                    <span>
-                      <strong className="text-text-heading font-medium">Oficinas:</strong>{' '}
-                      {property.offices}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
 
-          <div className="space-y-6">
-            <ShareButtons title={property.title} />
+          {/* Columna derecha: Rectángulo "¿Deseas visitar este inmueble?" arriba de "Compartir este inmueble" */}
+          <div className="lg:col-span-6 space-y-6">
+            <div className="bg-[#faf9f6] p-6 rounded-2xl border border-stone-200/80 shadow-card flex flex-col justify-between gap-4">
+              <div>
+                <span className="text-[11px] font-body font-medium uppercase tracking-[0.2em] text-[#C97B5A] block mb-1">
+                  Contacto Directo
+                </span>
+                <h3 className="font-display text-xl font-semibold text-text-heading">
+                  ¿Deseas visitar este inmueble?
+                </h3>
+                <p className="text-xs sm:text-sm text-stone-600 mt-1.5 leading-relaxed font-body">
+                  Escríbeme directamente por WhatsApp para coordinar una cita privada o resolver inquietudes legales y técnicas.
+                </p>
+              </div>
+              <a
+                href={whatsappLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full inline-flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl bg-[#1d6447] hover:bg-[#164e37] text-white font-body font-semibold text-sm tracking-wide shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 cursor-pointer"
+              >
+                <FaWhatsapp size={20} className="shrink-0" />
+                <span>Contactar a Sandra por WhatsApp</span>
+              </a>
+            </div>
+
+            <ShareButtons property={property} />
+          </div>
+        </div>
+
+        {/* Fila 3: Especificaciones Técnicas en banda horizontal completa para equilibrar el cierre de la ficha */}
+        <div className="bg-[#faf9f6] p-6 sm:p-7 rounded-2xl border border-stone-200/80 shadow-card space-y-4">
+          <div>
+            <span className="text-[11px] font-body font-medium uppercase tracking-[0.2em] text-[#C97B5A] block mb-0.5">
+              Ficha Resumen
+            </span>
+            <h3 className="font-display text-xl font-semibold text-text-heading">
+              Especificaciones Técnicas
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm font-body pt-1">
+            <div className="flex items-center gap-3 text-stone-700 bg-white/70 p-3.5 rounded-xl border border-stone-200/60">
+              <MapPin size={18} strokeWidth={1.5} className="text-[#C97B5A] shrink-0" />
+              <span>
+                <strong className="text-text-heading font-medium">Ubicación:</strong>{' '}
+                {property.sector ? `${property.sector}, ` : ''}
+                {property.city}, {property.state}
+              </span>
+            </div>
+            {property.show_exact_location && property.address && (
+              <div className="flex items-center gap-3 text-stone-700 bg-white/70 p-3.5 rounded-xl border border-stone-200/60">
+                <MapPin size={18} strokeWidth={1.5} className="text-[#C97B5A] shrink-0" />
+                <span>
+                  <strong className="text-text-heading font-medium">Dirección:</strong>{' '}
+                  {property.address}
+                </span>
+              </div>
+            )}
+            {property.built_area != null && property.built_area > 0 && (
+              <div className="flex items-center gap-3 text-stone-700 bg-white/70 p-3.5 rounded-xl border border-stone-200/60">
+                <Maximize2 size={18} strokeWidth={1.5} className="text-[#C97B5A] shrink-0" />
+                <span>
+                  <strong className="text-text-heading font-medium">Área construida:</strong>{' '}
+                  {formatArea(property.built_area)}
+                </span>
+              </div>
+            )}
+            {property.land_area != null && property.land_area > 0 && (
+              <div className="flex items-center gap-3 text-stone-700 bg-white/70 p-3.5 rounded-xl border border-stone-200/60">
+                <Maximize2 size={18} strokeWidth={1.5} className="text-[#C97B5A] shrink-0" />
+                <span>
+                  <strong className="text-text-heading font-medium">Área de terreno:</strong>{' '}
+                  {formatArea(property.land_area)}
+                </span>
+              </div>
+            )}
+            {property.total_area != null && property.total_area > 0 && (
+              <div className="flex items-center gap-3 text-stone-700 bg-white/70 p-3.5 rounded-xl border border-stone-200/60">
+                <Maximize2 size={18} strokeWidth={1.5} className="text-[#C97B5A] shrink-0" />
+                <span>
+                  <strong className="text-text-heading font-medium">Área total:</strong>{' '}
+                  {formatArea(property.total_area)}
+                </span>
+              </div>
+            )}
+            {property.bedrooms != null && property.bedrooms > 0 && (
+              <div className="flex items-center gap-3 text-stone-700 bg-white/70 p-3.5 rounded-xl border border-stone-200/60">
+                <Bed size={18} strokeWidth={1.5} className="text-[#C97B5A] shrink-0" />
+                <span>
+                  <strong className="text-text-heading font-medium">Habitaciones:</strong>{' '}
+                  {property.bedrooms}
+                </span>
+              </div>
+            )}
+            {property.bathrooms != null && property.bathrooms > 0 && (
+              <div className="flex items-center gap-3 text-stone-700 bg-white/70 p-3.5 rounded-xl border border-stone-200/60">
+                <Bath size={18} strokeWidth={1.5} className="text-[#C97B5A] shrink-0" />
+                <span>
+                  <strong className="text-text-heading font-medium">Baños:</strong>{' '}
+                  {property.bathrooms}
+                </span>
+              </div>
+            )}
+            {property.parking != null && property.parking > 0 && (
+              <div className="flex items-center gap-3 text-stone-700 bg-white/70 p-3.5 rounded-xl border border-stone-200/60">
+                <Car size={18} strokeWidth={1.5} className="text-[#C97B5A] shrink-0" />
+                <span>
+                  <strong className="text-text-heading font-medium">Estacionamientos:</strong>{' '}
+                  {property.parking}
+                </span>
+              </div>
+            )}
+            {property.year != null && property.year > 0 && (
+              <div className="flex items-center gap-3 text-stone-700 bg-white/70 p-3.5 rounded-xl border border-stone-200/60">
+                <Calendar size={18} strokeWidth={1.5} className="text-[#C97B5A] shrink-0" />
+                <span>
+                  <strong className="text-text-heading font-medium">Año:</strong>{' '}
+                  {property.year}
+                </span>
+              </div>
+            )}
+            {property.offices != null && property.offices > 0 && (
+              <div className="flex items-center gap-3 text-stone-700 bg-white/70 p-3.5 rounded-xl border border-stone-200/60">
+                <Briefcase size={18} strokeWidth={1.5} className="text-[#C97B5A] shrink-0" />
+                <span>
+                  <strong className="text-text-heading font-medium">Oficinas:</strong>{' '}
+                  {property.offices}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </main>
+
+      {/* Footer Minimalista */}
+      <footer className="bg-brand-darker text-stone-400 py-10 border-t border-brand/30">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-6 text-xs font-body">
+          <div className="text-center sm:text-left">
+            <p className="font-display text-stone-200 text-sm font-medium">{asesor.full_name}</p>
+            <p className="text-stone-400 text-[11px] mt-0.5">Asesora Inmobiliaria • Carabobo, Venezuela</p>
+          </div>
+          <div className="flex items-center gap-6">
+            <p className="text-stone-500 text-[11px]">© {new Date().getFullYear()} Todos los derechos reservados.</p>
+            <Link
+              href="/login"
+              className="text-stone-400 hover:text-[#C97B5A] transition-colors text-xs font-medium tracking-wide underline-offset-4 hover:underline"
+            >
+              Acceso Asesores
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

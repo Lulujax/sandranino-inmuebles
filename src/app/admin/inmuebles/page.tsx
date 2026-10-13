@@ -10,8 +10,16 @@ export default function MisInmueblesPage() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setProperties(propertiesStore.getAll());
-    setMounted(true);
+    propertiesStore
+      .getAll()
+      .then((data) => {
+        setProperties(data);
+        setMounted(true);
+      })
+      .catch(() => {
+        setProperties([]);
+        setMounted(true);
+      });
   }, []);
 
   if (!mounted) {

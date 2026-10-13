@@ -25,7 +25,10 @@ export default function HerramientasPage() {
   const [properties, setProperties] = useState<Inmueble[]>([]);
 
   useEffect(() => {
-    setProperties(propertiesStore.getAll());
+    propertiesStore
+      .getAll()
+      .then((data) => setProperties(data))
+      .catch(() => setProperties([]));
   }, []);
 
   // Cálculo de estadísticas dinámicas
@@ -340,7 +343,7 @@ export default function HerramientasPage() {
             Métricas de Alcance
           </h3>
           <p className="text-xs sm:text-sm text-stone-600 mt-1">
-            Visualizaciones reales registradas a través de tu catálogo inmobiliario.
+            Visualizaciones reales registradas a través de tu inventario inmobiliario.
           </p>
         </div>
 
@@ -348,7 +351,7 @@ export default function HerramientasPage() {
           <StatCard
             title="Visitas Totales"
             value={totalVisits}
-            subtitle="Acumulado histórico de tu catálogo"
+            subtitle="Acumulado histórico de tu inventario"
             icon={Eye}
             iconBg="bg-[#1e3a5f]/8"
             iconColor="text-[#1e3a5f]"

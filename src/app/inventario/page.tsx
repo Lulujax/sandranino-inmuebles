@@ -3,7 +3,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Building2 } from 'lucide-react';
-import { MOCK_PROPERTIES } from '@/data/mock-properties';
 import { propertiesStore, toPublicProperty } from '@/lib/properties';
 import { FilterState, Inmueble } from '@/lib/types';
 import { getPropertyMainArea } from '@/lib/utils';
@@ -12,9 +11,8 @@ import { PropertyCard } from '@/components/public/PropertyCard';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 
 export default function InventarioPage() {
-  const [allProperties, setAllProperties] = useState<Inmueble[]>(() =>
-    MOCK_PROPERTIES.map(toPublicProperty)
-  );
+  const [allProperties, setAllProperties] = useState<Inmueble[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<FilterState>({
     searchQuery: '',
     type: 'Todos',
@@ -25,14 +23,17 @@ export default function InventarioPage() {
   });
 
   useEffect(() => {
-    const stored = propertiesStore.getAll();
-    if (stored.length > 0) {
-      const merged = [
-        ...stored,
-        ...MOCK_PROPERTIES.filter((m) => !stored.some((s) => s.id === m.id)),
-      ].map(toPublicProperty);
-      setAllProperties(merged);
-    }
+    propertiesStore
+      .getPublic()
+      .then((stored) => {
+        setAllProperties(stored.map(toPublicProperty));
+      })
+      .catch(() => {
+        setAllProperties([]);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   const availableCities = useMemo(() => {
@@ -98,7 +99,7 @@ export default function InventarioPage() {
   }, [filters, allProperties]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] text-text-body font-body pb-24 selection:bg-terracotta/20 selection:text-text-heading">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] text-text-body font-body selection:bg-terracotta/20 selection:text-text-heading">
       {/* Barra superior editorial */}
       <header className="bg-[#faf9f6]/90 backdrop-blur-md border-b border-stone-200/60 sticky top-0 z-30 shadow-xs">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
@@ -111,7 +112,7 @@ export default function InventarioPage() {
           </Link>
           <div className="text-right">
             <span className="text-[11px] font-body font-medium uppercase tracking-[0.2em] text-[#C97B5A] block">
-              Catálogo Exclusivo
+              Inventario Exclusivo
             </span>
             <h1 className="font-display text-lg sm:text-xl text-text-heading font-medium">
               Inventario de Inmuebles
@@ -121,7 +122,7 @@ export default function InventarioPage() {
       </header>
 
       {/* Contenido principal */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-10 space-y-8">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-10 pb-20 space-y-8">
         {/* Barra de Filtros */}
         <FilterBar
           filters={filters}
@@ -143,7 +144,16 @@ export default function InventarioPage() {
         </div>
 
         {/* Grid de resultados */}
-        {filteredProperties.length === 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
+            {[1, 2, 3].map((item) => (
+              <div
+                key={item}
+                className="bg-[#faf9f6] rounded-2xl border border-stone-200/80 h-96 animate-pulse shadow-card"
+              />
+            ))}
+          </div>
+        ) : filteredProperties.length === 0 ? (
           <div className="bg-[#faf9f6] rounded-2xl border border-stone-200/80 p-12 sm:p-16 text-center shadow-card max-w-xl mx-auto">
             <div className="w-16 h-16 rounded-full bg-[#f5f1ea] text-brand flex items-center justify-center mx-auto mb-5 border border-stone-200/60">
               <Building2 size={28} strokeWidth={1.5} />
@@ -178,6 +188,25 @@ export default function InventarioPage() {
           </div>
         )}
       </main>
+
+      {/* Footer Minimalista */}
+      <footer className="bg-brand-darker text-stone-400 py-10 border-t border-brand/30">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6 text-xs font-body">
+          <div className="text-center sm:text-left">
+            <p className="font-display text-stone-200 text-sm font-medium">Sandra Nino</p>
+            <p className="text-stone-400 text-[11px] mt-0.5">Asesora Inmobiliaria • Carabobo, Venezuela</p>
+          </div>
+          <div className="flex items-center gap-6">
+            <p className="text-stone-500 text-[11px]">© {new Date().getFullYear()} Todos los derechos reservados.</p>
+            <Link
+              href="/login"
+              className="text-stone-400 hover:text-[#C97B5A] transition-colors text-xs font-medium tracking-wide underline-offset-4 hover:underline"
+            >
+              Acceso Asesores
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

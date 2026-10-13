@@ -19,38 +19,43 @@ function PublicarContent() {
       setInitialPropertyData(undefined);
       return;
     }
-    const existing = propertiesStore.getById(editId);
-    if (!existing) {
-      setInitialPropertyData(undefined);
-      return;
-    }
 
-    setInitialPropertyData({
-      operation: existing.operation,
-      type: existing.type,
-      state: existing.state,
-      city: existing.city,
-      sector: existing.sector || '',
-      address: existing.address || '',
-      show_exact_location: existing.show_exact_location || false,
-      bedrooms: existing.bedrooms,
-      bathrooms: existing.bathrooms,
-      parking: existing.parking,
-      built_area: existing.built_area,
-      land_area: existing.land_area,
-      year: existing.year,
-      total_area: existing.total_area,
-      height: existing.height,
-      offices: existing.offices,
-      images: existing.images,
-      title: existing.title,
-      description: existing.description || '',
-      price: existing.price,
-      internal_code: existing.internal_code || '',
-      owner_name: existing.owner_name || '',
-      owner_phone: existing.owner_phone || '',
-      notes: existing.notes || '',
-    });
+    propertiesStore
+      .getById(editId)
+      .then((existing) => {
+        if (!existing) {
+          setInitialPropertyData(undefined);
+          return;
+        }
+
+        setInitialPropertyData({
+          operation: existing.operation,
+          type: existing.type,
+          state: existing.state,
+          city: existing.city,
+          sector: existing.sector || '',
+          address: existing.address || '',
+          show_exact_location: existing.show_exact_location || false,
+          bedrooms: existing.bedrooms,
+          bathrooms: existing.bathrooms,
+          parking: existing.parking,
+          built_area: existing.built_area,
+          land_area: existing.land_area,
+          year: existing.year,
+          total_area: existing.total_area,
+          height: existing.height,
+          offices: existing.offices,
+          images: existing.images,
+          title: existing.title,
+          description: existing.description || '',
+          price: existing.price,
+          internal_code: existing.internal_code || '',
+          owner_name: existing.owner_name || '',
+          owner_phone: existing.owner_phone || '',
+          notes: existing.notes || '',
+        });
+      })
+      .catch(() => setInitialPropertyData(undefined));
   }, [editId]);
 
   return (

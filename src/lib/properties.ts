@@ -1,6 +1,5 @@
 import { Inmueble } from './types';
-import { storage } from './storage';
-import { STORAGE_KEYS } from './storage-keys';
+import { createClient } from './supabase/client';
 
 export function toPublicProperty(inmueble: Inmueble): Inmueble {
   const {
@@ -19,48 +18,129 @@ export function toPublicProperty(inmueble: Inmueble): Inmueble {
 }
 
 export const propertiesStore = {
-  getAll: (): Inmueble[] => storage.get<Inmueble[]>(STORAGE_KEYS.PROPERTIES, []),
+  getAll: async (userId?: string): Promise<Inmueble[]> => {
+    const supabase = createClient();
+    let targetUserId = userId;
 
-  getPublicAll: (): Inmueble[] =>
-    propertiesStore
-      .getAll()
-      .filter((p) => p.status === 'Publicado')
-      .map(toPublicProperty),
+    if (!targetUserId) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      targetUserId = user?.id;
+    }
 
-  getById: (id: string): Inmueble | undefined =>
-    propertiesStore.getAll().find((p) => p.id === id),
+    let query = supabase
+      .from('inmuebles')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-  save: (inmueble: Inmueble): Inmueble => {
-    const current = propertiesStore.getAll();
-    const exists = current.some((p) => p.id === inmueble.id);
-    const updated = exists
-      ? current.map((p) => (p.id === inmueble.id ? inmueble : p))
-      : [inmueble, ...current];
-    storage.set(STORAGE_KEYS.PROPERTIES, updated);
-    return inmueble;
+    if (targetUserId) {
+      query = query.eq('user_id', targetUserId);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data as Inmueble[]) || [];
   },
 
-  delete: (id: string): void => {
-    const updated = propertiesStore.getAll().filter((p) => p.id !== id);
-    storage.set(STORAGE_KEYS.PROPERTIES, updated);
+  getPublic: async (): Promise<Inmueble[]> => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('inmuebles_publicos')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data as Inmueble[]) || [];
   },
 
-  update: (id: string, changes: Partial<Inmueble>): Inmueble | undefined => {
-    const current = propertiesStore.getAll();
-    let updatedProperty: Inmueble | undefined;
-    const updated = current.map((p) => {
-      if (p.id === id) {
-        updatedProperty = {
-          ...p,
-          ...changes,
-          updated_at: new Date().toISOString(),
-        };
-        return updatedProperty;
-      }
-      return p;
+  getById: async (id: string): Promise<Inmueble | null> => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('inmuebles')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return (data as Inmueble) || null;
+  },
+
+  getPublicById: async (id: string): Promise<Inmueble | null> => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('inmuebles_publicos')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return (data as Inmueble) || null;
+  },
+
+  save: async (inmueble: Partial<Inmueble>): Promise<Inmueble> => {
+    const supabase = createClient();
+    const {
+      id,
+      user_id: _userId,
+      created_at: _createdAt,
+      updated_at: _updatedAt,
+      ...payload
+    } = inmueble;
+
+    // Si viene un UUID válido existente, actualizamos; de lo contrario, insertamos (user_id automático por default auth.uid())
+    const isUuid =
+      typeof id === 'string' &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+    if (isUuid) {
+      const { data, error } = await supabase
+        .from('inmuebles')
+        .update(payload)
+        .eq('id', id)
+        .select('*')
+        .single();
+      if (error) throw error;
+      return data as Inmueble;
+    }
+
+    const { data, error } = await supabase
+      .from('inmuebles')
+      .insert([payload])
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data as Inmueble;
+  },
+
+  update: async (id: string, changes: Partial<Inmueble>): Promise<Inmueble> => {
+    const supabase = createClient();
+    const {
+      id: _id,
+      user_id: _userId,
+      created_at: _createdAt,
+      ...payload
+    } = changes;
+
+    const { data, error } = await supabase
+      .from('inmuebles')
+      .update(payload)
+      .eq('id', id)
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data as Inmueble;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    const supabase = createClient();
+    const { error } = await supabase.from('inmuebles').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  incrementVisits: async (id: string): Promise<void> => {
+    const supabase = createClient();
+    const { error } = await supabase.rpc('increment_property_visits', {
+      property_id: id,
     });
-    storage.set(STORAGE_KEYS.PROPERTIES, updated);
-    return updatedProperty;
+    if (error) throw error;
   },
 };
 

@@ -58,6 +58,7 @@ import { formatPrice } from '@/lib/utils';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { propertiesStore } from '@/lib/properties';
+import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -450,18 +451,52 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
       images: [...prev.images, ...entries.map((e) => e.blobUrl)],
     }));
 
-    // 2. Convertir en segundo plano a Data URL comprimida para persistir en localStorage y nuevas pestañas
+    // 2. Subir a Supabase Storage bucket 'inmuebles' en ruta ${userId}/${filename} (con respaldo a Data URL comprimida)
+    const uploadToStorageOrCompress = async (file: File, blobUrl: string, idx: number): Promise<string> => {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (user) {
+          const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+          const safeExt = ['jpg', 'jpeg', 'png', 'webp'].includes(ext) ? ext : 'jpg';
+          const filePath = `${user.id}/${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}.${safeExt}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('inmuebles')
+            .upload(filePath, file, {
+              cacheControl: '3600',
+              upsert: false,
+              contentType: file.type || 'image/jpeg',
+            });
+
+          if (!uploadError) {
+            const { data: publicUrlData } = supabase.storage
+              .from('inmuebles')
+              .getPublicUrl(filePath);
+            if (publicUrlData?.publicUrl) {
+              return publicUrlData.publicUrl;
+            }
+          }
+        }
+      } catch {}
+
+      return fileToCompressedDataUrl(file, blobUrl);
+    };
+
     Promise.all(
-      entries.map(async ({ file, blobUrl }) => ({
+      entries.map(async ({ file, blobUrl }, idx) => ({
         blobUrl,
-        dataUrl: await fileToCompressedDataUrl(file, blobUrl),
+        finalUrl: await uploadToStorageOrCompress(file, blobUrl, idx),
       }))
     ).then((results) => {
       setFormData((prev) => ({
         ...prev,
         images: prev.images.map((imgUrl) => {
           const match = results.find((r) => r.blobUrl === imgUrl);
-          return match ? match.dataUrl : imgUrl;
+          return match ? match.finalUrl : imgUrl;
         }),
       }));
     });
@@ -604,12 +639,14 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
-  const createInmueblePayload = (status: 'Borrador' | 'Publicado'): Inmueble => {
+  const createInmueblePayload = async (
+    status: 'Borrador' | 'Publicado'
+  ): Promise<Partial<Inmueble>> => {
     const now = new Date().toISOString();
-    const existing = editId ? propertiesStore.getById(editId) : undefined;
+    const existing = editId ? await propertiesStore.getById(editId) : null;
 
     return {
-      id: editId || `prop-${Date.now()}`,
+      id: editId || undefined,
       title:
         formData.title.trim() ||
         `${formData.type || 'Inmueble'} en ${formData.city || 'Venezuela'}`,
@@ -644,20 +681,28 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
     };
   };
 
-  const handleSaveDraft = () => {
-    const draftInmueble = createInmueblePayload('Borrador');
-    propertiesStore.save(draftInmueble);
-    storage.remove(STORAGE_KEYS.DRAFT);
-    toast('Borrador guardado', 'success');
-    router.push('/admin/inmuebles');
+  const handleSaveDraft = async () => {
+    try {
+      const draftInmueble = await createInmueblePayload('Borrador');
+      await propertiesStore.save(draftInmueble);
+      storage.remove(STORAGE_KEYS.DRAFT);
+      toast('Borrador guardado', 'success');
+      router.push('/admin/inmuebles');
+    } catch {
+      toast('Error al guardar el borrador', 'error');
+    }
   };
 
-  const handlePublish = () => {
-    const publishedInmueble = createInmueblePayload('Publicado');
-    propertiesStore.save(publishedInmueble);
-    storage.remove(STORAGE_KEYS.DRAFT);
-    toast('Inmueble publicado', 'success');
-    router.push('/admin/inmuebles');
+  const handlePublish = async () => {
+    try {
+      const publishedInmueble = await createInmueblePayload('Publicado');
+      await propertiesStore.save(publishedInmueble);
+      storage.remove(STORAGE_KEYS.DRAFT);
+      toast('Inmueble publicado', 'success');
+      router.push('/admin/inmuebles');
+    } catch {
+      toast('Error al publicar el inmueble', 'error');
+    }
   };
 
   return (
@@ -1024,7 +1069,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
                       <Maximize2 size={14} strokeWidth={1.5} className="text-[#C97B5A]" /> Área total (m²)
                     </span>
                     <span className="inline-flex items-center gap-1.5">
-                      <ArrowUpDown size={14} strokeWidth={1.5} className="text-[#C97B5A]" /> Altura libre (m)
+                      <Maximize2 size={14} strokeWidth={1.5} className="text-[#C97B5A]" /> Área construida (m²)
                     </span>
                     <span className="inline-flex items-center gap-1.5">
                       <Bath size={14} strokeWidth={1.5} className="text-[#C97B5A]" /> Baños
@@ -1129,7 +1174,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
               </div>
             )}
 
-            {/* Galpón / Local: Área total (m²), Altura libre (m), Baños, Oficinas internas */}
+            {/* Galpón / Local: Área total (m²), Área construida (m²), Baños, Oficinas internas */}
             {(formData.type === 'Galpón' || formData.type === 'Local') && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4.5 pt-2">
                 <Input
@@ -1145,15 +1190,15 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
                   }
                 />
                 <Input
-                  label="Altura libre (m)"
+                  label="Área construida (m²)"
                   type="number"
-                  step="0.1"
-                  placeholder="Ej. 7.5"
-                  value={formData.height ?? ''}
+                  min="0"
+                  placeholder="Ej. 350"
+                  value={formData.built_area ?? ''}
                   onChange={(e) =>
                     updateForm((prev) => ({
                       ...prev,
-                      height: e.target.value ? Number(e.target.value) : undefined,
+                      built_area: e.target.value ? Number(e.target.value) : undefined,
                     }))
                   }
                 />
@@ -1559,47 +1604,42 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
 
                   {/* Resumen de características cargadas según el tipo */}
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-stone-600 pt-1">
-                    {formData.built_area !== undefined && (
+                    {formData.built_area != null && formData.built_area > 0 && (
                       <span>
-                        <strong>Construcción:</strong> {formData.built_area} m²
+                        <strong>Área construida:</strong> {formData.built_area} m²
                       </span>
                     )}
-                    {formData.land_area !== undefined && (
+                    {formData.land_area != null && formData.land_area > 0 && (
                       <span>
                         <strong>Terreno:</strong> {formData.land_area} m²
                       </span>
                     )}
-                    {formData.total_area !== undefined && (
+                    {formData.total_area != null && formData.total_area > 0 && (
                       <span>
                         <strong>Área total:</strong> {formData.total_area} m²
                       </span>
                     )}
-                    {formData.bedrooms !== undefined && (
+                    {formData.bedrooms != null && formData.bedrooms > 0 && (
                       <span>
                         <strong>Hab:</strong> {formData.bedrooms}
                       </span>
                     )}
-                    {formData.bathrooms !== undefined && (
+                    {formData.bathrooms != null && formData.bathrooms > 0 && (
                       <span>
                         <strong>Baños:</strong> {formData.bathrooms}
                       </span>
                     )}
-                    {formData.parking !== undefined && (
+                    {formData.parking != null && formData.parking > 0 && (
                       <span>
                         <strong>Estac:</strong> {formData.parking}
                       </span>
                     )}
-                    {formData.height !== undefined && (
-                      <span>
-                        <strong>Altura:</strong> {formData.height} m
-                      </span>
-                    )}
-                    {formData.offices !== undefined && (
+                    {formData.offices != null && formData.offices > 0 && (
                       <span>
                         <strong>Oficinas:</strong> {formData.offices}
                       </span>
                     )}
-                    {formData.year !== undefined && (
+                    {formData.year != null && formData.year > 0 && (
                       <span>
                         <strong>Año:</strong> {formData.year}
                       </span>

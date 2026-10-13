@@ -12,7 +12,6 @@ import {
   LogOut,
   X,
 } from 'lucide-react';
-import { motion, useReducedMotion } from 'framer-motion';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
@@ -20,13 +19,19 @@ import { cn } from '@/lib/utils';
 
 interface SidebarProps {
   isOpen: boolean;
+  desktopOpen?: boolean;
   onClose: () => void;
+  onToggleDesktop?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  isOpen,
+  desktopOpen = true,
+  onClose,
+  onToggleDesktop,
+}) => {
   const pathname = usePathname();
   const router = useRouter();
-  const shouldReduceMotion = useReducedMotion();
 
   const navItems = [
     {
@@ -77,14 +82,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         />
       )}
 
-      {/* Sidebar con entrada slide desde izquierda + fade (300ms) */}
-      <motion.aside
-        initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, x: -24 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      {/* Sidebar con transición CSS pura para que se oculte realmente en móvil y desktop */}
+      <aside
+        aria-hidden={!isOpen && !desktopOpen}
         className={cn(
-          'fixed top-0 bottom-0 left-0 z-50 w-64 bg-gradient-to-b from-[#1e3a5f] to-[#152a45] text-white flex flex-col transition-transform duration-300 ease-out lg:translate-x-0 border-r border-white/5 font-body',
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+          'fixed top-0 bottom-0 left-0 z-50 w-64 bg-gradient-to-b from-[#1e3a5f] to-[#152a45] text-white flex flex-col transition-all duration-300 ease-in-out border-r border-white/5 font-body shadow-xl',
+          isOpen
+            ? 'translate-x-0 visible pointer-events-auto'
+            : '-translate-x-full invisible pointer-events-none',
+          desktopOpen
+            ? 'lg:translate-x-0 lg:visible lg:pointer-events-auto'
+            : 'lg:-translate-x-full lg:invisible lg:pointer-events-none'
         )}
       >
         {/* Header con iniciales SN y nombre */}
@@ -109,6 +117,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           >
             <X size={18} strokeWidth={1.5} />
           </button>
+          {onToggleDesktop && (
+            <button
+              onClick={onToggleDesktop}
+              className="hidden lg:inline-flex p-1.5 rounded-lg text-stone-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              title="Ocultar menú lateral"
+              aria-label="Ocultar menú lateral"
+            >
+              <X size={17} strokeWidth={1.5} />
+            </button>
+          )}
         </div>
 
         {/* Links de navegación: tamaño 18, strokeWidth 1.5, borde izquierdo terracota 2px en activo */}
@@ -156,7 +174,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             <span>Cerrar sesión</span>
           </button>
         </div>
-      </motion.aside>
+      </aside>
     </>
   );
 };

@@ -25,7 +25,10 @@ export default function AdminDashboardPage() {
   const [properties, setProperties] = useState<Inmueble[]>([]);
 
   useEffect(() => {
-    setProperties(propertiesStore.getAll());
+    propertiesStore
+      .getAll()
+      .then((data) => setProperties(data))
+      .catch(() => setProperties([]));
   }, []);
 
   // Cálculos dinámicos desde sn_properties (BUG 3.9 & 3.10)
@@ -72,7 +75,7 @@ export default function AdminDashboardPage() {
             Bienvenida, Sandra
           </h2>
           <p className="text-sm text-stone-600 mt-1 font-body">
-            Aquí tienes un panorama en tiempo real de tu catálogo y el alcance de tus propiedades.
+            Aquí tienes un panorama en tiempo real de tu inventario y el alcance de tus propiedades.
           </p>
         </div>
         <Link

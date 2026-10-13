@@ -17,7 +17,7 @@ const sora = Sora({
 export const metadata: Metadata = {
   title: 'Sandra Nino | Asesora Inmobiliaria',
   description:
-    'Catálogo inmobiliario exclusivo de Sandra Nino. Casas, apartamentos, galpones y terrenos en venta y alquiler en Carabobo, Venezuela.',
+    'Inventario inmobiliario exclusivo de Sandra Nino. Casas, apartamentos, galpones y terrenos en venta y alquiler en Carabobo, Venezuela.',
 };
 
 export default function RootLayout({

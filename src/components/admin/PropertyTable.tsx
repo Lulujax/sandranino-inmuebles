@@ -43,10 +43,15 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
 
   const { toast } = useToast();
 
-  const handleStatusChange = (id: string, nextStatus: PropertyStatus) => {
-    propertiesStore.update(id, { status: nextStatus });
-    setProperties(propertiesStore.getAll());
-    toast(`Estado actualizado a "${nextStatus}"`, 'success');
+  const handleStatusChange = async (id: string, nextStatus: PropertyStatus) => {
+    try {
+      await propertiesStore.update(id, { status: nextStatus });
+      const updated = await propertiesStore.getAll();
+      setProperties(updated);
+      toast(`Estado actualizado a "${nextStatus}"`, 'success');
+    } catch {
+      toast('Error al actualizar el estado del inmueble', 'error');
+    }
   };
 
   const handleStatusToggle = (id: string) => {
@@ -69,11 +74,16 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
     handleStatusChange(id, nextStatus);
   };
 
-  const handleDelete = (id: string, title: string) => {
+  const handleDelete = async (id: string, title: string) => {
     if (confirm(`¿Estás segura de eliminar el inmueble "${title}"?`)) {
-      propertiesStore.delete(id);
-      setProperties(propertiesStore.getAll());
-      toast('Inmueble eliminado con éxito', 'success');
+      try {
+        await propertiesStore.delete(id);
+        const updated = await propertiesStore.getAll();
+        setProperties(updated);
+        toast('Inmueble eliminado con éxito', 'success');
+      } catch {
+        toast('Error al eliminar el inmueble', 'error');
+      }
     }
   };
 
@@ -180,10 +190,10 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
             GESTIÓN DE INVENTARIO
           </span>
           <h2 className="font-display text-2xl sm:text-3xl font-semibold text-text-heading tracking-tight">
-            Catálogo de Inmuebles
+            Inventario de Inmuebles
           </h2>
           <p className="text-xs sm:text-sm text-stone-600 mt-0.5">
-            Administra, actualiza, edita o pausa las propiedades publicadas en tu catálogo personal.
+            Administra, actualiza, edita o pausa las propiedades publicadas en tu inventario exclusivo.
           </p>
         </div>
         <Link
@@ -195,33 +205,33 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
         </Link>
       </FadeInUp>
 
-      {/* Grid de 5 filtros */}
+      {/* Grid de 5 filtros sin truncamiento */}
       <FadeInUp
         delay={0.05}
-        className="bg-[#faf9f6] p-5 rounded-2xl border border-stone-200/80 shadow-card grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5"
+        className="bg-[#faf9f6] p-3.5 sm:p-4 rounded-2xl border border-stone-200/80 shadow-card grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5"
       >
         {/* Buscador */}
-        <div className="relative">
+        <div className="relative sm:col-span-2 lg:col-span-4">
           <Search
-            size={16}
+            size={15}
             strokeWidth={1.5}
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
           />
           <input
             type="text"
-            placeholder="Buscar por título, código, propietario..."
+            placeholder="Buscar título, código, propietario..."
             value={filters.searchQuery}
             onChange={(e) => setFilters((f) => ({ ...f, searchQuery: e.target.value }))}
-            className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm bg-white border border-stone-200 rounded-xl text-text-heading placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all shadow-xs font-body"
+            className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-stone-200 rounded-xl text-text-heading placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all shadow-xs font-body"
           />
         </div>
 
         {/* Estado */}
-        <div>
+        <div className="lg:col-span-2">
           <select
             value={filters.status}
             onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
-            className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-stone-200 rounded-xl text-text-heading focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all shadow-xs cursor-pointer font-body"
+            className="w-full px-2.5 py-2 text-xs bg-white border border-stone-200 rounded-xl text-text-heading focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all shadow-xs cursor-pointer font-body"
           >
             <option value="Todos">Todos los estados</option>
             <option value="Publicado">Publicado</option>
@@ -232,11 +242,11 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
         </div>
 
         {/* Operación */}
-        <div>
+        <div className="lg:col-span-2">
           <select
             value={filters.operation}
             onChange={(e) => setFilters((f) => ({ ...f, operation: e.target.value }))}
-            className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-stone-200 rounded-xl text-text-heading focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all shadow-xs cursor-pointer font-body"
+            className="w-full px-2.5 py-2 text-xs bg-white border border-stone-200 rounded-xl text-text-heading focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all shadow-xs cursor-pointer font-body"
           >
             <option value="Todas">Todas las operaciones</option>
             <option value="Venta">Venta</option>
@@ -245,11 +255,11 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
         </div>
 
         {/* Tipo */}
-        <div>
+        <div className="lg:col-span-2">
           <select
             value={filters.type}
             onChange={(e) => setFilters((f) => ({ ...f, type: e.target.value }))}
-            className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-stone-200 rounded-xl text-text-heading focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all shadow-xs cursor-pointer font-body"
+            className="w-full px-2.5 py-2 text-xs bg-white border border-stone-200 rounded-xl text-text-heading focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all shadow-xs cursor-pointer font-body"
           >
             <option value="Todos">Todos los tipos</option>
             <option value="Casa">Casa</option>
@@ -262,18 +272,18 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
         </div>
 
         {/* Ordenamiento */}
-        <div>
+        <div className="lg:col-span-2">
           <select
             value={filters.sortBy}
             onChange={(e) =>
               setFilters((f) => ({ ...f, sortBy: e.target.value as AdminFilterState['sortBy'] }))
             }
-            className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-stone-200 rounded-xl text-text-heading focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all shadow-xs cursor-pointer font-body"
+            className="w-full px-2.5 py-2 text-xs bg-white border border-stone-200 rounded-xl text-text-heading focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all shadow-xs cursor-pointer font-body"
           >
             <option value="recent">Más recientes</option>
             <option value="oldest">Más antiguos</option>
-            <option value="price_desc">Precio: mayor a menor</option>
-            <option value="price_asc">Precio: menor a mayor</option>
+            <option value="price_desc">Mayor precio</option>
+            <option value="price_asc">Menor precio</option>
           </select>
         </div>
       </FadeInUp>
@@ -435,7 +445,7 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
         )}
       </div>
 
-      {/* Tabla Desktop responsive */}
+      {/* Tabla Desktop compacta sin scroll horizontal */}
       <FadeInUp
         delay={0.1}
         className="hidden md:block bg-white rounded-2xl border border-stone-200/80 shadow-card overflow-hidden"
@@ -447,33 +457,42 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="w-full">
+            <table className="w-full text-left border-collapse table-auto">
               <thead>
-                <tr className="border-b border-stone-200/80 bg-[#faf9f6] text-[11px] font-medium text-stone-600 uppercase tracking-wider font-body">
-                  <th className="py-3.5 px-5">Inmueble</th>
-                  <th className="py-3.5 px-5">Propietario</th>
-                  <th className="py-3.5 px-5">Tipo / Operación</th>
-                  <th className="py-3.5 px-5">Precio</th>
-                  <th className="py-3.5 px-5">Estado</th>
-                  <th className="py-3.5 px-5 text-right">Acciones</th>
+                <tr className="border-b border-stone-200/80 bg-[#faf9f6] text-[10px] font-semibold text-stone-600 uppercase tracking-wider font-body">
+                  <th className="py-3 px-3.5">Inmueble</th>
+                  <th className="py-3 px-2.5">Propietario</th>
+                  <th className="py-3 px-2.5">Tipo / Operación</th>
+                  <th className="py-3 px-2.5">Precio</th>
+                  <th className="py-3 px-2.5">Estado</th>
+                  <th className="py-3 px-3.5 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100 text-sm font-body">
+              <tbody className="divide-y divide-stone-100 text-xs font-body">
                 {filteredProperties.map((prop) => {
                   const thumbUrl = prop.images[0] || 'https://placehold.co/100x100?text=SN';
                   const cleanOwnerPhone = prop.owner_phone?.replace(/\D/g, '') || '';
+                  const statusSelectStyle =
+                    prop.status === 'Publicado'
+                      ? 'bg-[#edf7ee] text-emerald-800 border-emerald-300/80'
+                      : prop.status === 'Borrador'
+                      ? 'bg-[#fef7eb] text-amber-800 border-amber-300/80'
+                      : prop.status === 'Vendido'
+                      ? 'bg-[#f9ede7] text-[#a85d3f] border-[#C97B5A]/40'
+                      : 'bg-stone-100 text-stone-700 border-stone-300';
+
                   return (
                     <tr key={prop.id} className="hover:bg-[#faf9f6] transition-colors duration-150">
                       {/* Miniatura + Título */}
-                      <td className="py-4 px-5">
-                        <div className="flex items-center gap-3.5">
-                          <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-[#f5f1ea] shrink-0 border border-stone-200 shadow-2xs">
+                      <td className="py-3 px-3.5 max-w-[210px] lg:max-w-[250px] xl:max-w-[320px]">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-[#f5f1ea] shrink-0 border border-stone-200 shadow-2xs">
                             <Image
                               src={thumbUrl}
                               alt={prop.title}
                               fill
-                              sizes="56px"
+                              sizes="44px"
                               unoptimized={
                                 thumbUrl.includes('placehold.co') ||
                                 thumbUrl.startsWith('blob:') ||
@@ -482,15 +501,16 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                               className="object-cover"
                             />
                           </div>
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <Link
                               href={`/inmueble/${prop.id}`}
                               target="_blank"
-                              className="font-display font-semibold text-text-heading hover:text-brand truncate block max-w-xs lg:max-w-md transition-colors"
+                              title={prop.title}
+                              className="font-display font-semibold text-xs sm:text-sm text-text-heading hover:text-brand truncate block transition-colors"
                             >
                               {prop.title}
                             </Link>
-                            <span className="text-xs text-stone-500 block truncate mt-0.5 font-body">
+                            <span className="text-[11px] text-stone-500 block truncate mt-0.5 font-body">
                               {prop.city}, {prop.state}
                               {prop.internal_code ? ` • Ref: ${prop.internal_code}` : ''}
                             </span>
@@ -499,13 +519,18 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                       </td>
 
                       {/* Propietario (Uso interno) */}
-                      <td className="py-4 px-5 whitespace-nowrap">
+                      <td className="py-3 px-2.5 whitespace-nowrap">
                         {prop.owner_name || prop.owner_phone ? (
-                          <div className="flex flex-col gap-1">
+                          <div className="flex flex-col gap-0.5">
                             {prop.owner_name && (
-                              <span className="text-xs font-medium text-text-heading flex items-center gap-1.5">
-                                <User size={13} strokeWidth={1.5} className="text-[#C97B5A] shrink-0" />
-                                <span className="truncate max-w-[160px]">{prop.owner_name}</span>
+                              <span
+                                className="text-xs font-medium text-text-heading flex items-center gap-1"
+                                title={prop.owner_name}
+                              >
+                                <User size={12} strokeWidth={1.5} className="text-[#C97B5A] shrink-0" />
+                                <span className="truncate max-w-[110px] xl:max-w-[140px]">
+                                  {prop.owner_name}
+                                </span>
                               </span>
                             )}
                             {prop.owner_phone && (
@@ -513,22 +538,22 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                                 href={`https://wa.me/${cleanOwnerPhone}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 px-2 py-0.5 rounded-full transition-colors w-fit"
+                                className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 px-1.5 py-0.5 rounded-full transition-colors w-fit"
                                 title={`Contactar por WhatsApp a ${prop.owner_name || prop.owner_phone}`}
                               >
-                                <FaWhatsapp size={12} />
+                                <FaWhatsapp size={11} />
                                 <span>{prop.owner_phone}</span>
                               </a>
                             )}
                           </div>
                         ) : (
-                          <span className="text-xs text-stone-400 italic">Sin asignar</span>
+                          <span className="text-[11px] text-stone-400 italic">Sin asignar</span>
                         )}
                       </td>
 
                       {/* Tipo + Operación */}
-                      <td className="py-4 px-5 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
+                      <td className="py-3 px-2.5 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
                           <span className="text-xs font-medium text-stone-700 font-body">
                             {prop.type}
                           </span>
@@ -542,63 +567,66 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                       </td>
 
                       {/* Precio */}
-                      <td className="py-4 px-5 whitespace-nowrap">
-                        <span className="font-display text-base font-semibold text-text-heading">
+                      <td className="py-3 px-2.5 whitespace-nowrap">
+                        <span className="font-display text-sm font-semibold text-text-heading">
                           {formatPrice(prop.price, prop.operation)}
                         </span>
                       </td>
 
-                      {/* Estado con selector directo */}
-                      <td className="py-4 px-5 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <Badge status={prop.status} size="sm">
-                            {prop.status}
-                          </Badge>
-                          <select
-                            value={prop.status}
-                            onChange={(e) =>
-                              handleStatusChange(prop.id, e.target.value as PropertyStatus)
-                            }
-                            className="text-[11px] bg-white border border-stone-200 rounded-lg px-2 py-1 text-stone-600 hover:border-stone-300 focus:outline-none focus:border-brand cursor-pointer"
-                            title="Cambiar estado del inmueble"
-                            aria-label="Cambiar estado del inmueble"
-                          >
-                            <option value="Publicado">Publicado</option>
-                            <option value="Borrador">Borrador</option>
-                            <option value="Pausado">Pausado</option>
-                            <option value="Vendido">Vendido</option>
-                          </select>
-                        </div>
+                      {/* Estado con selector integrado */}
+                      <td className="py-3 px-2.5 whitespace-nowrap">
+                        <select
+                          value={prop.status}
+                          onChange={(e) =>
+                            handleStatusChange(prop.id, e.target.value as PropertyStatus)
+                          }
+                          className={`text-[11px] font-semibold uppercase tracking-wider border rounded-full px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-brand/20 cursor-pointer transition-colors ${statusSelectStyle}`}
+                          title="Cambiar estado del inmueble"
+                          aria-label="Cambiar estado del inmueble"
+                        >
+                          <option value="Publicado" className="bg-white text-stone-800">
+                            Publicado
+                          </option>
+                          <option value="Borrador" className="bg-white text-stone-800">
+                            Borrador
+                          </option>
+                          <option value="Pausado" className="bg-white text-stone-800">
+                            Pausado
+                          </option>
+                          <option value="Vendido" className="bg-white text-stone-800">
+                            Vendido
+                          </option>
+                        </select>
                       </td>
 
                       {/* Acciones */}
-                      <td className="py-4 px-5 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
+                      <td className="py-3 px-3.5 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-0.5">
                           {/* Ver ficha */}
                           <Link
                             href={`/inmueble/${prop.id}`}
                             target="_blank"
-                            className="p-2 text-stone-500 hover:text-brand hover:bg-stone-200/50 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-stone-500 hover:text-brand hover:bg-stone-200/50 rounded-lg transition-colors cursor-pointer"
                             title="Ver ficha pública"
                             aria-label="Ver ficha pública"
                           >
-                            <Eye size={16} strokeWidth={1.5} />
+                            <Eye size={15} strokeWidth={1.5} />
                           </Link>
 
                           {/* Editar */}
                           <Link
                             href={`/admin/publicar?edit=${prop.id}`}
-                            className="p-2 text-stone-500 hover:text-brand hover:bg-stone-200/50 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-stone-500 hover:text-brand hover:bg-stone-200/50 rounded-lg transition-colors cursor-pointer"
                             title="Editar inmueble"
                             aria-label="Editar inmueble"
                           >
-                            <Pencil size={16} strokeWidth={1.5} />
+                            <Pencil size={15} strokeWidth={1.5} />
                           </Link>
 
                           {/* Marcar como Vendido */}
                           <button
                             onClick={() => handleMarkSold(prop.id)}
-                            className="p-2 text-stone-500 hover:text-terracotta hover:bg-stone-200/50 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-stone-500 hover:text-terracotta hover:bg-stone-200/50 rounded-lg transition-colors cursor-pointer"
                             title={
                               prop.status === 'Vendido'
                                 ? 'Reactivar como Publicado'
@@ -607,7 +635,7 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                             aria-label="Marcar como Vendido"
                           >
                             <CheckCircle2
-                              size={16}
+                              size={15}
                               strokeWidth={1.5}
                               className={prop.status === 'Vendido' ? 'text-terracotta' : ''}
                             />
@@ -616,25 +644,25 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                           {/* Pausar / Reactivar */}
                           <button
                             onClick={() => handleStatusToggle(prop.id)}
-                            className="p-2 text-stone-500 hover:text-amber-600 hover:bg-stone-200/50 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-stone-500 hover:text-amber-600 hover:bg-stone-200/50 rounded-lg transition-colors cursor-pointer"
                             title={prop.status === 'Pausado' ? 'Reactivar' : 'Pausar'}
                             aria-label={prop.status === 'Pausado' ? 'Reactivar' : 'Pausar'}
                           >
                             {prop.status === 'Pausado' ? (
-                              <Play size={16} strokeWidth={1.5} className="text-emerald-600" />
+                              <Play size={15} strokeWidth={1.5} className="text-emerald-600" />
                             ) : (
-                              <Pause size={16} strokeWidth={1.5} />
+                              <Pause size={15} strokeWidth={1.5} />
                             )}
                           </button>
 
                           {/* Eliminar */}
                           <button
                             onClick={() => handleDelete(prop.id, prop.title)}
-                            className="p-2 text-stone-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-stone-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                             title="Eliminar inmueble"
                             aria-label="Eliminar inmueble"
                           >
-                            <Trash2 size={16} strokeWidth={1.5} />
+                            <Trash2 size={15} strokeWidth={1.5} />
                           </button>
                         </div>
                       </td>

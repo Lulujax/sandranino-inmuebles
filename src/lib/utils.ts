@@ -55,16 +55,42 @@ export function getWhatsAppInquiryLink(
 }
 
 /**
- * Genera enlaces para compartir en redes sociales
+ * Genera texto y enlaces estilo Wasi.co para compartir un inmueble en redes sociales
  */
-export function getShareUrls(title: string, url: string) {
-  const encodedTitle = encodeURIComponent(title);
-  const encodedUrl = encodeURIComponent(url);
+export function getShareUrls(property: Partial<Inmueble> & { title: string }, url: string) {
+  const area = getPropertyMainArea(property);
+  const priceText =
+    property.price !== undefined
+      ? formatPrice(property.price, property.operation)
+      : '';
+  const locationParts = [property.sector, property.city, property.state].filter(Boolean);
+  const locationText = locationParts.join(', ');
+
+  const fullDesc = property.description ? property.description.trim() : '';
+
+  const lines = [
+    `🏡 *${property.title.toUpperCase()}*`,
+    locationText ? `📍 Ubicación: ${locationText}` : '',
+    priceText
+      ? `💼 ${property.operation || 'Precio'}: *${priceText}*`
+      : '',
+    area ? `📐 Superficie: ${formatArea(area)}` : '',
+    fullDesc ? `\n📝 ${fullDesc}` : '',
+    `\n👉 Ver fotos y ficha completa aquí:\n${url}`,
+  ].filter(Boolean);
+
+  const fullMessage = lines.join('\n');
+  const telegramText = lines.slice(0, -1).join('\n');
 
   return {
-    whatsapp: `https://wa.me/?text=${encodedTitle}%20-%20${encodedUrl}`,
-    telegram: `https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}`,
-    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+    message: fullMessage,
+    whatsapp: `https://wa.me/?text=${encodeURIComponent(fullMessage)}`,
+    telegram: `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(
+      telegramText
+    )}`,
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(
+      fullMessage
+    )}`,
   };
 }
 

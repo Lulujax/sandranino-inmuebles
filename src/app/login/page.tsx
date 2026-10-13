@@ -37,12 +37,21 @@ export default function LoginPage() {
     return '/admin';
   };
 
-  // Si ya tiene sesión activa con keepSession en localStorage, redirigir al panel
+  // Si ya tiene sesión activa en Supabase con keepSession en localStorage, redirigir al panel
   useEffect(() => {
-    const savedSession = storage.get<SessionPayload | null>(STORAGE_KEYS.SESSION, null);
-    if (savedSession && savedSession.keepSession) {
-      router.replace('/admin');
-    }
+    const checkExistingSession = async () => {
+      const savedSession = storage.get<SessionPayload | null>(STORAGE_KEYS.SESSION, null);
+      if (savedSession && savedSession.keepSession) {
+        const supabase = createClient();
+        const { data } = await supabase.auth.getUser();
+        if (data.user) {
+          router.replace('/admin');
+        } else {
+          storage.remove(STORAGE_KEYS.SESSION);
+        }
+      }
+    };
+    checkExistingSession();
   }, [router]);
 
   const handleForgotPassword = async () => {
@@ -51,23 +60,19 @@ export default function LoginPage() {
       return;
     }
 
-    if (isSupabaseConfigured()) {
-      try {
-        const supabase = createClient();
-        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-          redirectTo: `${window.location.origin}/admin/perfil`,
-        });
-        if (error) {
-          toast(error.message, 'error');
-          return;
-        }
-      } catch {
-        toast('No se pudo enviar el correo de recuperación', 'error');
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/admin/perfil`,
+      });
+      if (error) {
+        toast(error.message, 'error');
         return;
       }
+      toast('Enlace de recuperación enviado al correo registrado', 'info');
+    } catch {
+      toast('No se pudo enviar el correo de recuperación', 'error');
     }
-
-    toast('Enlace de recuperación enviado al correo registrado', 'info');
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -81,24 +86,19 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      if (isSupabaseConfigured()) {
-        const supabase = createClient();
-        const { error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-        if (error) {
-          toast('Credenciales inválidas. Verifica tu correo y contraseña.', 'error');
-          setIsLoading(false);
-          return;
-        }
-      } else if (process.env.NODE_ENV === 'production') {
-        toast('El servicio de autenticación no está configurado en el servidor', 'error');
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (error) {
+        toast(error.message || 'Credenciales inválidas. Verifica tu correo y contraseña.', 'error');
         setIsLoading(false);
         return;
       }
 
-      // Persistencia de sesión con storage.ts (BUG 4)
+      // Persistencia de preferencia de sesión (keepSession vs auto-logout 5 min)
       if (rememberMe) {
         storage.set(STORAGE_KEYS.SESSION, {
           email: email.trim(),
@@ -117,6 +117,7 @@ export default function LoginPage() {
 
       toast('Sesión iniciada con éxito. ¡Bienvenida, Sandra!', 'success');
       router.push(getSafeRedirect());
+      router.refresh();
     } catch {
       toast('Ocurrió un error al procesar el inicio de sesión', 'error');
     } finally {
@@ -146,6 +147,7 @@ export default function LoginPage() {
             <Input
               label="Correo Electrónico"
               type="email"
+              autoComplete="email"
               placeholder="sandra@ejemplo.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -157,6 +159,7 @@ export default function LoginPage() {
             <Input
               label="Contraseña"
               type="password"
+              autoComplete="current-password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

@@ -41,6 +41,25 @@ export default function MiPerfilPage() {
       setInstagram(savedProfile.instagram || '');
       setFacebook(savedProfile.facebook || '');
     }
+
+    if (isSupabaseConfigured()) {
+      const supabase = createClient();
+      supabase
+        .from('perfil_asesor')
+        .select('*')
+        .limit(1)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            const p = data as PerfilAsesor;
+            setFullName(p.full_name);
+            setWhatsapp(p.whatsapp);
+            setEmail(p.email || '');
+            setInstagram(p.instagram || '');
+            setFacebook(p.facebook || '');
+          }
+        });
+    }
   }, []);
 
   const cleanSocialHandle = (val: string, domain: string): string => {
@@ -51,7 +70,7 @@ export default function MiPerfilPage() {
       .replace(/\/+$/, '');
   };
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!fullName.trim()) {
@@ -72,7 +91,7 @@ export default function MiPerfilPage() {
     setInstagram(cleanIg);
     setFacebook(cleanFb);
 
-    storage.set<PerfilAsesor>(STORAGE_KEYS.PROFILE, {
+    const updatedProfile: PerfilAsesor = {
       ...MOCK_ASESOR,
       full_name: fullName.trim(),
       whatsapp: cleanWhatsapp,
@@ -80,7 +99,36 @@ export default function MiPerfilPage() {
       instagram: cleanIg,
       facebook: cleanFb,
       updated_at: new Date().toISOString(),
-    });
+    };
+
+    storage.set<PerfilAsesor>(STORAGE_KEYS.PROFILE, updatedProfile);
+
+    if (isSupabaseConfigured()) {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (user) {
+          const { error } = await supabase.from('perfil_asesor').upsert({
+            id: user.id,
+            full_name: fullName.trim(),
+            whatsapp: cleanWhatsapp,
+            email: email.trim() || null,
+            instagram: cleanIg || null,
+            facebook: cleanFb || null,
+            updated_at: new Date().toISOString(),
+          });
+          if (error) {
+            toast(`Error en Supabase: ${error.message}`, 'error');
+            return;
+          }
+        }
+      } catch {
+        toast('Error al sincronizar el perfil con Supabase', 'error');
+        return;
+      }
+    }
 
     toast('Perfil guardado correctamente', 'success');
   };
