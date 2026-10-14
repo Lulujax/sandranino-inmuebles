@@ -1,4 +1,4 @@
-import { ImageResponse } from 'next/og';
+import sharp from 'sharp';
 import { createClient } from '@/lib/supabase/server';
 import { Inmueble } from '@/lib/types';
 
@@ -39,62 +39,61 @@ export default async function Image({
 
   const firstImage = validImages[0];
 
-  // Si la imagen está en formato base64 (como en Supabase):
-  // Se entrega como binario nativo JPEG de ~78 KB (por debajo de los 300 KB de WhatsApp)
-  if (firstImage && firstImage.startsWith('data:image/')) {
-    const match = firstImage.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/);
-    if (match) {
-      const mime = match[1];
-      const buffer = Buffer.from(match[2], 'base64');
-      return new Response(buffer, {
-        headers: {
-          'Content-Type': mime,
-          'Content-Length': String(buffer.length),
-          'Cache-Control': 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400',
-        },
-      });
-    }
-  }
-
-  // Si la imagen es una URL remota
-  if (firstImage && (firstImage.startsWith('http://') || firstImage.startsWith('https://'))) {
+  if (firstImage) {
     try {
-      const res = await fetch(firstImage);
-      if (res.ok) {
-        const arrayBuffer = await res.arrayBuffer();
-        const mime = res.headers.get('content-type') || 'image/jpeg';
-        return new Response(Buffer.from(arrayBuffer), {
+      let rawBuffer: Buffer | null = null;
+
+      if (firstImage.startsWith('data:image/')) {
+        const match = firstImage.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/);
+        if (match) {
+          rawBuffer = Buffer.from(match[2], 'base64');
+        }
+      } else if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) {
+        const res = await fetch(firstImage);
+        if (res.ok) {
+          rawBuffer = Buffer.from(await res.arrayBuffer());
+        }
+      }
+
+      if (rawBuffer) {
+        // Redimensiona y ajusta la foto exactamente al formato 1200x630 (ratio 1.91:1)
+        // Esto obliga a WhatsApp, Facebook y Telegram a mostrar SIEMPRE la tarjeta EN GRANDE
+        // manteniendo el peso en ~100 KB (muy por debajo de los 300 KB permitidos)
+        const landscapeBuffer = await sharp(rawBuffer)
+          .resize(1200, 630, { fit: 'cover', position: 'center' })
+          .jpeg({ quality: 82, progressive: true })
+          .toBuffer();
+
+        return new Response(landscapeBuffer, {
           headers: {
-            'Content-Type': mime,
+            'Content-Type': 'image/jpeg',
+            'Content-Length': String(landscapeBuffer.length),
             'Cache-Control': 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400',
           },
         });
       }
-    } catch {}
+    } catch (err) {
+      console.error('[opengraph-image] Error procesando con sharp:', err);
+    }
   }
 
-  // Fallback si no tiene fotos
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: '#1e3a5f',
-          color: '#faf9f6',
-          fontFamily: 'sans-serif',
-        }}
-      >
-        <div style={{ fontSize: 22, letterSpacing: '0.25em', color: '#C97B5A', marginBottom: 16 }}>
-          SANDRA NIÑO • INVENTARIO EXCLUSIVO
-        </div>
-        <div style={{ fontSize: 48, fontWeight: 700 }}>Inmueble Exclusivo</div>
-      </div>
-    ),
-    { ...size }
-  );
+  // Fallback elegante en caso de no tener imágenes
+  const fallbackSvg = `
+    <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+      <rect width="1200" height="630" fill="#1e3a5f" />
+      <text x="600" y="270" font-family="sans-serif" font-size="28" font-weight="700" fill="#C97B5A" text-anchor="middle" letter-spacing="4">SANDRA NIÑO • INVENTARIO EXCLUSIVO</text>
+      <text x="600" y="350" font-family="sans-serif" font-size="52" font-weight="700" fill="#FAF9F6" text-anchor="middle">Inmueble Exclusivo</text>
+    </svg>
+  `;
+  const fallbackBuffer = await sharp(Buffer.from(fallbackSvg))
+    .jpeg({ quality: 80 })
+    .toBuffer();
+
+  return new Response(fallbackBuffer, {
+    headers: {
+      'Content-Type': 'image/jpeg',
+      'Content-Length': String(fallbackBuffer.length),
+      'Cache-Control': 'public, max-age=86400',
+    },
+  });
 }

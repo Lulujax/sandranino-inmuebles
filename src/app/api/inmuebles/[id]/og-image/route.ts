@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import sharp from 'sharp';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -25,39 +26,37 @@ export async function GET(
     }
 
     const firstImage = property.images[0];
+    let rawBuffer: Buffer | null = null;
 
-    // Si la imagen está en formato base64 data URI
     if (typeof firstImage === 'string' && firstImage.startsWith('data:image/')) {
       const match = firstImage.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/);
       if (match) {
-        const mime = match[1];
-        const buffer = Buffer.from(match[2], 'base64');
-        return new NextResponse(buffer, {
-          headers: {
-            'Content-Type': mime,
-            'Content-Length': String(buffer.length),
-            'Cache-Control': 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400',
-          },
-        });
+        rawBuffer = Buffer.from(match[2], 'base64');
       }
-    }
-
-    // Si la imagen es una URL remota
-    if (
+    } else if (
       typeof firstImage === 'string' &&
       (firstImage.startsWith('http://') || firstImage.startsWith('https://'))
     ) {
       const res = await fetch(firstImage);
       if (res.ok) {
-        const arrayBuffer = await res.arrayBuffer();
-        const mime = res.headers.get('content-type') || 'image/jpeg';
-        return new NextResponse(Buffer.from(arrayBuffer), {
-          headers: {
-            'Content-Type': mime,
-            'Cache-Control': 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400',
-          },
-        });
+        rawBuffer = Buffer.from(await res.arrayBuffer());
       }
+    }
+
+    if (rawBuffer) {
+      // Redimensionar a formato horizontal panorámico exacto 1200x630
+      const landscapeBuffer = await sharp(rawBuffer)
+        .resize(1200, 630, { fit: 'cover', position: 'center' })
+        .jpeg({ quality: 82, progressive: true })
+        .toBuffer();
+
+      return new NextResponse(landscapeBuffer, {
+        headers: {
+          'Content-Type': 'image/jpeg',
+          'Content-Length': String(landscapeBuffer.length),
+          'Cache-Control': 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400',
+        },
+      });
     }
 
     return new NextResponse('Formato de imagen no soportado', { status: 415 });
@@ -66,4 +65,3 @@ export async function GET(
     return new NextResponse('Error interno del servidor', { status: 500 });
   }
 }
-
