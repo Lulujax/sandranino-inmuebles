@@ -9,7 +9,9 @@ import {
   Home,
   ArrowRight,
   Mail,
+  Award,
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { FaWhatsapp, FaInstagram, FaFacebook } from 'react-icons/fa';
 import { PerfilAsesor } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
@@ -65,15 +67,15 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] text-text-body font-body selection:bg-terracotta/20 selection:text-text-heading">
       {/* Hero Principal con fondo arquitectónico de villa de lujo y máscara suave */}
       <section className="relative overflow-hidden bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] border-b border-stone-200/60 py-16 md:py-20">
-        {/* Fondo arquitectónico sutil con vista a Valencia */}
+        {/* Fondo arquitectónico con vista a Valencia */}
         <div
-          className="absolute inset-0 bg-cover bg-center pointer-events-none opacity-20 md:opacity-25 transform scale-105"
+          className="absolute inset-0 bg-cover bg-center pointer-events-none opacity-80 sm:opacity-85 md:opacity-90"
           style={{
             backgroundImage: `url('/images/hero-luxury-villa.jpg')`,
           }}
         />
-        {/* Máscara de luz suave para garantizar legibilidad 100% cristalina */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#faf9f6] via-[#faf9f6]/85 to-[#f5f1ea]/70 pointer-events-none" />
+        {/* Máscara inteligente: Legibilidad cristalina a la izquierda, arquitectura viva a la derecha */}
+        <div className="absolute inset-0 bg-gradient-to-b md:bg-gradient-to-r from-[#faf9f6]/95 via-[#faf9f6]/80 via-45% to-[#faf9f6]/20 md:to-transparent pointer-events-none" />
 
         {/* Textura de papel sutil (SVG noise, opacidad 0.03) */}
         <svg
@@ -93,22 +95,20 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-12 items-center">
-            {/* Bloque de Identidad / Placeholder SN (Delay 0ms - primero en stagger) */}
+            {/* Bloque de Identidad con microinteracción de resorte 3D */}
             <div className="md:col-span-5 flex justify-center order-1 md:order-2">
-              <FadeInUp duration={0.5} delay={0}>
-                <div className="relative">
-                  {/* Círculo orgánico terracota #C97B5A con opacidad 0.15 desplazado detrás */}
-                  <div
-                    className="absolute -bottom-6 -right-6 w-64 h-64 sm:w-72 sm:h-72 rounded-full bg-[#C97B5A] opacity-[0.15] pointer-events-none"
-                    aria-hidden="true"
-                  />
-
-                  <div className="relative w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 rounded-2xl overflow-hidden shadow-luxury bg-[#1e3a5f] border border-white/20 flex items-center justify-center select-none">
+              <FadeInUp duration={0.6} delay={0}>
+                <motion.div
+                  className="relative group cursor-default"
+                  whileHover={{ y: -6, scale: 1.015 }}
+                  transition={{ type: 'spring', stiffness: 320, damping: 22 }}
+                >
+                  <div className="relative w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 rounded-2xl overflow-hidden shadow-luxury bg-[#1e3a5f] border-2 border-white/60 flex items-center justify-center select-none transition-shadow duration-300 group-hover:shadow-2xl">
                     {asesor.profile_photo_url ? (
                       <img
                         src={asesor.profile_photo_url}
                         alt={asesor.full_name}
-                        className="w-full h-full object-cover relative z-10"
+                        className="w-full h-full object-cover relative z-10 transition-transform duration-700 ease-out group-hover:scale-105"
                       />
                     ) : (
                       <>
@@ -125,7 +125,23 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
                       </>
                     )}
                   </div>
-                </div>
+
+                  {/* Badge Glassmorphic de Trayectoria con entrada suave */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8, y: 12 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ delay: 0.45, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute -bottom-3.5 -left-2.5 sm:-bottom-4 sm:-left-3 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-xl border border-white/80 shadow-luxury flex items-center gap-2.5 z-20 pointer-events-none"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-[#C97B5A]/10 text-[#C97B5A] flex items-center justify-center shrink-0">
+                      <Award size={15} strokeWidth={2} />
+                    </div>
+                    <div>
+                      <p className="font-display text-xs font-semibold text-text-heading leading-tight">+10 Años</p>
+                      <p className="text-[9px] text-stone-500 font-body uppercase tracking-wider font-medium">Experiencia</p>
+                    </div>
+                  </motion.div>
+                </motion.div>
               </FadeInUp>
             </div>
 
@@ -136,7 +152,12 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
                   <span className="text-[11px] font-body font-medium uppercase tracking-[0.22em] text-[#C97B5A] mb-2">
                     — Desde 2014 —
                   </span>
-                  <div className="w-[40px] h-[2px] bg-[#C97B5A]" />
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: 40 }}
+                    transition={{ duration: 0.7, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                    className="h-[2px] bg-[#C97B5A]"
+                  />
                 </div>
 
                 <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-[11px] font-body font-medium uppercase tracking-[0.2em] bg-transparent text-[#C97B5A] border border-[#C97B5A] mb-5">
@@ -155,13 +176,14 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
                 </p>
               </FadeInUp>
 
-              {/* Botones Principales + Redes Sociales con react-icons */}
+              {/* Botones Principales con reflejo sutil de luz al hacer hover */}
               <FadeInUp duration={0.5} delay={0.3}>
                 <div className="mt-8 flex flex-col sm:flex-row gap-3.5 justify-center md:justify-start">
                   <Link
                     href="/inventario"
-                    className="group inline-flex items-center justify-center px-7 py-4 rounded-xl bg-brand hover:bg-brand-darker text-white font-body text-sm font-medium tracking-wider uppercase shadow-luxury hover:shadow-luxury-hover hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 gap-2.5"
+                    className="group relative overflow-hidden inline-flex items-center justify-center px-7 py-4 rounded-xl bg-brand hover:bg-brand-darker text-white font-body text-sm font-medium tracking-wider uppercase shadow-luxury hover:shadow-luxury-hover hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 gap-2.5"
                   >
+                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/15 to-transparent pointer-events-none" />
                     <span>Ver Inventario</span>
                     <ArrowRight size={20} strokeWidth={1.5} className="transition-transform duration-200 group-hover:translate-x-1" />
                   </Link>
@@ -170,9 +192,10 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
                     href={whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center px-6 py-4 rounded-xl bg-[#1d6447] hover:bg-[#164e37] text-white font-body text-sm font-medium tracking-wider uppercase shadow-sm hover:shadow-luxury hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 gap-2.5"
+                    className="group relative overflow-hidden inline-flex items-center justify-center px-6 py-4 rounded-xl bg-[#1d6447] hover:bg-[#164e37] text-white font-body text-sm font-medium tracking-wider uppercase shadow-sm hover:shadow-luxury hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 gap-2.5"
                   >
-                    <FaWhatsapp size={20} />
+                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/15 to-transparent pointer-events-none" />
+                    <FaWhatsapp size={20} className="transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6" />
                     <span>WhatsApp Directo</span>
                   </a>
                 </div>

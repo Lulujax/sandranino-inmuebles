@@ -41,10 +41,6 @@ export const Topbar: React.FC<TopbarProps> = ({
           </button>
         )}
 
-        {/* Título de la sección actual en Fraunces */}
-        <h1 className="font-display text-xl sm:text-2xl text-text-heading font-semibold tracking-tight">
-          {title}
-        </h1>
       </div>
 
       <div className="flex items-center gap-4">
@@ -59,12 +55,14 @@ export const Topbar: React.FC<TopbarProps> = ({
         </Link>
 
         <div
-          className="w-9.5 h-9.5 rounded-full bg-[#1e3a5f] flex items-center justify-center border border-white/20 shadow-card shrink-0 select-none"
+          className="w-9.5 h-9.5 rounded-full overflow-hidden border border-stone-300 shadow-card shrink-0 select-none bg-[#1e3a5f]"
           title="Sandra Niño"
         >
-          <span className="font-body text-[12px] font-medium tracking-[0.16em] text-white">
-            SN
-          </span>
+          <img
+            src="/images/sandra-nino-hero.jpg"
+            alt="Sandra Niño"
+            className="w-full h-full object-cover"
+          />
         </div>
       </div>
     </header>

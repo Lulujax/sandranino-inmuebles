@@ -20,7 +20,9 @@ import { FadeInUp } from '@/components/ui/FadeInUp';
 
 export default function HerramientasPage() {
   const { toast } = useToast();
-  const [exportOption, setExportOption] = useState('Todos');
+  const [filterOperation, setFilterOperation] = useState('Todas');
+  const [filterType, setFilterType] = useState('Todos');
+  const [filterStatus, setFilterStatus] = useState('Todos');
   const [includeInternalCode, setIncludeInternalCode] = useState(false);
   const [properties, setProperties] = useState<Inmueble[]>([]);
 
@@ -35,40 +37,20 @@ export default function HerramientasPage() {
   const totalVisits = properties.reduce((acc, curr) => acc + (curr.visits || 0), 0);
   const currentMonthVisits = Math.round(totalVisits * 0.42);
 
-  const getFilteredProperties = (option: string): Inmueble[] => {
-    return properties.filter((p) => {
-      switch (option) {
-        case 'Solo venta':
-          return p.operation === 'Venta';
-        case 'Solo alquiler':
-          return p.operation === 'Alquiler';
-        case 'Galpones en venta':
-          return p.type === 'Galpón' && p.operation === 'Venta';
-        case 'Galpones en alquiler':
-          return p.type === 'Galpón' && p.operation === 'Alquiler';
-        case 'Casas en venta':
-          return p.type === 'Casa' && p.operation === 'Venta';
-        case 'Casas en alquiler':
-          return p.type === 'Casa' && p.operation === 'Alquiler';
-        case 'Apartamentos en venta':
-          return p.type === 'Apartamento' && p.operation === 'Venta';
-        case 'Apartamentos en alquiler':
-          return p.type === 'Apartamento' && p.operation === 'Alquiler';
-        case 'Locales en venta':
-          return p.type === 'Local' && p.operation === 'Venta';
-        case 'Locales en alquiler':
-          return p.type === 'Local' && p.operation === 'Alquiler';
-        case 'Solo terrenos':
-          return p.type === 'Terreno';
-        case 'Solo vendidos':
-          return p.status === 'Vendido';
-        case 'Solo borradores':
-          return p.status === 'Borrador';
-        case 'Todos':
-        default:
-          return true;
-      }
-    });
+  // Filtrado dinámico en cascada
+  const filteredProperties = properties.filter((p) => {
+    if (filterOperation !== 'Todas' && p.operation !== filterOperation) return false;
+    if (filterType !== 'Todos' && p.type !== filterType) return false;
+    if (filterStatus !== 'Todos' && p.status !== filterStatus) return false;
+    return true;
+  });
+
+  const getExportSlug = () => {
+    const parts: string[] = [];
+    if (filterOperation !== 'Todas') parts.push(filterOperation.toLowerCase());
+    if (filterType !== 'Todos') parts.push(filterType.toLowerCase());
+    if (filterStatus !== 'Todos') parts.push(filterStatus.toLowerCase());
+    return parts.length > 0 ? parts.join('_') : 'completo';
   };
 
   // Escapar celda CSV protegiendo contra inyección de fórmulas en Excel
@@ -89,8 +71,8 @@ export default function HerramientasPage() {
 
   // EXPORTACIÓN EXCEL
   const handleExportExcel = () => {
-    const filtered = getFilteredProperties(exportOption);
-    const slug = exportOption.toLowerCase().replace(/\s+/g, '_');
+    const filtered = filteredProperties;
+    const slug = getExportSlug();
     const filename = `inventario_sandra_nino_${slug}.csv`;
 
     const headers = [
@@ -142,9 +124,9 @@ export default function HerramientasPage() {
   // EXPORTACIÓN PDF
   const handleExportPDF = () => {
     try {
-      const filtered = getFilteredProperties(exportOption);
+      const filtered = filteredProperties;
       const dateStr = new Date().toLocaleDateString('es-VE');
-      const slug = exportOption.toLowerCase().replace(/\s+/g, '_');
+      const slug = getExportSlug();
       const filename = `inventario_sandra_nino_${slug}.pdf`;
 
       const doc = new jsPDF({
@@ -158,7 +140,7 @@ export default function HerramientasPage() {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
       doc.setTextColor(30, 58, 95);
-      doc.text(`Inmuebles Sandra Niño — Filtro: ${exportOption}`, 14, 16);
+      doc.text(`Inmuebles Sandra Niño — Reporte: ${slug.replace(/_/g, ' ').toUpperCase()}`, 14, 16);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
@@ -274,32 +256,88 @@ export default function HerramientasPage() {
           </div>
         </div>
 
-        <div className="max-w-md">
-          <label className="block text-xs font-medium uppercase tracking-wider text-stone-700 mb-1.5 font-body">
-            ¿Qué deseas exportar?
-          </label>
-          <select
-            value={exportOption}
-            onChange={(e) => setExportOption(e.target.value)}
-            className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-text-heading focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs transition-all cursor-pointer font-body"
-          >
-            <option value="Todos">Todos</option>
-            <option value="Solo venta">Solo venta</option>
-            <option value="Solo alquiler">Solo alquiler</option>
-            <option value="Galpones en venta">Galpones en venta</option>
-            <option value="Galpones en alquiler">Galpones en alquiler</option>
-            <option value="Casas en venta">Casas en venta</option>
-            <option value="Casas en alquiler">Casas en alquiler</option>
-            <option value="Apartamentos en venta">Apartamentos en venta</option>
-            <option value="Apartamentos en alquiler">Apartamentos en alquiler</option>
-            <option value="Locales en venta">Locales en venta</option>
-            <option value="Locales en alquiler">Locales en alquiler</option>
-            <option value="Solo terrenos">Solo terrenos</option>
-            <option value="Solo vendidos">Solo vendidos</option>
-            <option value="Solo borradores">Solo borradores</option>
-          </select>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            {/* 1. Operación */}
+            <div>
+              <label className="block text-xs font-medium uppercase tracking-wider text-stone-700 mb-1.5 font-body">
+                1. Operación
+              </label>
+              <select
+                value={filterOperation}
+                onChange={(e) => setFilterOperation(e.target.value)}
+                className="w-full px-3 py-2.5 bg-white border border-stone-200 rounded-xl text-xs text-text-heading focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs transition-all cursor-pointer font-body"
+              >
+                <option value="Todas">Todas las operaciones</option>
+                <option value="Venta">Solo Venta</option>
+                <option value="Alquiler">Solo Alquiler</option>
+              </select>
+            </div>
 
-          <label className="flex items-center gap-2.5 text-xs text-stone-600 mt-3 select-none cursor-pointer font-body">
+            {/* 2. Tipo */}
+            <div>
+              <label className="block text-xs font-medium uppercase tracking-wider text-stone-700 mb-1.5 font-body">
+                2. Tipo de Inmueble
+              </label>
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="w-full px-3 py-2.5 bg-white border border-stone-200 rounded-xl text-xs text-text-heading focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs transition-all cursor-pointer font-body"
+              >
+                <option value="Todos">Todos los tipos</option>
+                <option value="Casa">Casas</option>
+                <option value="Apartamento">Apartamentos</option>
+                <option value="Galpón">Galpones</option>
+                <option value="Local">Locales Comerciales</option>
+                <option value="Terreno">Terrenos</option>
+                <option value="Oficina">Oficinas</option>
+              </select>
+            </div>
+
+            {/* 3. Estado */}
+            <div>
+              <label className="block text-xs font-medium uppercase tracking-wider text-stone-700 mb-1.5 font-body">
+                3. Estado en Inventario
+              </label>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="w-full px-3 py-2.5 bg-white border border-stone-200 rounded-xl text-xs text-text-heading focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs transition-all cursor-pointer font-body"
+              >
+                <option value="Todos">Todos los estados</option>
+                <option value="Publicado">Solo Publicados</option>
+                <option value="Vendido">Solo Vendidos</option>
+                <option value="Borrador">Solo Borradores</option>
+                <option value="Pausado">Solo Pausados</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Resumen dinámico en vivo */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-xl bg-white border border-stone-200/90 shadow-2xs">
+            <div className="flex items-center gap-2 text-xs text-stone-700 font-medium font-body">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              <span>
+                {filteredProperties.length}{' '}
+                {filteredProperties.length === 1 ? 'inmueble seleccionado' : 'inmuebles seleccionados'} para exportar
+              </span>
+            </div>
+            {(filterOperation !== 'Todas' || filterType !== 'Todos' || filterStatus !== 'Todos') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterOperation('Todas');
+                  setFilterType('Todos');
+                  setFilterStatus('Todos');
+                }}
+                className="text-xs text-[#C97B5A] hover:underline cursor-pointer font-medium font-body self-start sm:self-auto"
+              >
+                Restablecer filtros
+              </button>
+            )}
+          </div>
+
+          <label className="flex items-center gap-2.5 text-xs text-stone-600 select-none cursor-pointer font-body">
             <input
               type="checkbox"
               checked={includeInternalCode}

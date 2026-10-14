@@ -233,7 +233,7 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
             onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
             className="w-full px-2.5 py-2 text-xs bg-white border border-stone-200 rounded-xl text-text-heading focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all shadow-xs cursor-pointer font-body"
           >
-            <option value="Todos">Todos los estados</option>
+            <option value="Todos">Estado</option>
             <option value="Publicado">Publicado</option>
             <option value="Borrador">Borrador</option>
             <option value="Pausado">Pausado</option>
@@ -248,7 +248,7 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
             onChange={(e) => setFilters((f) => ({ ...f, operation: e.target.value }))}
             className="w-full px-2.5 py-2 text-xs bg-white border border-stone-200 rounded-xl text-text-heading focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all shadow-xs cursor-pointer font-body"
           >
-            <option value="Todas">Todas las operaciones</option>
+            <option value="Todas">Operación</option>
             <option value="Venta">Venta</option>
             <option value="Alquiler">Alquiler</option>
           </select>
@@ -261,7 +261,7 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
             onChange={(e) => setFilters((f) => ({ ...f, type: e.target.value }))}
             className="w-full px-2.5 py-2 text-xs bg-white border border-stone-200 rounded-xl text-text-heading focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all shadow-xs cursor-pointer font-body"
           >
-            <option value="Todos">Todos los tipos</option>
+            <option value="Todos">Tipos</option>
             <option value="Casa">Casa</option>
             <option value="Apartamento">Apartamento</option>
             <option value="Galpón">Galpón</option>

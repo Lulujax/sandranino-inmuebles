@@ -95,11 +95,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
             : 'lg:-translate-x-full lg:invisible lg:pointer-events-none'
         )}
       >
-        {/* Header con iniciales SN y nombre */}
+        {/* Header con foto de Sandra Niño y nombre */}
         <div className="p-6 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center font-display font-semibold text-white">
-              SN
+            <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/25 shrink-0 bg-[#152a45] shadow-sm">
+              <img
+                src="/images/sandra-nino-hero.jpg"
+                alt="Sandra Niño"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div>
               <h2 className="font-display text-base font-semibold leading-tight text-white">
@@ -117,16 +121,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <X size={18} strokeWidth={1.5} />
           </button>
-          {onToggleDesktop && (
-            <button
-              onClick={onToggleDesktop}
-              className="hidden lg:inline-flex p-1.5 rounded-lg text-stone-200 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-              title="Ocultar menú lateral"
-              aria-label="Ocultar menú lateral"
-            >
-              <X size={17} strokeWidth={1.5} />
-            </button>
-          )}
         </div>
 
         {/* Links de navegación: alto contraste WCAG AA/AAA sobre fondo azul oscuro */}
