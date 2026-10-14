@@ -21,7 +21,7 @@ export async function generateMetadata({
     const property = data as Inmueble | null;
     if (!property) {
       return {
-        title: 'Inmueble | Sandra Nino • Inventario Exclusivo',
+        title: 'Inmueble | Sandra Niño • Inventario Exclusivo',
       };
     }
 
@@ -43,7 +43,7 @@ export async function generateMetadata({
         title,
         description,
         type: 'website',
-        siteName: 'Sandra Nino • Inventario Exclusivo',
+        siteName: 'Sandra Niño • Inventario Exclusivo',
       },
       twitter: {
         card: 'summary_large_image',
@@ -53,7 +53,7 @@ export async function generateMetadata({
     };
   } catch {
     return {
-      title: 'Inmueble | Sandra Nino • Inventario Exclusivo',
+      title: 'Inmueble | Sandra Niño • Inventario Exclusivo',
     };
   }
 }

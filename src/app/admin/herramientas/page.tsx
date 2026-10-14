@@ -158,7 +158,7 @@ export default function HerramientasPage() {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
       doc.setTextColor(30, 58, 95);
-      doc.text(`Inmuebles Sandra Nino — Filtro: ${exportOption}`, 14, 16);
+      doc.text(`Inmuebles Sandra Niño — Filtro: ${exportOption}`, 14, 16);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);

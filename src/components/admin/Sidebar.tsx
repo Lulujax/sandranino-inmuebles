@@ -103,7 +103,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div>
               <h2 className="font-display text-base font-semibold leading-tight text-white">
-                Sandra Nino
+                Sandra Niño
               </h2>
               <p className="text-[11px] font-body text-[#f0a888] uppercase tracking-wider font-semibold mt-0.5">
                 Asesora Inmobiliaria

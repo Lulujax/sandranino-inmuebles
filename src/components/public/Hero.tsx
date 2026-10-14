@@ -38,15 +38,26 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
-          setAsesor(data as PerfilAsesor);
+          setAsesor((prev) => ({
+            ...prev,
+            ...data,
+            full_name: data.full_name?.replace(/Nino/g, 'Niño') || prev.full_name,
+            instagram: data.instagram || prev.instagram || 'sandranino.inmuebles',
+            facebook: data.facebook || prev.facebook || 'sandranino.asesora',
+            email: data.email || prev.email || 'sandra.nino@gmail.com',
+          }));
         }
       });
   }, []);
 
+  const advisorName = asesor.full_name?.replace(/Nino/g, 'Niño') || 'Sandra Niño';
   const cleanWhatsapp = asesor.whatsapp.replace(/\D/g, '');
   const whatsappUrl = `https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(
     'Hola Sandra, vi tu inventario de inmuebles exclusivos y me gustaría recibir asesoría.'
   )}`;
+  const instagramHandle = asesor.instagram || 'sandranino.inmuebles';
+  const facebookHandle = asesor.facebook || 'sandranino.asesora';
+  const emailAddress = asesor.email || 'sandra.nino@gmail.com';
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] text-text-body font-body selection:bg-terracotta/20 selection:text-text-heading">
@@ -121,7 +132,7 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
                 </span>
 
                 <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-semibold text-text-heading leading-[1.1] mb-5">
-                  Hola, soy <span className="text-brand italic font-medium">{asesor.full_name}</span>
+                  Hola, soy <span className="text-brand italic font-medium">{advisorName}</span>
                 </h1>
               </FadeInUp>
 
@@ -154,47 +165,39 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
                   </a>
                 </div>
 
-                {/* Íconos de redes sociales y correo (sin duplicar el botón de WhatsApp) */}
-                {(asesor.instagram || asesor.facebook || asesor.email) && (
-                  <div className="mt-6 flex items-center justify-center md:justify-start gap-3">
-                    {asesor.instagram && (
-                      <a
-                        href={`https://instagram.com/${asesor.instagram.replace(/^@/, '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Instagram"
-                        aria-label="Instagram"
-                        className="w-10 h-10 rounded-xl bg-white border border-stone-200/80 text-[#C97B5A] hover:bg-[#C97B5A] hover:text-white flex items-center justify-center shadow-2xs transition-all duration-200 hover:-translate-y-0.5"
-                      >
-                        <FaInstagram size={18} />
-                      </a>
-                    )}
+                {/* Íconos de redes sociales y correo (siempre visibles con Instagram, Facebook y Correo) */}
+                <div className="mt-6 flex items-center justify-center md:justify-start gap-3">
+                  <a
+                    href={`https://instagram.com/${instagramHandle.replace(/^@/, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Instagram de Sandra Niño"
+                    aria-label="Instagram"
+                    className="w-10 h-10 rounded-xl bg-white border border-stone-200/80 text-[#C97B5A] hover:bg-[#C97B5A] hover:text-white flex items-center justify-center shadow-2xs transition-all duration-200 hover:-translate-y-0.5"
+                  >
+                    <FaInstagram size={18} />
+                  </a>
 
-                    {asesor.facebook && (
-                      <a
-                        href={`https://facebook.com/${asesor.facebook}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Facebook"
-                        aria-label="Facebook"
-                        className="w-10 h-10 rounded-xl bg-white border border-stone-200/80 text-brand hover:bg-brand hover:text-white flex items-center justify-center shadow-2xs transition-all duration-200 hover:-translate-y-0.5"
-                      >
-                        <FaFacebook size={18} />
-                      </a>
-                    )}
+                  <a
+                    href={`https://facebook.com/${facebookHandle}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Facebook de Sandra Niño"
+                    aria-label="Facebook"
+                    className="w-10 h-10 rounded-xl bg-white border border-stone-200/80 text-brand hover:bg-brand hover:text-white flex items-center justify-center shadow-2xs transition-all duration-200 hover:-translate-y-0.5"
+                  >
+                    <FaFacebook size={18} />
+                  </a>
 
-                    {asesor.email && (
-                      <a
-                        href={`mailto:${asesor.email}`}
-                        title="Correo electrónico"
-                        aria-label="Correo electrónico"
-                        className="w-10 h-10 rounded-xl bg-white border border-stone-200/80 text-stone-700 hover:bg-brand hover:text-white flex items-center justify-center shadow-2xs transition-all duration-200 hover:-translate-y-0.5"
-                      >
-                        <Mail size={18} strokeWidth={1.5} />
-                      </a>
-                    )}
-                  </div>
-                )}
+                  <a
+                    href={`mailto:${emailAddress}`}
+                    title="Correo electrónico"
+                    aria-label="Correo electrónico"
+                    className="w-10 h-10 rounded-xl bg-white border border-stone-200/80 text-stone-700 hover:bg-brand hover:text-white flex items-center justify-center shadow-2xs transition-all duration-200 hover:-translate-y-0.5"
+                  >
+                    <Mail size={18} strokeWidth={1.5} />
+                  </a>
+                </div>
               </FadeInUp>
             </div>
           </div>

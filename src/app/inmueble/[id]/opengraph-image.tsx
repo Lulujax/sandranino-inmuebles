@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Inmueble } from '@/lib/types';
 import { formatPrice, formatArea, getPropertyMainArea } from '@/lib/utils';
 
-export const alt = 'Vista previa del inmueble — Sandra Nino';
+export const alt = 'Vista previa del inmueble — Sandra Niño';
 export const size = {
   width: 1200,
   height: 630,
@@ -45,7 +45,7 @@ export default async function Image({
           }}
         >
           <div style={{ fontSize: 22, letterSpacing: '0.25em', color: '#C97B5A', marginBottom: 16 }}>
-            SANDRA NINO • INVENTARIO EXCLUSIVO
+            SANDRA NIÑO • INVENTARIO EXCLUSIVO
           </div>
           <div style={{ fontSize: 48, fontWeight: 700 }}>Inmueble Exclusivo</div>
         </div>
@@ -216,7 +216,7 @@ export default async function Image({
                 fontWeight: 600,
               }}
             >
-              Sandra Nino • Inmuebles Exclusivos
+              Sandra Niño • Inmuebles Exclusivos
             </div>
           )}
         </div>
@@ -266,7 +266,7 @@ export default async function Image({
                   textTransform: 'uppercase',
                 }}
               >
-                SANDRA NINO • INVENTARIO EXCLUSIVO
+                SANDRA NIÑO • INVENTARIO EXCLUSIVO
               </span>
             </div>
 

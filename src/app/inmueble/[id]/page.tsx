@@ -177,7 +177,7 @@ export default function PropertyDetailPage() {
             <span>Volver al Inventario</span>
           </Link>
           <span className="text-[11px] font-body font-medium uppercase tracking-[0.25em] text-[#C97B5A] hidden sm:inline">
-            Sandra Nino • Inventario Exclusivo
+            Sandra Niño • Inventario Exclusivo
           </span>
         </div>
       </header>

@@ -63,7 +63,7 @@ export default function LoginPage() {
     try {
       const supabase = createClient();
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/admin/perfil`,
+        redirectTo: `${window.location.origin}/recuperar-contrasena`,
       });
       if (error) {
         toast(error.message, 'error');
@@ -134,7 +134,7 @@ export default function LoginPage() {
             SN
           </div>
           <h1 className="font-display text-2xl sm:text-3xl font-semibold text-text-heading tracking-tight">
-            Sandra Nino
+            Sandra Niño
           </h1>
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-[#C97B5A] mt-1 font-body">
             PANEL DE GESTIÓN INMOBILIARIA

@@ -108,7 +108,7 @@ export default function InventarioPage() {
             className="inline-flex items-center gap-2 text-xs font-body font-medium uppercase tracking-[0.2em] text-brand hover:text-brand-darker transition-colors"
           >
             <ArrowLeft size={16} strokeWidth={1.5} />
-            <span>Sandra Nino</span>
+            <span>Sandra Niño</span>
           </Link>
           <div className="text-right">
             <span className="text-[11px] font-body font-medium uppercase tracking-[0.2em] text-[#C97B5A] block">
@@ -193,7 +193,7 @@ export default function InventarioPage() {
       <footer className="bg-brand-darker text-stone-300 py-10 border-t border-brand/30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6 text-xs font-body">
           <div className="text-center sm:text-left">
-            <p className="font-display text-white text-sm font-semibold">Sandra Nino</p>
+            <p className="font-display text-white text-sm font-semibold">Sandra Niño</p>
             <p className="text-stone-300 text-[11px] mt-0.5">Asesora Inmobiliaria • Carabobo, Venezuela</p>
           </div>
           <div className="flex items-center gap-6">

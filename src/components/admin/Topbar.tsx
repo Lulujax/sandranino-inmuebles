@@ -60,7 +60,7 @@ export const Topbar: React.FC<TopbarProps> = ({
 
         <div
           className="w-9.5 h-9.5 rounded-full bg-[#1e3a5f] flex items-center justify-center border border-white/20 shadow-card shrink-0 select-none"
-          title="Sandra Nino"
+          title="Sandra Niño"
         >
           <span className="font-body text-[12px] font-medium tracking-[0.16em] text-white">
             SN

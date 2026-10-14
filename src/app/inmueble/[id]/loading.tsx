@@ -13,10 +13,10 @@ export default function LoadingPropertyDetail() {
             className="inline-flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.2em] text-brand"
           >
             <ArrowLeft className="w-4 h-4 stroke-[2]" />
-            <span>Volver al Catálogo</span>
+            <span>Volver al Inventario</span>
           </Link>
           <span className="text-[11px] font-semibold uppercase tracking-[0.25em] text-terracotta hidden sm:inline">
-            Sandra Nino • Catálogo Exclusivo
+            Sandra Niño • Inventario Exclusivo
           </span>
         </div>
       </header>
