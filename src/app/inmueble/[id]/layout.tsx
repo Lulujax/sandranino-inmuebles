@@ -14,7 +14,7 @@ export async function generateMetadata({
     const supabase = await createClient();
     const { data } = await supabase
       .from('inmuebles_publicos')
-      .select('*')
+      .select('id, title, operation, type, sector, city, state, description, price, built_area, land_area, total_area')
       .eq('id', id)
       .maybeSingle();
 

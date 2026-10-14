@@ -71,33 +71,28 @@ export default function PropertyDetailPage() {
     const loadDetail = async () => {
       const supabase = createClient();
 
-      // Cargar perfil del asesor desde Supabase (con respaldo local)
+      // Respaldo local instantáneo mientras responde la red
       const savedProfile = storage.get<PerfilAsesor | null>(STORAGE_KEYS.PROFILE, null);
       if (savedProfile) {
         setAsesor(savedProfile);
       }
+
       try {
-        const { data: profileData } = await supabase
-          .from('perfil_asesor')
-          .select('*')
-          .limit(1)
-          .maybeSingle();
-        if (profileData) {
-          setAsesor(profileData as PerfilAsesor);
+        // Ejecución en paralelo de perfil, sesión y propiedad para eliminar el cuello de botella
+        const [profileRes, authRes, propertyRes] = await Promise.all([
+          supabase.from('perfil_asesor').select('*').limit(1).maybeSingle(),
+          supabase.auth.getUser(),
+          propertiesStore.getById(id),
+        ]);
+
+        if (profileRes.data) {
+          setAsesor(profileRes.data as PerfilAsesor);
         }
-      } catch {}
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const hasAdminSession = Boolean(user);
-      setIsAdminPreview(hasAdminSession);
+        const hasAdminSession = Boolean(authRes.data.user);
+        setIsAdminPreview(hasAdminSession);
 
-      try {
-        const fromStore = hasAdminSession
-          ? await propertiesStore.getById(id)
-          : await propertiesStore.getPublicById(id);
-
+        const fromStore = propertyRes;
         if (fromStore) {
           if (fromStore.status !== 'Publicado' && !hasAdminSession) {
             setProperty(null);
@@ -105,15 +100,26 @@ export default function PropertyDetailPage() {
             return;
           }
 
+          // Incrementar visitas en segundo plano sin retrasar el renderizado
           if (!hasAdminSession && fromStore.status === 'Publicado') {
-            await propertiesStore.incrementVisits(id);
+            propertiesStore.incrementVisits(id).catch(() => {});
           }
 
           setProperty(toPublicProperty(fromStore));
           setLoaded(true);
           return;
         }
-      } catch {}
+      } catch {
+        // En caso de error de red, intentar consulta pública directa como respaldo
+        try {
+          const publicProp = await propertiesStore.getPublicById(id);
+          if (publicProp && publicProp.status === 'Publicado') {
+            setProperty(toPublicProperty(publicProp));
+            setLoaded(true);
+            return;
+          }
+        } catch {}
+      }
 
       setProperty(null);
       setLoaded(true);
