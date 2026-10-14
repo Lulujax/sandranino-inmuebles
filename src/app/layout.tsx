@@ -26,7 +26,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={`${fraunces.variable} ${sora.variable}`}>
+    <html
+      lang="es"
+      className={`${fraunces.variable} ${sora.variable}`}
+      data-scroll-behavior="smooth"
+    >
       <body className="antialiased min-h-screen bg-cream text-text-body font-body selection:bg-terracotta/20 selection:text-text-heading">
         <ToastProvider>{children}</ToastProvider>
       </body>

@@ -154,56 +154,47 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
                   </a>
                 </div>
 
-                {/* Íconos de redes sociales y correo */}
-                <div className="mt-6 flex items-center justify-center md:justify-start gap-3">
-                  <a
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="WhatsApp"
-                    aria-label="WhatsApp"
-                    className="w-10 h-10 rounded-xl bg-white border border-stone-200/80 text-[#1d6447] hover:bg-[#1d6447] hover:text-white flex items-center justify-center shadow-2xs transition-all duration-200 hover:-translate-y-0.5"
-                  >
-                    <FaWhatsapp size={18} />
-                  </a>
+                {/* Íconos de redes sociales y correo (sin duplicar el botón de WhatsApp) */}
+                {(asesor.instagram || asesor.facebook || asesor.email) && (
+                  <div className="mt-6 flex items-center justify-center md:justify-start gap-3">
+                    {asesor.instagram && (
+                      <a
+                        href={`https://instagram.com/${asesor.instagram.replace(/^@/, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Instagram"
+                        aria-label="Instagram"
+                        className="w-10 h-10 rounded-xl bg-white border border-stone-200/80 text-[#C97B5A] hover:bg-[#C97B5A] hover:text-white flex items-center justify-center shadow-2xs transition-all duration-200 hover:-translate-y-0.5"
+                      >
+                        <FaInstagram size={18} />
+                      </a>
+                    )}
 
-                  {asesor.instagram && (
-                    <a
-                      href={`https://instagram.com/${asesor.instagram.replace(/^@/, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="Instagram"
-                      aria-label="Instagram"
-                      className="w-10 h-10 rounded-xl bg-white border border-stone-200/80 text-[#C97B5A] hover:bg-[#C97B5A] hover:text-white flex items-center justify-center shadow-2xs transition-all duration-200 hover:-translate-y-0.5"
-                    >
-                      <FaInstagram size={18} />
-                    </a>
-                  )}
+                    {asesor.facebook && (
+                      <a
+                        href={`https://facebook.com/${asesor.facebook}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Facebook"
+                        aria-label="Facebook"
+                        className="w-10 h-10 rounded-xl bg-white border border-stone-200/80 text-brand hover:bg-brand hover:text-white flex items-center justify-center shadow-2xs transition-all duration-200 hover:-translate-y-0.5"
+                      >
+                        <FaFacebook size={18} />
+                      </a>
+                    )}
 
-                  {asesor.facebook && (
-                    <a
-                      href={`https://facebook.com/${asesor.facebook}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="Facebook"
-                      aria-label="Facebook"
-                      className="w-10 h-10 rounded-xl bg-white border border-stone-200/80 text-brand hover:bg-brand hover:text-white flex items-center justify-center shadow-2xs transition-all duration-200 hover:-translate-y-0.5"
-                    >
-                      <FaFacebook size={18} />
-                    </a>
-                  )}
-
-                  {asesor.email && (
-                    <a
-                      href={`mailto:${asesor.email}`}
-                      title="Correo electrónico"
-                      aria-label="Correo electrónico"
-                      className="w-10 h-10 rounded-xl bg-white border border-stone-200/80 text-stone-700 hover:bg-brand hover:text-white flex items-center justify-center shadow-2xs transition-all duration-200 hover:-translate-y-0.5"
-                    >
-                      <Mail size={18} strokeWidth={1.5} />
-                    </a>
-                  )}
-                </div>
+                    {asesor.email && (
+                      <a
+                        href={`mailto:${asesor.email}`}
+                        title="Correo electrónico"
+                        aria-label="Correo electrónico"
+                        className="w-10 h-10 rounded-xl bg-white border border-stone-200/80 text-stone-700 hover:bg-brand hover:text-white flex items-center justify-center shadow-2xs transition-all duration-200 hover:-translate-y-0.5"
+                      >
+                        <Mail size={18} strokeWidth={1.5} />
+                      </a>
+                    )}
+                  </div>
+                )}
               </FadeInUp>
             </div>
           </div>
