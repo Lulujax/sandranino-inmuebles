@@ -51,6 +51,7 @@ import {
   Camera,
   Image as ImageIcon,
   Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import {
   WizardFormData,
@@ -61,7 +62,7 @@ import { ESTADOS_VENEZUELA, VENEZUELA } from '@/lib/venezuela';
 import { formatPrice } from '@/lib/utils';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
-import { propertiesStore } from '@/lib/properties';
+import { propertiesStore, INVENTORY_LIMIT } from '@/lib/properties';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
@@ -204,6 +205,16 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
   const [isProcessingImages, setIsProcessingImages] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<WizardFormData | null>(null);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [inventoryCount, setInventoryCount] = useState(0);
+
+  useEffect(() => {
+    propertiesStore
+      .getAll()
+      .then((data) => setInventoryCount(data.length))
+      .catch(() => setInventoryCount(0));
+  }, []);
+
+  const isInventoryFull = !editId && inventoryCount >= INVENTORY_LIMIT;
 
   const [formData, setFormData] = useState<WizardFormData>({
     operation: initialData?.operation || undefined,
@@ -731,6 +742,11 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
   };
 
   const handleSaveDraft = async () => {
+    if (isInventoryFull) {
+      toast(`⚠️ Has alcanzado el límite de ${INVENTORY_LIMIT} inmuebles de tu inventario. Pausa o elimina inmuebles antiguos para crear uno nuevo.`, 'warning');
+      return;
+    }
+
     try {
       const draftInmueble = await createInmueblePayload('Borrador');
       await propertiesStore.save(draftInmueble);
@@ -743,6 +759,11 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
   };
 
   const handlePublish = async () => {
+    if (isInventoryFull) {
+      toast(`⚠️ Has alcanzado el límite de ${INVENTORY_LIMIT} inmuebles de tu inventario. Pausa o elimina inmuebles antiguos para crear uno nuevo.`, 'warning');
+      return;
+    }
+
     try {
       const publishedInmueble = await createInmueblePayload('Publicado');
       await propertiesStore.save(publishedInmueble);
@@ -756,6 +777,21 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 font-body">
+      {/* BANNER DE INVENTARIO COMPLETO (Límite Supabase Free) */}
+      {isInventoryFull && (
+        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4.5 sm:p-5 flex items-start gap-3.5 text-rose-800 shadow-xs">
+          <AlertCircle size={22} className="text-rose-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-semibold text-sm sm:text-base font-display">
+              Capacidad de inventario alcanzada ({inventoryCount} / {INVENTORY_LIMIT} inmuebles)
+            </p>
+            <p className="text-xs sm:text-sm text-rose-700 leading-relaxed font-body">
+              Has alcanzado el límite recomendado de {INVENTORY_LIMIT} propiedades para mantener tu catálogo 100% gratuito y de alta velocidad en Supabase. Para publicar un nuevo inmueble, primero marca como vendido, pausa o elimina alguna propiedad anterior en la sección <strong>Mis Inmuebles</strong>.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* BANNER DE BORRADOR EN PROGRESO GUARDADO (BUG 3.5) */}
       {pendingDraft && (
         <div className="bg-[#fef7eb] border border-[#f9dfb5] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
@@ -1790,7 +1826,8 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
             type="button"
             variant="secondary"
             onClick={handleSaveDraft}
-            disabled={isProcessingImages}
+            disabled={isProcessingImages || isInventoryFull}
+            title={isInventoryFull ? 'Límite de 100 inmuebles alcanzado' : undefined}
             className="gap-1.5 text-xs sm:text-sm px-3 sm:px-4 justify-center"
           >
             <FileEdit size={15} strokeWidth={1.5} />
@@ -1802,7 +1839,8 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
               type="button"
               variant="primary"
               onClick={handlePublish}
-              disabled={isProcessingImages}
+              disabled={isProcessingImages || isInventoryFull}
+              title={isInventoryFull ? 'Límite de 100 inmuebles alcanzado' : undefined}
               className="gap-1.5 bg-emerald-700 hover:bg-emerald-800 focus:ring-emerald-600 text-xs sm:text-sm px-3 sm:px-4 justify-center"
             >
               {isProcessingImages ? (

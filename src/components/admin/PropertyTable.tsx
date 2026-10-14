@@ -14,10 +14,11 @@ import {
   Home,
   CheckCircle2,
   User,
+  HardDrive,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Inmueble, AdminFilterState, PropertyStatus } from '@/lib/types';
-import { propertiesStore } from '@/lib/properties';
+import { propertiesStore, calculateInventoryCapacity } from '@/lib/properties';
 import { formatPrice } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
@@ -141,6 +142,11 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
       });
   }, [properties, filters]);
 
+  const capacity = useMemo(
+    () => calculateInventoryCapacity(properties.length),
+    [properties.length]
+  );
+
   // Empty state cuando aún no hay inmuebles en sn_properties
   if (properties.length === 0) {
     return (
@@ -196,13 +202,82 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
             Administra, actualiza, edita o pausa las propiedades publicadas en tu inventario exclusivo.
           </p>
         </div>
-        <Link
-          href="/admin/publicar"
-          className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#1e3a5f] hover:bg-[#152a45] text-white font-body font-medium text-xs uppercase tracking-wider shadow-sm hover:shadow-luxury hover:-translate-y-0.5 transition-all duration-200"
-        >
-          <PlusCircle size={16} strokeWidth={1.5} />
-          <span>+ Nuevo Inmueble</span>
-        </Link>
+        {capacity.isFull ? (
+          <div
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-stone-200 text-stone-500 font-body font-medium text-xs uppercase tracking-wider cursor-not-allowed shadow-none"
+            title="Has alcanzado el límite de 100 inmuebles de tu inventario. Pausa o elimina inmuebles antiguos para crear uno nuevo."
+          >
+            <PlusCircle size={16} strokeWidth={1.5} />
+            <span>Tope 100 alcanzado</span>
+          </div>
+        ) : (
+          <Link
+            href="/admin/publicar"
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#1e3a5f] hover:bg-[#152a45] text-white font-body font-medium text-xs uppercase tracking-wider shadow-sm hover:shadow-luxury hover:-translate-y-0.5 transition-all duration-200"
+          >
+            <PlusCircle size={16} strokeWidth={1.5} />
+            <span>+ Nuevo Inmueble</span>
+          </Link>
+        )}
+      </FadeInUp>
+
+      {/* Widget de Capacidad del Inventario (Optimización de límite Supabase Free) */}
+      <FadeInUp delay={0.03} className="bg-[#faf9f6] p-4 sm:p-5 rounded-2xl border border-stone-200/80 shadow-card">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div
+              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
+                capacity.isFull
+                  ? 'bg-rose-50 text-rose-700 border-rose-200'
+                  : capacity.isWarning
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : 'bg-[#1e3a5f]/8 text-[#1e3a5f] border-stone-200/80'
+              }`}
+            >
+              <HardDrive size={18} strokeWidth={1.5} />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-text-heading font-body">
+                  Capacidad de Inventario
+                </span>
+                <span
+                  className={`text-[11px] font-mono font-medium px-2.5 py-0.5 rounded-full ${
+                    capacity.isFull
+                      ? 'bg-rose-100 text-rose-800'
+                      : capacity.isWarning
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-[#edf7ee] text-emerald-800'
+                  }`}
+                >
+                  {capacity.total} / {capacity.max} inmuebles ({capacity.percentage}%)
+                </span>
+              </div>
+              <p className="text-[11px] text-stone-500 mt-0.5 font-body">
+                Almacenamiento estimado de fotos: ~{capacity.estimatedStorageMb} MB de {capacity.maxStorageMb} MB (Plan Gratuito Supabase Cloud)
+              </p>
+            </div>
+          </div>
+
+          <div className="w-full sm:w-56 flex flex-col gap-1.5 shrink-0">
+            <div className="w-full bg-stone-200/80 h-2 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  capacity.isFull
+                    ? 'bg-rose-600'
+                    : capacity.isWarning
+                    ? 'bg-amber-500'
+                    : 'bg-[#1e3a5f]'
+                }`}
+                style={{ width: `${Math.max(capacity.percentage, 2)}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-[10px] text-stone-500 font-mono">
+              <span>{capacity.max - capacity.total} cupos libres</span>
+              <span>Límite seguro: {capacity.max}</span>
+            </div>
+          </div>
+        </div>
       </FadeInUp>
 
       {/* Grid de 5 filtros sin truncamiento */}

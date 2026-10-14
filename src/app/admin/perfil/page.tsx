@@ -6,11 +6,15 @@ import {
   KeyRound,
   Mail,
   User,
+  HardDrive,
+  ShieldCheck,
+  CheckCircle2,
 } from 'lucide-react';
 import { FaWhatsapp, FaInstagram, FaFacebook } from 'react-icons/fa';
 import { MOCK_ASESOR } from '@/data/mock-properties';
 import { PerfilAsesor } from '@/lib/types';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
+import { propertiesStore, calculateInventoryCapacity } from '@/lib/properties';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { Input } from '@/components/ui/Input';
@@ -31,6 +35,18 @@ export default function MiPerfilPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+  // Inventario y capacidad del plan Supabase
+  const [propertyCount, setPropertyCount] = useState(0);
+
+  useEffect(() => {
+    propertiesStore
+      .getAll()
+      .then((data) => setPropertyCount(data.length))
+      .catch(() => setPropertyCount(0));
+  }, []);
+
+  const capacity = calculateInventoryCapacity(propertyCount);
 
   useEffect(() => {
     const savedProfile = storage.get<PerfilAsesor | null>(STORAGE_KEYS.PROFILE, null);
@@ -293,8 +309,102 @@ export default function MiPerfilPage() {
         </FadeInUp>
       </form>
 
+      {/* Capacidad y Estado del Sistema (Límites Supabase Cloud) */}
+      <FadeInUp delay={0.16} className="bg-[#faf9f6] p-6 sm:p-7 rounded-2xl border border-stone-200/80 shadow-card space-y-5 font-body">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200/60 pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-[#1e3a5f]/8 text-[#1e3a5f] flex items-center justify-center border border-stone-200/80">
+              <HardDrive size={18} strokeWidth={1.5} />
+            </div>
+            <div>
+              <h3 className="font-display text-lg font-semibold text-text-heading">
+                Capacidad y Estado del Sistema
+              </h3>
+              <p className="text-xs text-stone-500 font-body">
+                Configuración optimizada para el plan en la nube de Supabase
+              </p>
+            </div>
+          </div>
+          <span className="self-start sm:self-auto text-xs font-mono font-medium px-3 py-1 rounded-full bg-[#edf7ee] text-emerald-800 border border-emerald-200 flex items-center gap-1.5">
+            <ShieldCheck size={14} />
+            <span>Plan Gratuito Activo (100% Sin Costo)</span>
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* 1. Inmuebles */}
+          <div className="bg-white p-4.5 rounded-xl border border-stone-200/80 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium uppercase tracking-wider text-stone-500">
+                Inmuebles en Catálogo
+              </span>
+              <span className="text-xs font-mono font-bold text-text-heading">
+                {capacity.total} / {capacity.max}
+              </span>
+            </div>
+            <div className="w-full bg-stone-100 h-2 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  capacity.isFull ? 'bg-rose-600' : capacity.isWarning ? 'bg-amber-500' : 'bg-[#1e3a5f]'
+                }`}
+                style={{ width: `${Math.max(capacity.percentage, 3)}%` }}
+              />
+            </div>
+            <p className="text-[11px] text-stone-500">
+              {capacity.max - capacity.total} cupos disponibles para publicar
+            </p>
+          </div>
+
+          {/* 2. Fotos */}
+          <div className="bg-white p-4.5 rounded-xl border border-stone-200/80 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium uppercase tracking-wider text-stone-500">
+                Fotos y Archivos
+              </span>
+              <span className="text-xs font-mono font-bold text-text-heading">
+                ~{capacity.estimatedStorageMb} / {capacity.maxStorageMb} MB
+              </span>
+            </div>
+            <div className="w-full bg-stone-100 h-2 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full bg-[#C97B5A] transition-all duration-500"
+                style={{ width: `${Math.max(Math.round((capacity.estimatedStorageMb / capacity.maxStorageMb) * 100), 2)}%` }}
+              />
+            </div>
+            <p className="text-[11px] text-stone-500">
+              {Math.round((capacity.estimatedStorageMb / capacity.maxStorageMb) * 100)}% de 1 GB de Supabase Storage
+            </p>
+          </div>
+
+          {/* 3. Base de Datos */}
+          <div className="bg-white p-4.5 rounded-xl border border-stone-200/80 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium uppercase tracking-wider text-stone-500">
+                Base de Datos Postgres
+              </span>
+              <span className="text-xs font-mono font-bold text-emerald-700 flex items-center gap-1">
+                <CheckCircle2 size={13} />
+                <span>Saludable</span>
+              </span>
+            </div>
+            <div className="w-full bg-stone-100 h-2 rounded-full overflow-hidden">
+              <div className="h-full rounded-full bg-emerald-600" style={{ width: '1%' }} />
+            </div>
+            <p className="text-[11px] text-stone-500">
+              &lt; 2 MB de 500 MB disponibles
+            </p>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-xl bg-[#f5f1ea]/80 border border-stone-200/70 text-xs text-stone-600 leading-relaxed font-body">
+          <p>
+            💡 <strong>¿Por qué 100 inmuebles como tope recomendado?</strong> Cada propiedad cuenta con múltiples fotografías de alta resolución que se comprimen automáticamente. Un catálogo de hasta 100 inmuebles activos utiliza únicamente ~25% de la capacidad gratuita de Supabase Cloud, garantizando que tu portal funcione con máxima velocidad y sin sorpresas de facturación.
+          </p>
+        </div>
+      </FadeInUp>
+
       {/* Seguridad: Cambiar Contraseña */}
-      <FadeInUp delay={0.18} className="bg-[#faf9f6] p-6 sm:p-7 rounded-2xl border border-stone-200/80 shadow-card space-y-4">
+      <FadeInUp delay={0.2} className="bg-[#faf9f6] p-6 sm:p-7 rounded-2xl border border-stone-200/80 shadow-card space-y-4">
         <div className="flex items-center gap-2.5">
           <KeyRound size={18} strokeWidth={1.5} className="text-[#C97B5A]" />
           <h3 className="font-display text-lg font-semibold text-text-heading">

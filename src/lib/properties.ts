@@ -1,6 +1,41 @@
 import { Inmueble } from './types';
 import { createClient } from './supabase/client';
 
+/**
+ * Límites de inventario recomendados para el plan gratuito de Supabase
+ * - Almacenamiento gratuito en Supabase: 1 GB (1,000 MB)
+ * - Con ~10 fotos optimizadas por inmueble (~2.5 MB por ficha), 100 inmuebles ocupan apenas ~250 MB
+ * - Deja un 75% de margen libre para que la aplicación nunca tenga costos ni caídas
+ */
+export const INVENTORY_LIMIT = 100;
+export const STORAGE_LIMIT_MB = 1000;
+export const ESTIMATED_MB_PER_PROPERTY = 2.5;
+
+export interface InventoryCapacity {
+  total: number;
+  max: number;
+  percentage: number;
+  estimatedStorageMb: number;
+  maxStorageMb: number;
+  isFull: boolean;
+  isWarning: boolean;
+}
+
+export function calculateInventoryCapacity(count: number): InventoryCapacity {
+  const max = INVENTORY_LIMIT;
+  const percentage = Math.min(Math.round((count / max) * 100), 100);
+  const estimatedStorageMb = Math.round(count * ESTIMATED_MB_PER_PROPERTY);
+  return {
+    total: count,
+    max,
+    percentage,
+    estimatedStorageMb,
+    maxStorageMb: STORAGE_LIMIT_MB,
+    isFull: count >= max,
+    isWarning: count >= max * 0.8,
+  };
+}
+
 export function toPublicProperty(inmueble: Inmueble): Inmueble {
   const {
     owner_name: _ownerName,
