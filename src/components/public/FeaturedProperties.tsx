@@ -70,7 +70,7 @@ export const FeaturedProperties: React.FC = () => {
               className="group inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white border border-stone-300/80 hover:border-brand text-brand hover:text-white hover:bg-brand font-body text-xs sm:text-sm font-medium tracking-wider uppercase shadow-2xs hover:shadow-luxury transition-all duration-300 hover:-translate-y-0.5"
             >
               <Compass size={16} strokeWidth={1.5} />
-              <span>Ver Todo el Inventario</span>
+              <span>Ver más inmuebles</span>
               <ArrowRight size={16} strokeWidth={1.5} className="transition-transform duration-200 group-hover:translate-x-1" />
             </Link>
           </FadeInUp>
@@ -117,7 +117,7 @@ export const FeaturedProperties: React.FC = () => {
               href="/inventario"
               className="shrink-0 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#1e3a5f] hover:bg-[#152a45] text-white text-xs font-medium uppercase tracking-wider shadow-sm hover:shadow-luxury transition-all hover:-translate-y-0.5"
             >
-              <span>Explorar Inventario</span>
+              <span>Opciones disponibles</span>
               <ArrowRight size={15} />
             </Link>
           </div>

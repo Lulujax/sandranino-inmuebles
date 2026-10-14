@@ -52,16 +52,37 @@ export function toPublicProperty(inmueble: Inmueble): Inmueble {
   };
 }
 
+let propertiesCache: {
+  data: Inmueble[];
+  timestamp: number;
+  userId?: string;
+} | null = null;
+const CACHE_TTL_MS = 60 * 1000; // 60 segundos de caché en memoria
+
 export const propertiesStore = {
-  getAll: async (userId?: string): Promise<Inmueble[]> => {
+  getAll: async (userId?: string, forceRefresh = false): Promise<Inmueble[]> => {
     const supabase = createClient();
     let targetUserId = userId;
 
     if (!targetUserId) {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      targetUserId = user?.id;
+      const { data: sessionData } = await supabase.auth.getSession();
+      targetUserId = sessionData.session?.user?.id;
+      if (!targetUserId) {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        targetUserId = user?.id;
+      }
+    }
+
+    // Retornar caché en memoria si está vigente para navegación instantánea (0ms)
+    if (
+      !forceRefresh &&
+      propertiesCache &&
+      propertiesCache.userId === targetUserId &&
+      Date.now() - propertiesCache.timestamp < CACHE_TTL_MS
+    ) {
+      return propertiesCache.data;
     }
 
     let query = supabase
@@ -75,7 +96,16 @@ export const propertiesStore = {
 
     const { data, error } = await query;
     if (error) throw error;
-    return (data as Inmueble[]) || [];
+    const result = (data as Inmueble[]) || [];
+
+    // Guardar en caché
+    propertiesCache = {
+      data: result,
+      timestamp: Date.now(),
+      userId: targetUserId,
+    };
+
+    return result;
   },
 
   getPublic: async (): Promise<Inmueble[]> => {
@@ -133,6 +163,7 @@ export const propertiesStore = {
         .select('*')
         .single();
       if (error) throw error;
+      propertiesCache = null;
       return data as Inmueble;
     }
 
@@ -142,6 +173,7 @@ export const propertiesStore = {
       .select('*')
       .single();
     if (error) throw error;
+    propertiesCache = null;
     return data as Inmueble;
   },
 
@@ -161,6 +193,7 @@ export const propertiesStore = {
       .select('*')
       .single();
     if (error) throw error;
+    propertiesCache = null;
     return data as Inmueble;
   },
 
@@ -168,6 +201,7 @@ export const propertiesStore = {
     const supabase = createClient();
     const { error } = await supabase.from('inmuebles').delete().eq('id', id);
     if (error) throw error;
+    propertiesCache = null;
   },
 
   incrementVisits: async (id: string): Promise<void> => {

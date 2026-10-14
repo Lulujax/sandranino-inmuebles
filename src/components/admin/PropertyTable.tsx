@@ -15,11 +15,17 @@ import {
   CheckCircle2,
   User,
   HardDrive,
+  FolderDown,
+  Loader2,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Inmueble, AdminFilterState, PropertyStatus } from '@/lib/types';
 import { propertiesStore, calculateInventoryCapacity } from '@/lib/properties';
 import { formatPrice } from '@/lib/utils';
+import {
+  downloadSinglePropertyZip,
+  downloadBulkPropertiesZip,
+} from '@/lib/property-zip-exporter';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
 import { FadeInUp } from '@/components/ui/FadeInUp';
@@ -43,6 +49,47 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
   }, [initialProperties]);
 
   const { toast } = useToast();
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [isBulkDownloading, setIsBulkDownloading] = useState<boolean>(false);
+
+  const handleDownloadZip = async (prop: Inmueble) => {
+    if (downloadingId || isBulkDownloading) return;
+    try {
+      setDownloadingId(prop.id);
+      toast(`Preparando paquete ZIP para "${prop.title}"...`, 'info');
+      await downloadSinglePropertyZip(prop);
+      toast(`ZIP de "${prop.title}" descargado con éxito`, 'success');
+    } catch (err) {
+      console.error('Error al generar ZIP:', err);
+      toast('Error al generar el archivo ZIP del inmueble', 'error');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleDownloadAllFiltered = async () => {
+    if (downloadingId || isBulkDownloading) return;
+    if (filteredProperties.length === 0) {
+      toast('No hay inmuebles para descargar con los filtros actuales', 'warning');
+      return;
+    }
+    try {
+      setIsBulkDownloading(true);
+      toast(`Generando archivo ZIP con ${filteredProperties.length} inmuebles...`, 'info');
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const filename = `inmuebles_sandra_nino_${dateStr}.zip`;
+      await downloadBulkPropertiesZip(filteredProperties, filename);
+      toast(
+        `Paquete ZIP con ${filteredProperties.length} inmuebles descargado con éxito`,
+        'success'
+      );
+    } catch (err) {
+      console.error('Error al descargar ZIP en lote:', err);
+      toast('Error al generar el archivo ZIP', 'error');
+    } finally {
+      setIsBulkDownloading(false);
+    }
+  };
 
   const handleStatusChange = async (id: string, nextStatus: PropertyStatus) => {
     try {
@@ -202,23 +249,44 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
             Administra, actualiza, edita o pausa las propiedades publicadas en tu inventario exclusivo.
           </p>
         </div>
-        {capacity.isFull ? (
-          <div
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-stone-200 text-stone-500 font-body font-medium text-xs uppercase tracking-wider cursor-not-allowed shadow-none"
-            title={`Has alcanzado el límite de ${capacity.max} inmuebles de tu inventario. Pausa o elimina inmuebles antiguos para crear uno nuevo.`}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            type="button"
+            onClick={handleDownloadAllFiltered}
+            disabled={isBulkDownloading || filteredProperties.length === 0}
+            className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 font-body font-medium text-xs uppercase tracking-wider shadow-xs hover:border-[#1e3a5f]/40 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+            title={`Descargar ${filteredProperties.length} inmueble(s) en archivo ZIP`}
           >
-            <PlusCircle size={16} strokeWidth={1.5} />
-            <span>Tope {capacity.max} alcanzado</span>
-          </div>
-        ) : (
-          <Link
-            href="/admin/publicar"
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#1e3a5f] hover:bg-[#152a45] text-white font-body font-medium text-xs uppercase tracking-wider shadow-sm hover:shadow-luxury hover:-translate-y-0.5 transition-all duration-200"
-          >
-            <PlusCircle size={16} strokeWidth={1.5} />
-            <span>+ Nuevo Inmueble</span>
-          </Link>
-        )}
+            {isBulkDownloading ? (
+              <Loader2 size={16} className="animate-spin text-[#1e3a5f]" />
+            ) : (
+              <FolderDown size={16} strokeWidth={1.5} className="text-[#1e3a5f]" />
+            )}
+            <span>
+              {isBulkDownloading
+                ? 'Comprimiendo...'
+                : `Descargar ZIP (${filteredProperties.length})`}
+            </span>
+          </button>
+
+          {capacity.isFull ? (
+            <div
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-stone-200 text-stone-500 font-body font-medium text-xs uppercase tracking-wider cursor-not-allowed shadow-none"
+              title={`Has alcanzado el límite de ${capacity.max} inmuebles de tu inventario. Pausa o elimina inmuebles antiguos para crear uno nuevo.`}
+            >
+              <PlusCircle size={16} strokeWidth={1.5} />
+              <span>Tope {capacity.max} alcanzado</span>
+            </div>
+          ) : (
+            <Link
+              href="/admin/publicar"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#1e3a5f] hover:bg-[#152a45] text-white font-body font-medium text-xs uppercase tracking-wider shadow-sm hover:shadow-luxury hover:-translate-y-0.5 transition-all duration-200"
+            >
+              <PlusCircle size={16} strokeWidth={1.5} />
+              <span>+ Nuevo Inmueble</span>
+            </Link>
+          )}
+        </div>
       </FadeInUp>
 
       {/* Widget de Capacidad del Inventario (Límite Gratuito 1 GB) */}
@@ -477,6 +545,19 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                       <Pencil size={16} strokeWidth={1.5} />
                     </Link>
                     <button
+                      onClick={() => handleDownloadZip(prop)}
+                      disabled={downloadingId === prop.id || isBulkDownloading}
+                      className="p-2 text-stone-500 hover:text-[#1e3a5f] hover:bg-[#1e3a5f]/10 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                      title="Descargar ZIP (carpeta con fotos y detalles)"
+                      aria-label="Descargar ZIP"
+                    >
+                      {downloadingId === prop.id ? (
+                        <Loader2 size={16} className="animate-spin text-[#1e3a5f]" />
+                      ) : (
+                        <FolderDown size={16} strokeWidth={1.5} />
+                      )}
+                    </button>
+                    <button
                       onClick={() => handleMarkSold(prop.id)}
                       className="p-2 text-stone-500 hover:text-terracotta hover:bg-stone-200/60 rounded-lg transition-colors"
                       title={
@@ -697,6 +778,21 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                           >
                             <Pencil size={15} strokeWidth={1.5} />
                           </Link>
+
+                          {/* Descargar ZIP */}
+                          <button
+                            onClick={() => handleDownloadZip(prop)}
+                            disabled={downloadingId === prop.id || isBulkDownloading}
+                            className="p-1.5 text-stone-500 hover:text-[#1e3a5f] hover:bg-[#1e3a5f]/10 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                            title="Descargar ZIP (carpeta con fotos y detalles)"
+                            aria-label="Descargar ZIP"
+                          >
+                            {downloadingId === prop.id ? (
+                              <Loader2 size={15} className="animate-spin text-[#1e3a5f]" />
+                            ) : (
+                              <FolderDown size={15} strokeWidth={1.5} />
+                            )}
+                          </button>
 
                           {/* Marcar como Vendido */}
                           <button

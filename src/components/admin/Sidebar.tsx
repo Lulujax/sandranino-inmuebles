@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -15,6 +15,7 @@ import {
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
+import { PerfilAsesor } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface SidebarProps {
@@ -32,6 +33,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const pathname = usePathname();
   const router = useRouter();
+
+  const [profilePhoto, setProfilePhoto] = useState<string>('/images/sandra-nino-hero.png');
+  const [advisorName, setAdvisorName] = useState<string>('Sandra Niño');
+
+  useEffect(() => {
+    const syncProfile = () => {
+      const saved = storage.get<PerfilAsesor | null>(STORAGE_KEYS.PROFILE, null);
+      if (saved) {
+        if (saved.profile_photo_url) {
+          setProfilePhoto(saved.profile_photo_url);
+        }
+        if (saved.full_name) {
+          setAdvisorName(saved.full_name);
+        }
+      }
+    };
+
+    syncProfile();
+    window.addEventListener('sn_profile_updated', syncProfile);
+    window.addEventListener('storage', syncProfile);
+
+    return () => {
+      window.removeEventListener('sn_profile_updated', syncProfile);
+      window.removeEventListener('storage', syncProfile);
+    };
+  }, []);
 
   const navItems = [
     {
@@ -97,23 +124,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
       >
         {/* Header con foto de Sandra Niño y nombre */}
         <div className="p-6 border-b border-white/10 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/25 shrink-0 bg-[#152a45] shadow-sm">
+          <Link
+            href="/admin/perfil"
+            className="flex items-center gap-3 group transition-opacity hover:opacity-90"
+            title="Ir a Mi Perfil"
+          >
+            <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/25 shrink-0 bg-[#152a45] shadow-sm group-hover:border-[#f0a888] transition-colors">
               <img
-                src="/images/sandra-nino-hero.jpg"
-                alt="Sandra Niño"
+                src={profilePhoto}
+                alt={advisorName}
                 className="w-full h-full object-cover"
               />
             </div>
             <div>
-              <h2 className="font-display text-base font-semibold leading-tight text-white">
-                Sandra Niño
+              <h2 className="font-display text-base font-semibold leading-tight text-white group-hover:text-[#f0a888] transition-colors">
+                {advisorName}
               </h2>
               <p className="text-[11px] font-body text-[#f0a888] uppercase tracking-wider font-semibold mt-0.5">
                 Asesora Inmobiliaria
               </p>
             </div>
-          </div>
+          </Link>
           <button
             onClick={onClose}
             className="p-1 rounded-lg text-stone-200 hover:text-white lg:hidden cursor-pointer"

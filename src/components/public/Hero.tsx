@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Mail,
   Award,
+  Sparkles,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { FaWhatsapp, FaInstagram, FaFacebook } from 'react-icons/fa';
@@ -28,10 +29,16 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
   const [asesor, setAsesor] = useState<PerfilAsesor>(initialAsesor);
 
   useEffect(() => {
-    const savedProfile = storage.get<PerfilAsesor | null>(STORAGE_KEYS.PROFILE, null);
-    if (savedProfile) {
-      setAsesor(savedProfile);
-    }
+    const syncProfile = () => {
+      const savedProfile = storage.get<PerfilAsesor | null>(STORAGE_KEYS.PROFILE, null);
+      if (savedProfile) {
+        setAsesor(savedProfile);
+      }
+    };
+
+    syncProfile();
+    window.addEventListener('sn_profile_updated', syncProfile);
+    window.addEventListener('storage', syncProfile);
 
     const supabase = createClient();
     supabase
@@ -52,12 +59,23 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
           }));
         }
       });
+
+    return () => {
+      window.removeEventListener('sn_profile_updated', syncProfile);
+      window.removeEventListener('storage', syncProfile);
+    };
   }, []);
 
   const advisorName = asesor.full_name?.replace(/Nino/g, 'Niño') || 'Sandra Niño';
   const cleanWhatsapp = asesor.whatsapp.replace(/\D/g, '');
   const whatsappUrl = `https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(
     'Hola Sandra, vi tu inventario de inmuebles exclusivos y me gustaría recibir asesoría.'
+  )}`;
+  const whatsappBuyUrl = `https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(
+    'Hola Sandra, estoy buscando un inmueble en Carabobo y me gustaría recibir asesoría personalizada.'
+  )}`;
+  const whatsappSellUrl = `https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(
+    'Hola Sandra, tengo una propiedad que deseo vender en Carabobo y quisiera una valoración de mercado.'
   )}`;
   const instagramHandle = asesor.instagram || 'sandranino.inmuebles';
   const facebookHandle = asesor.facebook || 'sandranino.asesora';
@@ -370,34 +388,70 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
         {/* Capa de contraste azul marino profundo para legibilidad perfecta */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#152a45]/95 via-[#1e3a5f]/85 to-[#152a45]/95 pointer-events-none backdrop-blur-[1px]" />
         
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center relative z-10">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10 text-center">
           <FadeInUp>
-            <span className="text-xs font-body font-semibold uppercase tracking-[0.25em] text-[#f0a888] block mb-3">
-              Comienza Hoy
-            </span>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-[11px] font-body font-medium uppercase tracking-[0.2em] bg-white/10 text-[#f0a888] border border-[#f0a888]/30 mb-4 backdrop-blur-sm">
+              <Sparkles size={13} className="text-[#f0a888]" />
+              <span>Asesoría Inmobiliaria Directa</span>
+            </div>
+
             <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-semibold text-white leading-tight">
-              ¿Listo para dar el siguiente paso?
+              ¿Cómo prefieres que comencemos?
             </h2>
-            <p className="mt-4 text-base sm:text-lg text-stone-200 max-w-xl mx-auto leading-relaxed font-body font-normal">
-              Explora las propiedades disponibles en mi inventario exclusivo o contáctame directamente para una búsqueda personalizada.
+            <div className="w-[42px] h-[2px] bg-[#f0a888] mx-auto my-4" />
+            <p className="text-stone-300 text-sm sm:text-base leading-relaxed font-body max-w-xl mx-auto">
+              Cada operación inmobiliaria es única. Cuéntame tu objetivo y diseñemos juntos el camino más seguro y rentable.
             </p>
-            <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="/inventario"
-                className="group inline-flex items-center justify-center px-8 py-4 rounded-xl bg-[#faf9f6] text-brand hover:bg-white font-body text-sm font-medium tracking-wider uppercase shadow-luxury hover:shadow-luxury-hover hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 gap-2.5"
-              >
-                <span>Ver Inventario</span>
-                <ArrowRight size={20} strokeWidth={1.5} className="text-brand transition-transform duration-200 group-hover:translate-x-1" />
-              </Link>
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center px-8 py-4 rounded-xl bg-[#1d6447] hover:bg-[#164e37] text-white font-body text-sm font-medium tracking-wider uppercase shadow-luxury hover:shadow-luxury-hover hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 gap-2.5"
-              >
-                <FaWhatsapp size={20} />
-                <span>Escribir por WhatsApp</span>
-              </a>
+
+            {/* Tarjetas de acción rápida por tipo de cliente */}
+            <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-5 text-left max-w-2xl mx-auto">
+              {/* Opción 1: Comprador o Inquilino */}
+              <div className="p-6 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 hover:border-[#f0a888]/40 hover:bg-white/15 transition-all duration-300 flex flex-col justify-between group">
+                <div>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-[#f0a888] block mb-2 font-body">
+                    Comprador o Inquilino
+                  </span>
+                  <h3 className="font-display text-lg font-semibold text-white mb-2">
+                    Busco mi próximo inmueble
+                  </h3>
+                  <p className="text-xs text-stone-300 leading-relaxed font-body mb-5">
+                    Indícame qué buscas y te comparto opciones verificadas que se ajusten a tus requerimientos.
+                  </p>
+                </div>
+                <a
+                  href={whatsappBuyUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-[#1d6447] hover:bg-[#164e37] text-white text-xs font-medium tracking-wider uppercase shadow-sm transition-all duration-200 group-hover:shadow-luxury"
+                >
+                  <FaWhatsapp size={17} />
+                  <span>Escribir por WhatsApp</span>
+                </a>
+              </div>
+
+              {/* Opción 2: Propietario que desea vender */}
+              <div className="p-6 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 hover:border-[#f0a888]/40 hover:bg-white/15 transition-all duration-300 flex flex-col justify-between group">
+                <div>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-[#f0a888] block mb-2 font-body">
+                    Propietario
+                  </span>
+                  <h3 className="font-display text-lg font-semibold text-white mb-2">
+                    Quiero vender o consignar
+                  </h3>
+                  <p className="text-xs text-stone-300 leading-relaxed font-body mb-5">
+                    Valoración real de mercado y estrategia de comercialización con respaldo legal.
+                  </p>
+                </div>
+                <a
+                  href={whatsappSellUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-white text-[#152a45] hover:bg-stone-100 text-xs font-medium tracking-wider uppercase shadow-sm transition-all duration-200 group-hover:shadow-luxury"
+                >
+                  <FaWhatsapp size={17} className="text-[#1d6447]" />
+                  <span>Valorar mi propiedad</span>
+                </a>
+              </div>
             </div>
           </FadeInUp>
         </div>

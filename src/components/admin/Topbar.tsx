@@ -1,8 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Menu, Eye } from 'lucide-react';
+import { storage } from '@/lib/storage';
+import { STORAGE_KEYS } from '@/lib/storage-keys';
+import { PerfilAsesor } from '@/lib/types';
 
 interface TopbarProps {
   title: string;
@@ -17,6 +20,32 @@ export const Topbar: React.FC<TopbarProps> = ({
   onOpenSidebar,
   onToggleDesktopSidebar,
 }) => {
+  const [profilePhoto, setProfilePhoto] = useState<string>('/images/sandra-nino-hero.png');
+  const [advisorName, setAdvisorName] = useState<string>('Sandra Niño');
+
+  useEffect(() => {
+    const syncProfile = () => {
+      const saved = storage.get<PerfilAsesor | null>(STORAGE_KEYS.PROFILE, null);
+      if (saved) {
+        if (saved.profile_photo_url) {
+          setProfilePhoto(saved.profile_photo_url);
+        }
+        if (saved.full_name) {
+          setAdvisorName(saved.full_name);
+        }
+      }
+    };
+
+    syncProfile();
+    window.addEventListener('sn_profile_updated', syncProfile);
+    window.addEventListener('storage', syncProfile);
+
+    return () => {
+      window.removeEventListener('sn_profile_updated', syncProfile);
+      window.removeEventListener('storage', syncProfile);
+    };
+  }, []);
+
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between h-18 px-4 sm:px-8 bg-[#faf9f6]/90 backdrop-blur-md border-b border-stone-200/80 shadow-xs font-body">
       <div className="flex items-center gap-3.5">
@@ -57,16 +86,17 @@ export const Topbar: React.FC<TopbarProps> = ({
           <span className="hidden sm:inline">Ver inventario público</span>
         </Link>
 
-        <div
-          className="w-9.5 h-9.5 rounded-full overflow-hidden border border-stone-300 shadow-card shrink-0 select-none bg-[#1e3a5f]"
-          title="Sandra Niño"
+        <Link
+          href="/admin/perfil"
+          className="w-9.5 h-9.5 rounded-full overflow-hidden border border-stone-300 shadow-card shrink-0 select-none bg-[#1e3a5f] hover:ring-2 hover:ring-[#C97B5A] transition-all"
+          title={`${advisorName} - Ir a Mi Perfil`}
         >
           <img
-            src="/images/sandra-nino-hero.jpg"
-            alt="Sandra Niño"
+            src={profilePhoto}
+            alt={advisorName}
             className="w-full h-full object-cover"
           />
-        </div>
+        </Link>
       </div>
     </header>
   );

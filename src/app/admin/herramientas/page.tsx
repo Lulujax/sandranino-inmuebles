@@ -7,12 +7,15 @@ import {
   Download,
   Eye,
   TrendingUp,
+  FolderDown,
+  Loader2,
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Inmueble } from '@/lib/types';
 import { propertiesStore } from '@/lib/properties';
 import { getPropertyMainArea } from '@/lib/utils';
+import { downloadBulkPropertiesZip } from '@/lib/property-zip-exporter';
 import { StatCard } from '@/components/admin/StatCard';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
@@ -25,6 +28,12 @@ export default function HerramientasPage() {
   const [filterStatus, setFilterStatus] = useState('Todos');
   const [includeInternalCode, setIncludeInternalCode] = useState(false);
   const [properties, setProperties] = useState<Inmueble[]>([]);
+  const [isExportingZip, setIsExportingZip] = useState(false);
+  const [zipProgress, setZipProgress] = useState<{
+    current: number;
+    total: number;
+    title: string;
+  } | null>(null);
 
   useEffect(() => {
     propertiesStore
@@ -223,6 +232,44 @@ export default function HerramientasPage() {
     }
   };
 
+  // EXPORTACIÓN PAQUETE ZIP (FOTOS + DETALLES)
+  const handleExportZip = async () => {
+    const filtered = filteredProperties;
+    if (filtered.length === 0) {
+      toast('No hay inmuebles para exportar con los filtros seleccionados', 'warning');
+      return;
+    }
+
+    try {
+      setIsExportingZip(true);
+      const slug = getExportSlug();
+      const filename = `inmuebles_sandra_nino_${slug}.zip`;
+      toast(
+        `Generando paquete ZIP para ${filtered.length} inmueble(s)...`,
+        'info'
+      );
+
+      await downloadBulkPropertiesZip(
+        filtered,
+        filename,
+        (current, total, title) => {
+          setZipProgress({ current, total, title });
+        }
+      );
+
+      toast(
+        `Paquete ZIP ${filename} descargado con éxito (${filtered.length} inmuebles)`,
+        'success'
+      );
+    } catch (err) {
+      console.error('Error al exportar paquete ZIP:', err);
+      toast('Ocurrió un error al generar el archivo ZIP de los inmuebles', 'error');
+    } finally {
+      setIsExportingZip(false);
+      setZipProgress(null);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 font-body">
       <FadeInUp>
@@ -248,7 +295,7 @@ export default function HerramientasPage() {
               Exportar Inventario
             </h3>
             <p className="text-xs sm:text-sm text-stone-600 mt-1">
-              Genera un informe en formato Excel o PDF (Hoja Carta) listo para imprimir o enviar a clientes.
+              Genera un informe en formato Excel, PDF (Hoja Carta) o un paquete ZIP con carpetas individuales (fotos y detalles en TXT).
             </p>
           </div>
           <div className="w-10 h-10 rounded-xl bg-[#f9ede7] text-[#C97B5A] flex items-center justify-center shrink-0 border border-[#C97B5A]/20">
@@ -367,6 +414,27 @@ export default function HerramientasPage() {
           >
             <FileText size={16} strokeWidth={1.5} className="transition-transform duration-200 group-hover:scale-110" />
             <span>Descargar PDF</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="primary"
+            onClick={handleExportZip}
+            disabled={isExportingZip || filteredProperties.length === 0}
+            className="group gap-2.5 px-6 py-3.5 font-medium text-xs uppercase tracking-wider shadow-sm hover:shadow-luxury hover:-translate-y-0.5"
+          >
+            {isExportingZip ? (
+              <Loader2 size={16} className="animate-spin text-white" />
+            ) : (
+              <FolderDown size={16} strokeWidth={1.5} className="transition-transform duration-200 group-hover:scale-110" />
+            )}
+            <span>
+              {isExportingZip && zipProgress
+                ? `Procesando ${zipProgress.current}/${zipProgress.total}...`
+                : isExportingZip
+                ? 'Comprimiendo...'
+                : 'Descargar ZIP (Fotos + Detalles)'}
+            </span>
           </Button>
         </div>
       </FadeInUp>
