@@ -16,6 +16,7 @@ import { createClient } from '@/lib/supabase/client';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { FadeInUp } from '@/components/ui/FadeInUp';
+import { FeaturedProperties } from '@/components/public/FeaturedProperties';
 
 interface HeroProps {
   asesor: PerfilAsesor;
@@ -42,6 +43,7 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
             ...prev,
             ...data,
             full_name: data.full_name?.replace(/Nino/g, 'Niño') || prev.full_name,
+            profile_photo_url: data.profile_photo_url || prev.profile_photo_url || '/images/sandra-nino-hero.png',
             instagram: data.instagram || prev.instagram || 'sandranino.inmuebles',
             facebook: data.facebook || prev.facebook || 'sandranino.asesora',
             email: data.email || prev.email || 'sandra.nino@gmail.com',
@@ -61,8 +63,18 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] text-text-body font-body selection:bg-terracotta/20 selection:text-text-heading">
-      {/* Hero Principal con gradiente diagonal y textura SVG noise opacidad 0.03 */}
+      {/* Hero Principal con fondo arquitectónico de villa de lujo y máscara suave */}
       <section className="relative overflow-hidden bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] border-b border-stone-200/60 py-16 md:py-20">
+        {/* Fondo arquitectónico sutil con vista a Valencia */}
+        <div
+          className="absolute inset-0 bg-cover bg-center pointer-events-none opacity-20 md:opacity-25 transform scale-105"
+          style={{
+            backgroundImage: `url('/images/hero-luxury-villa.jpg')`,
+          }}
+        />
+        {/* Máscara de luz suave para garantizar legibilidad 100% cristalina */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#faf9f6] via-[#faf9f6]/85 to-[#f5f1ea]/70 pointer-events-none" />
+
         {/* Textura de papel sutil (SVG noise, opacidad 0.03) */}
         <svg
           className="pointer-events-none absolute inset-0 w-full h-full opacity-[0.03] z-0"
@@ -203,6 +215,9 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
           </div>
         </div>
       </section>
+      
+      {/* Sección: Propiedades Destacadas (Selección Exclusiva de Inmuebles) */}
+      <FeaturedProperties />
 
       {/* Sección: ¿Qué puedo hacer por ti? */}
       <section className="py-16 md:py-24 bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea]">
@@ -321,15 +336,17 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
         </div>
       </section>
 
-      {/* CTA Final */}
-      <section className="py-16 md:py-24 bg-gradient-to-b from-brand to-brand-darker text-cream-50 relative overflow-hidden">
+      {/* CTA Final con fondo arquitectónico de Valencia y máscara de contraste */}
+      <section className="py-20 md:py-28 text-cream-50 relative overflow-hidden bg-[#152a45]">
         <div
-          className="absolute inset-0 opacity-[0.04] pointer-events-none"
+          className="absolute inset-0 bg-cover bg-center pointer-events-none transform scale-105"
           style={{
-            backgroundImage:
-              'repeating-linear-gradient(45deg, #ffffff 0, #ffffff 1px, transparent 0, transparent 16px)',
+            backgroundImage: `url('/images/valencia-penthouse-banner.jpg')`,
           }}
         />
+        {/* Capa de contraste azul marino profundo para legibilidad perfecta */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#152a45]/95 via-[#1e3a5f]/85 to-[#152a45]/95 pointer-events-none backdrop-blur-[1px]" />
+        
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center relative z-10">
           <FadeInUp>
             <span className="text-xs font-body font-semibold uppercase tracking-[0.25em] text-[#f0a888] block mb-3">

@@ -3,7 +3,7 @@ import { Inmueble, PerfilAsesor } from '@/lib/types';
 export const MOCK_ASESOR: PerfilAsesor = {
   id: '00000000-0000-0000-0000-000000000001',
   full_name: 'Sandra Niño',
-  profile_photo_url: 'https://placehold.co/400x400/1e3a5f/ffffff?text=Sandra+Ni%C3%B1o',
+  profile_photo_url: '/images/sandra-nino-hero.png',
   whatsapp: '584241234567',
   email: 'sandra.nino@gmail.com',
   instagram: 'sandranino.inmuebles',
