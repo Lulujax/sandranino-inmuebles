@@ -7,7 +7,8 @@ import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragEndEvent,
@@ -47,6 +48,9 @@ import {
   FileEdit,
   User,
   Phone,
+  Camera,
+  Image as ImageIcon,
+  Loader2,
 } from 'lucide-react';
 import {
   WizardFormData,
@@ -75,7 +79,14 @@ const STEP_TITLES = [
   'Revisar',
 ];
 
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+// Validación flexible de imágenes compatible con iOS (HEIC/HEIF), Android y cámaras móviles
+const isImageFile = (file: File): boolean => {
+  if (file.type && (file.type.startsWith('image/') || file.type === 'application/octet-stream')) {
+    return true;
+  }
+  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+  return ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif', 'avif', 'bmp', 'jfif', 'gif'].includes(ext);
+};
 
 interface SortablePhotoItemProps {
   url: string;
@@ -102,8 +113,8 @@ const SortablePhotoItem: React.FC<SortablePhotoItemProps> = ({
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    zIndex: isDragging ? 20 : 1,
-    opacity: isDragging ? 0.85 : 1,
+    zIndex: isDragging ? 30 : 1,
+    opacity: isDragging ? 0.75 : 1,
   };
 
   return (
@@ -112,7 +123,7 @@ const SortablePhotoItem: React.FC<SortablePhotoItemProps> = ({
       style={style}
       {...attributes}
       {...listeners}
-      className={`relative aspect-[4/3] rounded-xl overflow-hidden border group bg-[#f5f1ea] shadow-xs cursor-grab active:cursor-grabbing ${
+      className={`relative aspect-[4/3] rounded-xl overflow-hidden border group bg-[#f5f1ea] shadow-xs select-none touch-manipulation cursor-grab active:cursor-grabbing ${
         index === 0
           ? 'border-brand ring-2 ring-brand/20'
           : 'border-stone-200/80'
@@ -123,46 +134,56 @@ const SortablePhotoItem: React.FC<SortablePhotoItemProps> = ({
         src={url}
         alt={`Foto ${index + 1}`}
         className="w-full h-full object-cover select-none pointer-events-none"
+        loading="lazy"
       />
 
-      {/* Badge PORTADA elegante en posición 0 */}
+      {/* Badge PORTADA en posición 0 */}
       {index === 0 && (
-        <span className="absolute top-2 left-2 z-10 text-[10px] uppercase tracking-wider bg-brand text-white px-2 py-0.5 rounded-full font-body font-medium shadow-xs">
+        <span className="absolute top-2 left-2 z-10 text-[10px] uppercase tracking-wider bg-[#1e3a5f] text-white px-2 py-0.5 rounded-full font-body font-medium shadow-sm pointer-events-none">
           PORTADA
         </span>
       )}
 
-      {/* Botón para marcar como portada (mueve al índice 0) */}
+      {/* Botón para marcar como portada (mueve al índice 0) - Tamaño táctil optimizado */}
       {index > 0 && (
         <button
           type="button"
           onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
           onClick={(e) => {
+            e.preventDefault();
             e.stopPropagation();
             onSetCover(index);
           }}
-          className="absolute top-2 left-2 z-10 p-1.5 rounded-full bg-brand/85 hover:bg-brand text-white shadow transition-all cursor-pointer opacity-90 group-hover:opacity-100"
-          title="Marcar como portada"
-          aria-label="Marcar como portada"
+          className="absolute top-2 left-2 z-20 w-8 h-8 rounded-full bg-[#1e3a5f]/90 hover:bg-[#1e3a5f] active:bg-[#152a45] text-white shadow-md flex items-center justify-center transition-all cursor-pointer"
+          title="Marcar como foto de portada"
+          aria-label="Marcar como foto de portada"
         >
-          <Star size={13} strokeWidth={1.75} />
+          <Star size={15} strokeWidth={2} />
         </button>
       )}
 
-      {/* Botón X para eliminar */}
+      {/* Botón X para eliminar - Tamaño táctil optimizado */}
       <button
         type="button"
         onPointerDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
         onClick={(e) => {
+          e.preventDefault();
           e.stopPropagation();
           onRemove(index);
         }}
-        className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow transition-all cursor-pointer"
+        className="absolute top-2 right-2 z-20 w-8 h-8 rounded-full bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white shadow-md flex items-center justify-center transition-all cursor-pointer"
         title="Eliminar foto"
         aria-label="Eliminar foto"
       >
-        <X size={13} strokeWidth={1.75} />
+        <X size={16} strokeWidth={2.25} />
       </button>
+
+      {/* Badge de número de foto */}
+      <span className="absolute bottom-1.5 right-1.5 z-10 text-[10px] font-mono bg-black/60 text-white px-1.5 py-0.5 rounded-md pointer-events-none">
+        #{index + 1}
+      </span>
     </div>
   );
 };
@@ -180,6 +201,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
 
   const [currentStep, setCurrentStep] = useState(1);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [isProcessingImages, setIsProcessingImages] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<WizardFormData | null>(null);
   const [hasInteracted, setHasInteracted] = useState(false);
 
@@ -210,11 +232,17 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
     notes: initialData?.notes || '',
   });
 
-  // Sensores para reordenar fotos con @dnd-kit
+  // Sensores para reordenar fotos con @dnd-kit (optimizado para desktop y móvil sin bloquear el scroll táctil)
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 5,
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250, // Permite deslizar la pantalla con el dedo normalmente; solo reordena tras mantener presionado
+        tolerance: 6,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -382,13 +410,13 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
     }));
   };
 
-  // Comprimir archivo de imagen a Data URL persistente para localStorage
+  // Comprimir archivo de imagen a Data URL persistente para almacenamiento local
   const fileToCompressedDataUrl = (file: File, fallbackBlobUrl: string): Promise<string> => {
     return new Promise((resolve) => {
       const img = new window.Image();
       img.onload = () => {
         try {
-          const maxDim = 960;
+          const maxDim = 1200;
           let { width, height } = img;
           if (width > maxDim || height > maxDim) {
             if (width > height) {
@@ -408,24 +436,36 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
             return;
           }
           ctx.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
           resolve(dataUrl);
         } catch {
           resolve(fallbackBlobUrl);
         }
       };
-      img.onerror = () => resolve(fallbackBlobUrl);
+      img.onerror = () => {
+        // Respaldo con FileReader si la decodificación por Image/Canvas falla
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (typeof reader.result === 'string') {
+            resolve(reader.result);
+          } else {
+            resolve(fallbackBlobUrl);
+          }
+        };
+        reader.onerror = () => resolve(fallbackBlobUrl);
+        reader.readAsDataURL(file);
+      };
       img.src = fallbackBlobUrl;
     });
   };
 
-  // Procesar múltiples archivos (drag & drop o input file)
+  // Procesar múltiples archivos (drag & drop, cámara o galería)
   const processFiles = (files: File[]) => {
     if (!files.length) return;
 
-    const validFiles = files.filter((f) => ALLOWED_IMAGE_TYPES.includes(f.type));
+    const validFiles = files.filter(isImageFile);
     if (validFiles.length < files.length) {
-      toast('⚠️ Solo se permiten imágenes JPG, PNG o WEBP', 'warning');
+      toast('⚠️ Solo se permiten archivos de imagen', 'warning');
     }
     if (validFiles.length === 0) return;
 
@@ -451,6 +491,8 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
       images: [...prev.images, ...entries.map((e) => e.blobUrl)],
     }));
 
+    setIsProcessingImages(true);
+
     // 2. Subir a Supabase Storage bucket 'inmuebles' en ruta ${userId}/${filename} (con respaldo a Data URL comprimida)
     const uploadToStorageOrCompress = async (file: File, blobUrl: string, idx: number): Promise<string> => {
       try {
@@ -461,7 +503,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
 
         if (user) {
           const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-          const safeExt = ['jpg', 'jpeg', 'png', 'webp'].includes(ext) ? ext : 'jpg';
+          const safeExt = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif', 'avif'].includes(ext) ? ext : 'jpg';
           const filePath = `${user.id}/${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}.${safeExt}`;
 
           const { error: uploadError } = await supabase.storage
@@ -491,15 +533,22 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
         blobUrl,
         finalUrl: await uploadToStorageOrCompress(file, blobUrl, idx),
       }))
-    ).then((results) => {
-      setFormData((prev) => ({
-        ...prev,
-        images: prev.images.map((imgUrl) => {
-          const match = results.find((r) => r.blobUrl === imgUrl);
-          return match ? match.finalUrl : imgUrl;
-        }),
-      }));
-    });
+    )
+      .then((results) => {
+        setFormData((prev) => ({
+          ...prev,
+          images: prev.images.map((imgUrl) => {
+            const match = results.find((r) => r.blobUrl === imgUrl);
+            return match ? match.finalUrl : imgUrl;
+          }),
+        }));
+      })
+      .catch(() => {
+        toast('Error al procesar algunas fotos', 'error');
+      })
+      .finally(() => {
+        setIsProcessingImages(false);
+      });
   };
 
   // Subida desde input file oculto
@@ -511,25 +560,25 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
   };
 
   // Eventos Drag & Drop en zona de carga
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (e: React.DragEvent<HTMLElement>) => {
     e.preventDefault();
     e.stopPropagation();
     if (!isDraggingOver) setIsDraggingOver(true);
   };
 
-  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragEnter = (e: React.DragEvent<HTMLElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDraggingOver(true);
   };
 
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = (e: React.DragEvent<HTMLElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDraggingOver(false);
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = (e: React.DragEvent<HTMLElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDraggingOver(false);
@@ -945,7 +994,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
                 <select
                   value={formData.state}
                   onChange={(e) => handleStateChange(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-lg text-sm text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all cursor-pointer shadow-xs"
+                  className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-lg text-base sm:text-sm text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all cursor-pointer shadow-xs"
                 >
                   <option value="">Selecciona un Estado...</option>
                   {ESTADOS_VENEZUELA.map((st) => (
@@ -967,7 +1016,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
                   onChange={(e) =>
                     updateForm((prev) => ({ ...prev, city: e.target.value }))
                   }
-                  className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-lg text-sm text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all cursor-pointer shadow-xs disabled:bg-[#f5f1ea] disabled:text-stone-400"
+                  className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-lg text-base sm:text-sm text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all cursor-pointer shadow-xs disabled:bg-[#f5f1ea] disabled:text-stone-400"
                 >
                   <option value="">
                     {formData.state ? 'Selecciona un Municipio...' : 'Primero elige el Estado'}
@@ -1291,10 +1340,10 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
           </div>
         )}
 
-        {/* PASO 5: FOTOS (BUG 2 & BUG 5.2 & BUG 5.5) */}
+        {/* PASO 5: FOTOS */}
         {currentStep === 5 && (
           <div className="space-y-5">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <span className="text-[11px] font-medium uppercase tracking-[0.22em] text-[#C97B5A] block mb-1">
                   PASO 5 DE 8
@@ -1303,68 +1352,123 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
                   Fotografías del Inmueble
                 </h3>
                 <p className="text-sm text-stone-600 mt-1 font-body">
-                  Mínimo 1 foto, máximo 20 fotos. Arrastra las miniaturas para reordenar; la primera será la portada.
+                  Mínimo 1 foto, máximo 20 fotos. La primera foto será la portada de la ficha.
                 </p>
               </div>
-              <span className="text-xs font-mono px-3 py-1 rounded-full bg-[#f5f1ea] text-stone-700 border border-stone-200">
+              <span className="text-xs font-mono px-3 py-1 rounded-full bg-[#f5f1ea] text-stone-700 border border-stone-200 self-start sm:self-auto">
                 {formData.images.length} / 20 fotos
               </span>
             </div>
 
-            {/* Zona Drag & Drop funcional */}
-            <div
-              onClick={() => fileInputRef.current?.click()}
+            {/* Botones directos con soporte nativo de cámara y galería para teléfonos */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label
+                className={`flex items-center justify-center gap-2.5 px-4 py-3.5 rounded-xl bg-[#1e3a5f] hover:bg-[#162a45] active:bg-[#112035] text-white font-medium text-sm shadow-sm transition-all cursor-pointer select-none ${
+                  isProcessingImages || formData.images.length >= 20
+                    ? 'opacity-60 cursor-not-allowed pointer-events-none'
+                    : 'active:scale-[0.98]'
+                }`}
+              >
+                <Camera size={19} strokeWidth={2} />
+                <span>Tomar foto con cámara</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleFileInputChange}
+                  className="sr-only"
+                  disabled={isProcessingImages || formData.images.length >= 20}
+                />
+              </label>
+
+              <label
+                className={`flex items-center justify-center gap-2.5 px-4 py-3.5 rounded-xl bg-[#C97B5A] hover:bg-[#b56a4b] active:bg-[#9f5c40] text-white font-medium text-sm shadow-sm transition-all cursor-pointer select-none ${
+                  isProcessingImages || formData.images.length >= 20
+                    ? 'opacity-60 cursor-not-allowed pointer-events-none'
+                    : 'active:scale-[0.98]'
+                }`}
+              >
+                <ImageIcon size={19} strokeWidth={2} />
+                <span>Elegir fotos de la galería</span>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleFileInputChange}
+                  className="sr-only"
+                  disabled={isProcessingImages || formData.images.length >= 20}
+                />
+              </label>
+            </div>
+
+            {/* Zona Drag & Drop funcional con input nativo transparente que cubre todo */}
+            <label
               onDragOver={handleDragOver}
               onDragEnter={handleDragEnter}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 ${
+              className={`relative border-2 border-dashed rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 block text-center ${
                 isDraggingOver
                   ? 'border-terracotta bg-terracotta/5 scale-[1.01]'
                   : 'border-stone-300 hover:border-terracotta bg-white hover:bg-terracotta/5'
               }`}
             >
-              <Upload size={30} strokeWidth={1.5} className="text-[#C97B5A] mb-2" />
-              <span className="text-sm font-medium text-text-heading font-body">
-                Haz clic o arrastra tus fotos aquí
-              </span>
-              <span className="text-xs text-stone-500 mt-1 font-body">
-                Formatos JPG, PNG, WEBP (puedes soltar varias fotos a la vez)
-              </span>
               <input
                 ref={fileInputRef}
                 type="file"
                 multiple
                 accept="image/*"
                 onChange={handleFileInputChange}
-                className="hidden"
+                disabled={isProcessingImages || formData.images.length >= 20}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
+                aria-label="Subir fotos del inmueble"
               />
-            </div>
+              <Upload size={30} strokeWidth={1.5} className="text-[#C97B5A] mb-2 pointer-events-none" />
+              <span className="text-sm font-medium text-text-heading font-body pointer-events-none">
+                O toca aquí para explorar tus archivos
+              </span>
+              <span className="text-xs text-stone-500 mt-1 font-body pointer-events-none">
+                Formatos JPG, PNG, WEBP, HEIC (puedes seleccionar varias a la vez)
+              </span>
+            </label>
+
+            {/* Indicador de procesamiento */}
+            {isProcessingImages && (
+              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-body animate-pulse">
+                <Loader2 size={16} className="animate-spin text-amber-700 shrink-0" />
+                <span>Optimizando y procesando fotos... Por favor espera un instante.</span>
+              </div>
+            )}
 
             {/* Grid de fotos reordenable con @dnd-kit */}
             {formData.images.length > 0 && (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleSortEnd}
-              >
-                <SortableContext
-                  items={formData.images}
-                  strategy={rectSortingStrategy}
+              <div className="space-y-2 pt-2">
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleSortEnd}
                 >
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5 pt-3">
-                    {formData.images.map((imgUrl, index) => (
-                      <SortablePhotoItem
-                        key={imgUrl}
-                        url={imgUrl}
-                        index={index}
-                        onRemove={handleRemoveImage}
-                        onSetCover={handleSetCover}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
+                  <SortableContext
+                    items={formData.images}
+                    strategy={rectSortingStrategy}
+                  >
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                      {formData.images.map((imgUrl, index) => (
+                        <SortablePhotoItem
+                          key={imgUrl}
+                          url={imgUrl}
+                          index={index}
+                          onRemove={handleRemoveImage}
+                          onSetCover={handleSetCover}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+                <p className="text-[11px] text-stone-500 font-body">
+                  💡 Tip: En teléfono, mantén presionada una foto un segundo para arrastrarla y cambiar el orden. Toca la estrella ⭐ para convertirla en portada.
+                </p>
+              </div>
             )}
           </div>
         )}
@@ -1418,7 +1522,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
                   updateForm((prev) => ({ ...prev, description: e.target.value }))
                 }
                 placeholder="Describe los beneficios, amenidades, planta eléctrica, pozo de agua, acabados y cercanías..."
-                className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-lg text-sm text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs transition-all"
+                className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-lg text-base sm:text-sm text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs transition-all"
               />
             </div>
           </div>
@@ -1530,7 +1634,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
                   updateForm((prev) => ({ ...prev, notes: e.target.value }))
                 }
                 placeholder="Comentarios confidenciales sobre propietarios, comisiones o llaves (no se publican)..."
-                className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-lg text-sm text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs transition-all"
+                className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-lg text-base sm:text-sm text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs transition-all"
               />
             </div>
           </div>
@@ -1660,10 +1764,16 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
         )}
       </motion.div>
 
-      {/* BOTONES DE NAVEGACIÓN INFERIOR (BUG 5.3 & 5.4 + Guardar borrador en cualquier paso) */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#faf9f6] p-4.5 sm:p-6 rounded-2xl border border-stone-200/80 shadow-card">
+      {/* BOTONES DE NAVEGACIÓN INFERIOR (Optimizado para móvil y escritorio) */}
+      <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#faf9f6] p-4 sm:p-6 rounded-2xl border border-stone-200/80 shadow-card">
         {currentStep > 1 ? (
-          <Button variant="outline" onClick={handlePrev} className="gap-2 group">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handlePrev}
+            disabled={isProcessingImages}
+            className="gap-2 group w-full sm:w-auto justify-center"
+          >
             <ArrowLeft
               size={16}
               strokeWidth={1.5}
@@ -1672,37 +1782,64 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
             <span>Anterior</span>
           </Button>
         ) : (
-          <div />
+          <div className="hidden sm:block" />
         )}
 
-        <div className="flex items-center gap-3">
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2.5 w-full sm:w-auto">
           <Button
             type="button"
             variant="secondary"
             onClick={handleSaveDraft}
-            className="gap-2"
+            disabled={isProcessingImages}
+            className="gap-1.5 text-xs sm:text-sm px-3 sm:px-4 justify-center"
           >
             <FileEdit size={15} strokeWidth={1.5} />
-            <span>Guardar borrador</span>
+            <span className="truncate">Guardar borrador</span>
           </Button>
 
           {currentStep === 8 ? (
             <Button
+              type="button"
               variant="primary"
               onClick={handlePublish}
-              className="gap-2 bg-emerald-700 hover:bg-emerald-800 focus:ring-emerald-600"
+              disabled={isProcessingImages}
+              className="gap-1.5 bg-emerald-700 hover:bg-emerald-800 focus:ring-emerald-600 text-xs sm:text-sm px-3 sm:px-4 justify-center"
             >
-              <Check size={16} strokeWidth={1.5} />
-              <span>Publicar</span>
+              {isProcessingImages ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Procesando...</span>
+                </>
+              ) : (
+                <>
+                  <Check size={16} strokeWidth={1.5} />
+                  <span>Publicar</span>
+                </>
+              )}
             </Button>
           ) : (
-            <Button variant="primary" onClick={handleNext} className="gap-2 group">
-              <span>Siguiente</span>
-              <ArrowRight
-                size={16}
-                strokeWidth={1.5}
-                className="transition-transform duration-200 group-hover:translate-x-1"
-              />
+            <Button
+              type="button"
+              variant="primary"
+              onClick={handleNext}
+              disabled={isProcessingImages}
+              className="gap-1.5 group text-xs sm:text-sm px-3 sm:px-4 justify-center"
+            >
+              {isProcessingImages ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Procesando...</span>
+                </>
+              ) : (
+                <>
+                  <span>Siguiente</span>
+                  <ArrowRight
+                    size={16}
+                    strokeWidth={1.5}
+                    className="transition-transform duration-200 group-hover:translate-x-1"
+                  />
+                </>
+              )}
             </Button>
           )}
         </div>

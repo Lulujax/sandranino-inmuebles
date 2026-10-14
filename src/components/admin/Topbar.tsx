@@ -41,6 +41,9 @@ export const Topbar: React.FC<TopbarProps> = ({
           </button>
         )}
 
+        <h1 className="text-sm sm:text-base font-semibold text-text-heading font-display truncate max-w-[170px] xs:max-w-[220px] sm:max-w-none">
+          {title}
+        </h1>
       </div>
 
       <div className="flex items-center gap-4">
