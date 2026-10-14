@@ -1,2 +1,2 @@
 # sandranino-inmuebles
-Catálogo de inmuebles con panel admin para asesores inmobiliarios
+Inventario de inmuebles con panel admin para asesores inmobiliarios

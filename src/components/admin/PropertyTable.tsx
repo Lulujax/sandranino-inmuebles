@@ -157,10 +157,10 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
               GESTIÓN DE INVENTARIO
             </span>
             <h2 className="font-display text-2xl sm:text-3xl font-semibold text-text-heading tracking-tight">
-              Catálogo de Inmuebles
+              Inventario de Inmuebles
             </h2>
             <p className="text-xs sm:text-sm text-stone-600 mt-0.5">
-              Administra, actualiza, edita o pausa las propiedades publicadas en tu catálogo personal.
+              Administra, actualiza, edita o pausa las propiedades publicadas en tu inventario personal.
             </p>
           </div>
         </FadeInUp>

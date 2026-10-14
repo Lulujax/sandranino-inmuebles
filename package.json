@@ -1,7 +1,7 @@
 {
   "name": "sandranino-inmuebles",
   "version": "1.0.0",
-  "description": "Catálogo de inmuebles con panel admin para asesores inmobiliarios",
+  "description": "Inventario de inmuebles con panel admin para asesores inmobiliarios",
   "main": "index.js",
   "scripts": {
     "dev": "next dev",

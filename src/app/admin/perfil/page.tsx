@@ -336,7 +336,7 @@ export default function MiPerfilPage() {
           <div className="bg-white p-4.5 rounded-xl border border-stone-200/80 space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium uppercase tracking-wider text-stone-500">
-                Inmuebles en Catálogo
+                Inmuebles en Inventario
               </span>
               <span className="text-xs font-mono font-bold text-text-heading">
                 {capacity.total} / {capacity.max}
@@ -398,7 +398,7 @@ export default function MiPerfilPage() {
 
         <div className="p-4 rounded-xl bg-[#f5f1ea]/80 border border-stone-200/70 text-xs text-stone-600 leading-relaxed font-body">
           <p>
-            💡 <strong>¿Por qué {capacity.max} inmuebles como tope recomendado?</strong> Cada propiedad cuenta con múltiples fotografías de alta resolución que se comprimen automáticamente. Un catálogo de hasta {capacity.max} inmuebles activos utiliza aproximadamente ~700 MB de la capacidad gratuita de Supabase Cloud (1 GB), garantizando que tu portal funcione con máxima velocidad y sin sorpresas de facturación.
+            💡 <strong>¿Por qué {capacity.max} inmuebles como tope recomendado?</strong> Cada propiedad cuenta con múltiples fotografías de alta resolución que se comprimen automáticamente. Un inventario de hasta {capacity.max} inmuebles activos utiliza aproximadamente ~700 MB de la capacidad gratuita de Supabase Cloud (1 GB), garantizando que tu portal funcione con máxima velocidad y sin sorpresas de facturación.
           </p>
         </div>
       </FadeInUp>

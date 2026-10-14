@@ -786,7 +786,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
               Capacidad de inventario alcanzada ({inventoryCount} / {INVENTORY_LIMIT} inmuebles)
             </p>
             <p className="text-xs sm:text-sm text-rose-700 leading-relaxed font-body">
-              Has alcanzado el límite recomendado de {INVENTORY_LIMIT} propiedades para mantener tu catálogo 100% gratuito y de alta velocidad en Supabase. Para publicar un nuevo inmueble, primero marca como vendido, pausa o elimina alguna propiedad anterior en la sección <strong>Mis Inmuebles</strong>.
+              Has alcanzado el límite recomendado de {INVENTORY_LIMIT} propiedades para mantener tu inventario 100% gratuito y de alta velocidad en Supabase. Para publicar un nuevo inmueble, primero marca como vendido, pausa o elimina alguna propiedad anterior en la sección <strong>Mis Inmuebles</strong>.
             </p>
           </div>
         </div>
@@ -1687,7 +1687,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
                 Revisión Final del Inmueble
               </h3>
               <p className="text-sm text-stone-600 mt-1 font-body">
-                Verifica todos los datos antes de publicar en tu catálogo o guardar como borrador.
+                Verifica todos los datos antes de publicar en tu inventario o guardar como borrador.
               </p>
             </div>
 

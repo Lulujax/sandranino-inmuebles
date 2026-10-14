@@ -117,7 +117,7 @@ export const FeaturedProperties: React.FC = () => {
               href="/inventario"
               className="shrink-0 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#1e3a5f] hover:bg-[#152a45] text-white text-xs font-medium uppercase tracking-wider shadow-sm hover:shadow-luxury transition-all hover:-translate-y-0.5"
             >
-              <span>Explorar Catálogo</span>
+              <span>Explorar Inventario</span>
               <ArrowRight size={15} />
             </Link>
           </div>
