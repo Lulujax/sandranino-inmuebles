@@ -1827,7 +1827,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
             variant="secondary"
             onClick={handleSaveDraft}
             disabled={isProcessingImages || isInventoryFull}
-            title={isInventoryFull ? 'Límite de 100 inmuebles alcanzado' : undefined}
+            title={isInventoryFull ? `Límite de ${INVENTORY_LIMIT} inmuebles alcanzado` : undefined}
             className="gap-1.5 text-xs sm:text-sm px-3 sm:px-4 justify-center"
           >
             <FileEdit size={15} strokeWidth={1.5} />
@@ -1840,7 +1840,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
               variant="primary"
               onClick={handlePublish}
               disabled={isProcessingImages || isInventoryFull}
-              title={isInventoryFull ? 'Límite de 100 inmuebles alcanzado' : undefined}
+              title={isInventoryFull ? `Límite de ${INVENTORY_LIMIT} inmuebles alcanzado` : undefined}
               className="gap-1.5 bg-emerald-700 hover:bg-emerald-800 focus:ring-emerald-600 text-xs sm:text-sm px-3 sm:px-4 justify-center"
             >
               {isProcessingImages ? (

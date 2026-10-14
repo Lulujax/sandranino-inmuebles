@@ -205,10 +205,10 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
         {capacity.isFull ? (
           <div
             className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-stone-200 text-stone-500 font-body font-medium text-xs uppercase tracking-wider cursor-not-allowed shadow-none"
-            title="Has alcanzado el límite de 100 inmuebles de tu inventario. Pausa o elimina inmuebles antiguos para crear uno nuevo."
+            title={`Has alcanzado el límite de ${capacity.max} inmuebles de tu inventario. Pausa o elimina inmuebles antiguos para crear uno nuevo.`}
           >
             <PlusCircle size={16} strokeWidth={1.5} />
-            <span>Tope 100 alcanzado</span>
+            <span>Tope {capacity.max} alcanzado</span>
           </div>
         ) : (
           <Link

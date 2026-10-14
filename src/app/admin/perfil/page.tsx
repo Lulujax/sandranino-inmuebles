@@ -398,7 +398,7 @@ export default function MiPerfilPage() {
 
         <div className="p-4 rounded-xl bg-[#f5f1ea]/80 border border-stone-200/70 text-xs text-stone-600 leading-relaxed font-body">
           <p>
-            💡 <strong>¿Por qué 100 inmuebles como tope recomendado?</strong> Cada propiedad cuenta con múltiples fotografías de alta resolución que se comprimen automáticamente. Un catálogo de hasta 100 inmuebles activos utiliza únicamente ~25% de la capacidad gratuita de Supabase Cloud, garantizando que tu portal funcione con máxima velocidad y sin sorpresas de facturación.
+            💡 <strong>¿Por qué {capacity.max} inmuebles como tope recomendado?</strong> Cada propiedad cuenta con múltiples fotografías de alta resolución que se comprimen automáticamente. Un catálogo de hasta {capacity.max} inmuebles activos utiliza aproximadamente ~700 MB de la capacidad gratuita de Supabase Cloud (1 GB), garantizando que tu portal funcione con máxima velocidad y sin sorpresas de facturación.
           </p>
         </div>
       </FadeInUp>

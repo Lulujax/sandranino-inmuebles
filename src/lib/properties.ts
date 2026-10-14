@@ -4,12 +4,12 @@ import { createClient } from './supabase/client';
 /**
  * Límites de inventario recomendados para el plan gratuito de Supabase
  * - Almacenamiento gratuito en Supabase: 1 GB (1,000 MB)
- * - Con ~10 fotos optimizadas por inmueble (~2.5 MB por ficha), 100 inmuebles ocupan apenas ~250 MB
- * - Deja un 75% de margen libre para que la aplicación nunca tenga costos ni caídas
+ * - Con fotos optimizadas por inmueble (~2 MB por ficha), 350 inmuebles ocupan ~700 MB
+ * - Permite un amplio catálogo de 350 propiedades manteniéndose dentro de la cuota gratuita
  */
-export const INVENTORY_LIMIT = 100;
+export const INVENTORY_LIMIT = 350;
 export const STORAGE_LIMIT_MB = 1000;
-export const ESTIMATED_MB_PER_PROPERTY = 2.5;
+export const ESTIMATED_MB_PER_PROPERTY = 2.0;
 
 export interface InventoryCapacity {
   total: number;
