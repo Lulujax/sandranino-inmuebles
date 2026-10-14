@@ -57,7 +57,11 @@ export function getWhatsAppInquiryLink(
 /**
  * Genera texto y enlaces estilo Wasi.co para compartir un inmueble en redes sociales
  */
-export function getShareUrls(property: Partial<Inmueble> & { title: string }, url: string) {
+export function getShareUrls(
+  property: Partial<Inmueble> & { title: string },
+  url: string,
+  mode: 'cliente' | 'colega' = 'cliente'
+) {
   const area = getPropertyMainArea(property);
   const priceText =
     property.price !== undefined
@@ -66,7 +70,19 @@ export function getShareUrls(property: Partial<Inmueble> & { title: string }, ur
   const locationParts = [property.sector, property.city, property.state].filter(Boolean);
   const locationText = locationParts.join(', ');
 
-  const fullDesc = property.description ? property.description.trim() : '';
+  let fullDesc = property.description ? property.description.trim() : '';
+
+  if (mode === 'colega') {
+    // En modo colega (ficha blanca / sin datos personales), removemos teléfonos y firmas personales
+    fullDesc = fullDesc
+      .replace(/Sandra\s+Niño/gi, '')
+      .replace(/Century\s*21.*$/gim, '')
+      .replace(/04\d{2}[\s.-]?\d{3}[\s.-]?\d{2}[\s.-]?\d{2}/g, '')
+      .replace(/\+?58[\s.-]?\d{3}[\s.-]?\d{3}[\s.-]?\d{4}/g, '')
+      .replace(/Cc\.\s*Guaparo/gi, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
 
   const lines = [
     `🏡 *${property.title.toUpperCase()}*`,
@@ -84,7 +100,7 @@ export function getShareUrls(property: Partial<Inmueble> & { title: string }, ur
 
   return {
     message: fullMessage,
-    whatsapp: `https://wa.me/?text=${encodeURIComponent(fullMessage)}`,
+    whatsapp: `https://api.whatsapp.com/send?text=${encodeURIComponent(fullMessage)}`,
     telegram: `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(
       telegramText
     )}`,
