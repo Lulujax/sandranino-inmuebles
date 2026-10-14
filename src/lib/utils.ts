@@ -59,8 +59,7 @@ export function getWhatsAppInquiryLink(
  */
 export function getShareUrls(
   property: Partial<Inmueble> & { title: string },
-  url: string,
-  mode: 'cliente' | 'colega' = 'cliente'
+  url: string
 ) {
   const area = getPropertyMainArea(property);
   const priceText =
@@ -70,19 +69,7 @@ export function getShareUrls(
   const locationParts = [property.sector, property.city, property.state].filter(Boolean);
   const locationText = locationParts.join(', ');
 
-  let fullDesc = property.description ? property.description.trim() : '';
-
-  if (mode === 'colega') {
-    // En modo colega (ficha blanca / sin datos personales), removemos teléfonos y firmas personales
-    fullDesc = fullDesc
-      .replace(/Sandra\s+Niño/gi, '')
-      .replace(/Century\s*21.*$/gim, '')
-      .replace(/04\d{2}[\s.-]?\d{3}[\s.-]?\d{2}[\s.-]?\d{2}/g, '')
-      .replace(/\+?58[\s.-]?\d{3}[\s.-]?\d{3}[\s.-]?\d{4}/g, '')
-      .replace(/Cc\.\s*Guaparo/gi, '')
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
-  }
+  const fullDesc = property.description ? property.description.trim() : '';
 
   const lines = [
     `🏡 *${property.title.toUpperCase()}*`,
