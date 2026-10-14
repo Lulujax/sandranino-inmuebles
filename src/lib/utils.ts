@@ -71,8 +71,12 @@ export function getShareUrls(
 
   const fullDesc = property.description ? property.description.trim() : '';
 
+  const baseUrl = url.split('?')[0];
+  // Parámetro dinámico para que WhatsApp ignore cachés viejas fallidas y descargue la imagen de inmediato
+  const shareableUrl = `${baseUrl}?v=${Date.now().toString().slice(-4)}`;
+
   const lines = [
-    url,
+    shareableUrl,
     '',
     `🏡 *${property.title.toUpperCase()}*`,
     locationText ? `📍 Ubicación: ${locationText}` : '',

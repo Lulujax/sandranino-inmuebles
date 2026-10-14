@@ -49,10 +49,10 @@ export async function generateMetadata({
         images: [
           {
             url: ogImageUrl,
-            width: 800,
-            height: 418,
+            width: 1200,
+            height: 630,
             alt: property.title,
-            type: 'image/png',
+            type: 'image/jpeg',
           },
         ],
       },
