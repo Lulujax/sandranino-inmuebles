@@ -36,7 +36,7 @@ export default function MiPerfilPage() {
   const [newPassword, setNewPassword] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
-  // Inventario y capacidad del plan Supabase
+  // Inventario y capacidad de almacenamiento gratuito
   const [propertyCount, setPropertyCount] = useState(0);
 
   useEffect(() => {
@@ -136,12 +136,12 @@ export default function MiPerfilPage() {
             updated_at: new Date().toISOString(),
           });
           if (error) {
-            toast(`Error en Supabase: ${error.message}`, 'error');
+            toast(`Error al guardar: ${error.message}`, 'error');
             return;
           }
         }
       } catch {
-        toast('Error al sincronizar el perfil con Supabase', 'error');
+        toast('Error al sincronizar el perfil con el servidor', 'error');
         return;
       }
     }
@@ -309,7 +309,7 @@ export default function MiPerfilPage() {
         </FadeInUp>
       </form>
 
-      {/* Capacidad y Estado del Sistema (Límites Supabase Cloud) */}
+      {/* Capacidad y Estado del Sistema (Límite Gratuito 1 GB) */}
       <FadeInUp delay={0.16} className="bg-[#faf9f6] p-6 sm:p-7 rounded-2xl border border-stone-200/80 shadow-card space-y-5 font-body">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200/60 pb-4">
           <div className="flex items-center gap-2.5">
@@ -318,10 +318,10 @@ export default function MiPerfilPage() {
             </div>
             <div>
               <h3 className="font-display text-lg font-semibold text-text-heading">
-                Capacidad y Estado del Sistema
+                Capacidad y Almacenamiento
               </h3>
               <p className="text-xs text-stone-500 font-body">
-                Configuración optimizada para el plan en la nube de Supabase
+                Detalles del espacio y cuota asignada a tu plataforma
               </p>
             </div>
           </div>
@@ -372,33 +372,33 @@ export default function MiPerfilPage() {
               />
             </div>
             <p className="text-[11px] text-stone-500">
-              {Math.round((capacity.estimatedStorageMb / capacity.maxStorageMb) * 100)}% de 1 GB de Supabase Storage
+              {Math.round((capacity.estimatedStorageMb / capacity.maxStorageMb) * 100)}% de 1 GB (Plan Gratuito incluido)
             </p>
           </div>
 
-          {/* 3. Base de Datos */}
+          {/* 3. Estado del Servidor */}
           <div className="bg-white p-4.5 rounded-xl border border-stone-200/80 space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium uppercase tracking-wider text-stone-500">
-                Base de Datos Postgres
+                Servidor y Plataforma
               </span>
               <span className="text-xs font-mono font-bold text-emerald-700 flex items-center gap-1">
                 <CheckCircle2 size={13} />
-                <span>Saludable</span>
+                <span>Activo y Seguro</span>
               </span>
             </div>
             <div className="w-full bg-stone-100 h-2 rounded-full overflow-hidden">
-              <div className="h-full rounded-full bg-emerald-600" style={{ width: '1%' }} />
+              <div className="h-full rounded-full bg-emerald-600" style={{ width: '100%' }} />
             </div>
             <p className="text-[11px] text-stone-500">
-              &lt; 2 MB de 500 MB disponibles
+              Alta velocidad y funcionamiento continuo
             </p>
           </div>
         </div>
 
         <div className="p-4 rounded-xl bg-[#f5f1ea]/80 border border-stone-200/70 text-xs text-stone-600 leading-relaxed font-body">
           <p>
-            💡 <strong>¿Por qué {capacity.max} inmuebles como tope recomendado?</strong> Cada propiedad cuenta con múltiples fotografías de alta resolución que se comprimen automáticamente. Un inventario de hasta {capacity.max} inmuebles activos utiliza aproximadamente ~700 MB de la capacidad gratuita de Supabase Cloud (1 GB), garantizando que tu portal funcione con máxima velocidad y sin sorpresas de facturación.
+            💡 <strong>Capacidad y almacenamiento:</strong> El plan gratuito de tu plataforma incluye hasta 1 GB de almacenamiento (recomendado hasta {capacity.max} propiedades con fotografías de alta resolución optimizadas), sin ningún costo de mantenimiento. Si en el futuro alcanzas este límite o requieres mayor capacidad para expandir tu inventario, es posible contratar almacenamiento adicional.
           </p>
         </div>
       </FadeInUp>

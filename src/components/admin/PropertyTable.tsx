@@ -221,7 +221,7 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
         )}
       </FadeInUp>
 
-      {/* Widget de Capacidad del Inventario (Optimización de límite Supabase Free) */}
+      {/* Widget de Capacidad del Inventario (Límite Gratuito 1 GB) */}
       <FadeInUp delay={0.03} className="bg-[#faf9f6] p-4 sm:p-5 rounded-2xl border border-stone-200/80 shadow-card">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
@@ -254,7 +254,7 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                 </span>
               </div>
               <p className="text-[11px] text-stone-500 mt-0.5 font-body">
-                Almacenamiento estimado de fotos: ~{capacity.estimatedStorageMb} MB de {capacity.maxStorageMb} MB (Plan Gratuito Supabase Cloud)
+                Almacenamiento estimado de fotos: ~{capacity.estimatedStorageMb} MB de {capacity.maxStorageMb} MB (Plan Gratuito de 1 GB)
               </p>
             </div>
           </div>

@@ -777,7 +777,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 font-body">
-      {/* BANNER DE INVENTARIO COMPLETO (Límite Supabase Free) */}
+      {/* BANNER DE INVENTARIO COMPLETO (Límite Gratuito 1 GB) */}
       {isInventoryFull && (
         <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4.5 sm:p-5 flex items-start gap-3.5 text-rose-800 shadow-xs">
           <AlertCircle size={22} className="text-rose-600 shrink-0 mt-0.5" />
@@ -786,7 +786,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
               Capacidad de inventario alcanzada ({inventoryCount} / {INVENTORY_LIMIT} inmuebles)
             </p>
             <p className="text-xs sm:text-sm text-rose-700 leading-relaxed font-body">
-              Has alcanzado el límite recomendado de {INVENTORY_LIMIT} propiedades para mantener tu inventario 100% gratuito y de alta velocidad en Supabase. Para publicar un nuevo inmueble, primero marca como vendido, pausa o elimina alguna propiedad anterior en la sección <strong>Mis Inmuebles</strong>.
+              Has alcanzado el límite recomendado de {INVENTORY_LIMIT} propiedades incluido en el plan gratuito de 1 GB. Para publicar un nuevo inmueble sin costo, puedes marcar como vendido, pausar o eliminar propiedades anteriores en la sección <strong>Mis Inmuebles</strong>. Si necesitas superar este cupo, es posible contratar capacidad de almacenamiento adicional.
             </p>
           </div>
         </div>
