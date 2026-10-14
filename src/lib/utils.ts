@@ -72,6 +72,8 @@ export function getShareUrls(
   const fullDesc = property.description ? property.description.trim() : '';
 
   const lines = [
+    url,
+    '',
     `🏡 *${property.title.toUpperCase()}*`,
     locationText ? `📍 Ubicación: ${locationText}` : '',
     priceText
@@ -79,7 +81,6 @@ export function getShareUrls(
       : '',
     area ? `📐 Superficie: ${formatArea(area)}` : '',
     fullDesc ? `\n📝 ${fullDesc}` : '',
-    `\n👉 Ver fotos y ficha completa aquí:\n${url}`,
   ].filter(Boolean);
 
   const fullMessage = lines.join('\n');

@@ -60,44 +60,24 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({ property }) => {
         <ExternalLink size={14} className="opacity-70 ml-0.5" />
       </a>
 
-      {/* Acciones Rápidas: Copiar Mensaje y Copiar Enlace */}
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={handleCopyMessage}
-          className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-white hover:bg-[#f5f1ea] text-[#1e3a5f] border border-stone-200/90 text-xs font-medium transition-all cursor-pointer shadow-2xs"
-        >
-          {copiedMessage ? (
-            <>
-              <Check size={14} className="text-emerald-600" />
-              <span className="text-emerald-700 font-semibold">¡Mensaje copiado!</span>
-            </>
-          ) : (
-            <>
-              <Copy size={14} className="text-[#C97B5A]" />
-              <span className="truncate">Copiar mensaje</span>
-            </>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={handleCopyLink}
-          className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-white hover:bg-[#f5f1ea] text-stone-700 border border-stone-200/90 text-xs font-medium transition-all cursor-pointer shadow-2xs"
-        >
-          {copiedLink ? (
-            <>
-              <Check size={14} className="text-emerald-600" />
-              <span className="text-emerald-700 font-semibold">¡Enlace copiado!</span>
-            </>
-          ) : (
-            <>
-              <Copy size={14} className="text-[#C97B5A]" />
-              <span className="truncate">Copiar enlace</span>
-            </>
-          )}
-        </button>
-      </div>
+      {/* Copiar Enlace Directo */}
+      <button
+        type="button"
+        onClick={handleCopyLink}
+        className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-white hover:bg-[#f5f1ea] text-stone-700 border border-stone-200/90 text-xs font-medium transition-all cursor-pointer shadow-2xs"
+      >
+        {copiedLink ? (
+          <>
+            <Check size={14} className="text-emerald-600" />
+            <span className="text-emerald-700 font-semibold">¡Enlace copiado!</span>
+          </>
+        ) : (
+          <>
+            <Copy size={14} className="text-[#C97B5A]" />
+            <span>Copiar enlace de la ficha</span>
+          </>
+        )}
+      </button>
 
       {/* Otras Redes */}
       <div className="grid grid-cols-2 gap-2 pt-1 border-t border-stone-200/60">

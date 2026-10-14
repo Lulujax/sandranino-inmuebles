@@ -3,12 +3,12 @@ import { createClient } from '@/lib/supabase/server';
 import { Inmueble } from '@/lib/types';
 import { formatPrice, formatArea, getPropertyMainArea } from '@/lib/utils';
 
-export const alt = 'Vista previa del inmueble — Sandra Niño';
+export const alt = 'Mini collage del inmueble — Sandra Niño';
 export const size = {
-  width: 1200,
-  height: 630,
+  width: 800,
+  height: 418,
 };
-export const contentType = 'image/jpeg';
+export const contentType = 'image/png';
 
 export default async function Image({
   params,
@@ -44,10 +44,10 @@ export default async function Image({
             fontFamily: 'sans-serif',
           }}
         >
-          <div style={{ fontSize: 22, letterSpacing: '0.25em', color: '#C97B5A', marginBottom: 16 }}>
+          <div style={{ fontSize: 16, letterSpacing: '0.25em', color: '#C97B5A', marginBottom: 10 }}>
             SANDRA NIÑO • INVENTARIO EXCLUSIVO
           </div>
-          <div style={{ fontSize: 48, fontWeight: 700 }}>Inmueble Exclusivo</div>
+          <div style={{ fontSize: 32, fontWeight: 700 }}>Inmueble Exclusivo</div>
         </div>
       ),
       { ...size }
@@ -64,49 +64,17 @@ export default async function Image({
         img.startsWith('data:image/webp'))
   );
 
-  const firstImage = validImages[0];
-  if (firstImage && firstImage.startsWith('data:image/')) {
-    const match = firstImage.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/);
-    if (match) {
-      const mime = match[1];
-      const buffer = Buffer.from(match[2], 'base64');
-      return new Response(buffer, {
-        headers: {
-          'Content-Type': mime,
-          'Content-Length': String(buffer.length),
-          'Cache-Control': 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400',
-        },
-      });
-    }
-  }
-
-  if (firstImage && (firstImage.startsWith('http://') || firstImage.startsWith('https://'))) {
-    try {
-      const res = await fetch(firstImage);
-      if (res.ok) {
-        const arrayBuffer = await res.arrayBuffer();
-        const mime = res.headers.get('content-type') || 'image/jpeg';
-        return new Response(Buffer.from(arrayBuffer), {
-          headers: {
-            'Content-Type': mime,
-            'Cache-Control': 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400',
-          },
-        });
-      }
-    } catch {}
-  }
-
   const priceText = formatPrice(property.price, property.operation);
   const mainArea = getPropertyMainArea(property);
   const areaText = mainArea ? formatArea(mainArea) : '';
-  const locationText = `${property.sector ? `${property.sector}, ` : ''}${property.city}, ${property.state}`;
+  const locationText = `${property.sector ? `${property.sector}, ` : ''}${property.city}`;
 
   return new ImageResponse(
     (
       <div
         style={{
-          width: '1200px',
-          height: '630px',
+          width: '800px',
+          height: '418px',
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: '#faf9f6',
@@ -115,27 +83,28 @@ export default async function Image({
           overflow: 'hidden',
         }}
       >
-        {/* Collage de fotos (parte superior: 430px) */}
+        {/* Mini Collage de fotos superior (altura 290px) */}
         <div
           style={{
-            width: '1200px',
-            height: '430px',
+            width: '800px',
+            height: '290px',
             display: 'flex',
             flexDirection: 'row',
-            gap: '8px',
-            padding: '12px 12px 0 12px',
+            gap: '6px',
+            padding: '8px 8px 0 8px',
             backgroundColor: '#faf9f6',
           }}
         >
           {validImages.length >= 3 ? (
             <>
+              {/* Foto Principal Hero Izquierda */}
               <div
                 style={{
-                  width: '720px',
-                  height: '418px',
+                  width: '488px',
+                  height: '282px',
                   display: 'flex',
                   overflow: 'hidden',
-                  borderRadius: '16px',
+                  borderRadius: '12px',
                   backgroundColor: '#e7e2da',
                 }}
               >
@@ -144,22 +113,24 @@ export default async function Image({
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               </div>
+
+              {/* 2 Fotos Subordinadas Derecha */}
               <div
                 style={{
-                  width: '448px',
-                  height: '418px',
+                  width: '290px',
+                  height: '282px',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '8px',
+                  gap: '6px',
                 }}
               >
                 <div
                   style={{
-                    width: '448px',
-                    height: '205px',
+                    width: '290px',
+                    height: '138px',
                     display: 'flex',
                     overflow: 'hidden',
-                    borderRadius: '16px',
+                    borderRadius: '10px',
                     backgroundColor: '#e7e2da',
                   }}
                 >
@@ -170,11 +141,11 @@ export default async function Image({
                 </div>
                 <div
                   style={{
-                    width: '448px',
-                    height: '205px',
+                    width: '290px',
+                    height: '138px',
                     display: 'flex',
                     overflow: 'hidden',
-                    borderRadius: '16px',
+                    borderRadius: '10px',
                     backgroundColor: '#e7e2da',
                   }}
                 >
@@ -189,11 +160,11 @@ export default async function Image({
             <>
               <div
                 style={{
-                  width: '584px',
-                  height: '418px',
+                  width: '389px',
+                  height: '282px',
                   display: 'flex',
                   overflow: 'hidden',
-                  borderRadius: '16px',
+                  borderRadius: '12px',
                   backgroundColor: '#e7e2da',
                 }}
               >
@@ -204,11 +175,11 @@ export default async function Image({
               </div>
               <div
                 style={{
-                  width: '584px',
-                  height: '418px',
+                  width: '389px',
+                  height: '282px',
                   display: 'flex',
                   overflow: 'hidden',
-                  borderRadius: '16px',
+                  borderRadius: '12px',
                   backgroundColor: '#e7e2da',
                 }}
               >
@@ -221,11 +192,11 @@ export default async function Image({
           ) : validImages.length === 1 ? (
             <div
               style={{
-                width: '1176px',
-                height: '418px',
+                width: '784px',
+                height: '282px',
                 display: 'flex',
                 overflow: 'hidden',
-                borderRadius: '16px',
+                borderRadius: '12px',
                 backgroundColor: '#e7e2da',
               }}
             >
@@ -237,15 +208,15 @@ export default async function Image({
           ) : (
             <div
               style={{
-                width: '1176px',
-                height: '418px',
+                width: '784px',
+                height: '282px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: '16px',
+                borderRadius: '12px',
                 backgroundColor: '#1e3a5f',
                 color: '#faf9f6',
-                fontSize: 32,
+                fontSize: 24,
                 fontWeight: 600,
               }}
             >
@@ -254,38 +225,38 @@ export default async function Image({
           )}
         </div>
 
-        {/* Franja inferior informativa estilo ficha (200px) */}
+        {/* Franja inferior informativa (altura 128px) */}
         <div
           style={{
-            width: '1200px',
-            height: '200px',
+            width: '800px',
+            height: '128px',
             display: 'flex',
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '20px 36px',
+            padding: '12px 24px',
             backgroundColor: '#faf9f6',
           }}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '780px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '530px' }}>
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
-                marginBottom: '8px',
+                gap: '8px',
+                marginBottom: '4px',
               }}
             >
               <span
                 style={{
                   backgroundColor: '#1e3a5f',
                   color: '#ffffff',
-                  fontSize: '15px',
+                  fontSize: '11px',
                   fontWeight: 700,
-                  padding: '5px 14px',
+                  padding: '3px 10px',
                   borderRadius: '999px',
                   textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
+                  letterSpacing: '0.06em',
                 }}
               >
                 {property.type} en {property.operation}
@@ -293,29 +264,29 @@ export default async function Image({
               <span
                 style={{
                   color: '#C97B5A',
-                  fontSize: '15px',
+                  fontSize: '11px',
                   fontWeight: 700,
-                  letterSpacing: '0.15em',
+                  letterSpacing: '0.12em',
                   textTransform: 'uppercase',
                 }}
               >
-                SANDRA NIÑO • INVENTARIO EXCLUSIVO
+                SANDRA NIÑO
               </span>
             </div>
 
             <div
               style={{
-                fontSize: '34px',
+                fontSize: '22px',
                 fontWeight: 700,
                 color: '#1c1917',
                 lineHeight: 1.15,
-                marginBottom: '8px',
+                marginBottom: '4px',
               }}
             >
-              {property.title.length > 52 ? `${property.title.slice(0, 52)}...` : property.title}
+              {property.title.length > 44 ? `${property.title.slice(0, 44)}...` : property.title}
             </div>
 
-            <div style={{ fontSize: '20px', color: '#57534e', display: 'flex', gap: '16px' }}>
+            <div style={{ fontSize: '13px', color: '#57534e', display: 'flex', gap: '12px' }}>
               <span>📍 {locationText}</span>
               {areaText ? <span>📐 {areaText}</span> : null}
               {property.bedrooms ? <span>🛏️ {property.bedrooms} hab.</span> : null}
@@ -330,25 +301,25 @@ export default async function Image({
               alignItems: 'flex-end',
               justifyContent: 'center',
               backgroundColor: '#f5f1ea',
-              padding: '18px 28px',
-              borderRadius: '18px',
+              padding: '10px 18px',
+              borderRadius: '14px',
               border: '1px solid #e7e2da',
             }}
           >
             <span
               style={{
-                fontSize: '13px',
+                fontSize: '10px',
                 textTransform: 'uppercase',
-                letterSpacing: '0.18em',
+                letterSpacing: '0.14em',
                 color: '#78716c',
-                marginBottom: '4px',
+                marginBottom: '2px',
               }}
             >
-              PRECIO DE {property.operation.toUpperCase()}
+              {property.operation.toUpperCase()}
             </span>
             <span
               style={{
-                fontSize: '42px',
+                fontSize: '28px',
                 fontWeight: 800,
                 color: '#1e3a5f',
               }}
@@ -362,4 +333,3 @@ export default async function Image({
     { ...size }
   );
 }
-
