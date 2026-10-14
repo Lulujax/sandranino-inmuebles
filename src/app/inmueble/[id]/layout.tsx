@@ -14,7 +14,7 @@ export async function generateMetadata({
     const supabase = await createClient();
     const { data } = await supabase
       .from('inmuebles_publicos')
-      .select('id, title, operation, type, sector, city, state, description, price, built_area, land_area, total_area')
+      .select('id, title, operation, type, sector, city, state, description, price, built_area, land_area, total_area, images')
       .eq('id', id)
       .maybeSingle();
 
@@ -35,6 +35,7 @@ export async function generateMetadata({
 
     const title = `${property.title} — ${priceLabel}`;
     const description = `📍 ${locationLabel}${areaPart} | ${shortDesc}`;
+    const ogImageUrl = `/inmueble/${id}/opengraph-image`;
 
     return {
       title,
@@ -42,13 +43,24 @@ export async function generateMetadata({
       openGraph: {
         title,
         description,
+        url: `/inmueble/${id}`,
         type: 'website',
         siteName: 'Sandra Niño • Inventario Exclusivo',
+        images: [
+          {
+            url: ogImageUrl,
+            width: 1200,
+            height: 630,
+            alt: property.title,
+            type: 'image/jpeg',
+          },
+        ],
       },
       twitter: {
         card: 'summary_large_image',
         title,
         description,
+        images: [ogImageUrl],
       },
     };
   } catch {

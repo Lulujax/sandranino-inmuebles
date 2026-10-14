@@ -15,6 +15,9 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || 'https://sandranino-inmuebles.vercel.app'
+  ),
   title: 'Sandra Niño | Asesora Inmobiliaria',
   description:
     'Inventario inmobiliario exclusivo de Sandra Niño. Casas, apartamentos, galpones y terrenos en venta y alquiler en Carabobo, Venezuela.',

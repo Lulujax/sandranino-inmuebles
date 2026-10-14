@@ -8,7 +8,7 @@ export const size = {
   width: 1200,
   height: 630,
 };
-export const contentType = 'image/png';
+export const contentType = 'image/jpeg';
 
 export default async function Image({
   params,
@@ -60,8 +60,41 @@ export default async function Image({
       (img.startsWith('http://') ||
         img.startsWith('https://') ||
         img.startsWith('data:image/jpeg') ||
-        img.startsWith('data:image/png'))
+        img.startsWith('data:image/png') ||
+        img.startsWith('data:image/webp'))
   );
+
+  const firstImage = validImages[0];
+  if (firstImage && firstImage.startsWith('data:image/')) {
+    const match = firstImage.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/);
+    if (match) {
+      const mime = match[1];
+      const buffer = Buffer.from(match[2], 'base64');
+      return new Response(buffer, {
+        headers: {
+          'Content-Type': mime,
+          'Content-Length': String(buffer.length),
+          'Cache-Control': 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400',
+        },
+      });
+    }
+  }
+
+  if (firstImage && (firstImage.startsWith('http://') || firstImage.startsWith('https://'))) {
+    try {
+      const res = await fetch(firstImage);
+      if (res.ok) {
+        const arrayBuffer = await res.arrayBuffer();
+        const mime = res.headers.get('content-type') || 'image/jpeg';
+        return new Response(Buffer.from(arrayBuffer), {
+          headers: {
+            'Content-Type': mime,
+            'Cache-Control': 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400',
+          },
+        });
+      }
+    } catch {}
+  }
 
   const priceText = formatPrice(property.price, property.operation);
   const mainArea = getPropertyMainArea(property);
