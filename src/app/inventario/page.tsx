@@ -72,9 +72,9 @@ export default function InventarioPage() {
           return false;
         }
 
-        if (filters.maxPrice !== 'all') {
+        if (filters.maxPrice && filters.maxPrice !== 'all') {
           const max = Number(filters.maxPrice);
-          if (prop.price > max) return false;
+          if (Number.isFinite(max) && max > 0 && prop.price > max) return false;
         }
 
         return true;

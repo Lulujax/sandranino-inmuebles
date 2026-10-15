@@ -114,21 +114,43 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           </select>
         </div>
 
-        {/* 4. Precio Máximo */}
+        {/* 4. Precio Máximo (monto libre en USD) */}
         <div>
           <label className="block text-[11px] font-medium uppercase tracking-wider text-stone-600 mb-1.5 font-body">
-            Precio Máximo
+            Precio Máximo (USD)
           </label>
-          <select
-            value={filters.maxPrice}
-            onChange={(e) => handleChange('maxPrice', e.target.value)}
-            className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-[#faf9f6] border border-stone-200 rounded-xl text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all cursor-pointer"
-          >
-            <option value="all">Sin límite</option>
-            <option value="50000">Hasta $50,000</option>
-            <option value="100000">Hasta $100,000</option>
-            <option value="200000">Hasta $200,000</option>
-          </select>
+          <div className="relative">
+            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-stone-400 text-xs sm:text-sm font-body">
+              $
+            </span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={
+                filters.maxPrice === 'all'
+                  ? ''
+                  : new Intl.NumberFormat('en-US').format(Number(filters.maxPrice))
+              }
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                handleChange('maxPrice', digits || 'all');
+              }}
+              placeholder="Sin límite"
+              className="w-full pl-7 py-2.5 text-xs sm:text-sm bg-[#faf9f6] border border-stone-200 rounded-xl text-text-heading font-body placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all duration-200"
+              style={{ paddingRight: filters.maxPrice === 'all' ? '0.875rem' : '2rem' }}
+            />
+            {filters.maxPrice !== 'all' && (
+              <button
+                type="button"
+                onClick={() => handleChange('maxPrice', 'all')}
+                aria-label="Quitar límite de precio"
+                title="Quitar límite"
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-stone-400 hover:text-stone-600 transition-colors cursor-pointer"
+              >
+                <X size={14} strokeWidth={1.5} />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* 5. Ordenamiento */}

@@ -66,7 +66,7 @@ export interface FilterState {
   type: string; // 'Todos' or PropertyType
   operation: string; // 'Todas' or OperationType
   city: string; // 'Todas' or specific city
-  maxPrice: string; // e.g. '50000', '100000', '200000', 'all'
+  maxPrice: string; // monto máximo libre en USD (ej: '85000'), 'all' = sin límite
   sortBy: 'recent' | 'price_desc' | 'price_asc' | 'area_desc' | 'area_asc';
 }
 
