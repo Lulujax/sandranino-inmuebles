@@ -221,14 +221,27 @@ export default function MiPerfilPage() {
           data: { user },
         } = await supabase.auth.getUser();
         if (user) {
-          await supabase.from('perfil_asesor').upsert({
+          const cleanWhatsapp = whatsapp.replace(/\D/g, '') || currentProfile.whatsapp || '584241234567';
+          const cleanIg = cleanSocialHandle(instagram, 'instagram\\.com');
+          const cleanFb = cleanSocialHandle(facebook, 'facebook\\.com');
+
+          const { error } = await supabase.from('perfil_asesor').upsert({
             id: user.id,
-            full_name: fullName.trim(),
+            full_name: fullName.trim() || currentProfile.full_name || 'Sandra Niño',
             profile_photo_url: defaultPhoto,
+            whatsapp: cleanWhatsapp,
+            email: email.trim() || null,
+            instagram: cleanIg || null,
+            facebook: cleanFb || null,
             updated_at: new Date().toISOString(),
           });
+          if (error) {
+            console.error('Error al restablecer foto en Supabase:', error);
+          }
         }
-      } catch {}
+      } catch (err) {
+        console.error('Error de conexión al restablecer foto:', err);
+      }
     }
 
     toast('Fotografía restablecida a la imagen inicial', 'info');

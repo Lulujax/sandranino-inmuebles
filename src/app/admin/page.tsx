@@ -14,7 +14,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { Inmueble } from '@/lib/types';
-import { propertiesStore, INVENTORY_LIMIT } from '@/lib/properties';
+import { propertiesStore } from '@/lib/properties';
 import { formatPrice, formatDate } from '@/lib/utils';
 import { StatCard } from '@/components/admin/StatCard';
 import { Badge } from '@/components/ui/Badge';
@@ -93,7 +93,6 @@ export default function AdminDashboardPage() {
           <StatCard
             title="Total Inmuebles"
             value={totalProperties}
-            subtitle={`${totalProperties} de ${INVENTORY_LIMIT} cupos (${Math.round((totalProperties / INVENTORY_LIMIT) * 100)}%)`}
             icon={Home}
             iconBg="bg-[#1e3a5f]/8"
             iconColor="text-[#1e3a5f]"
