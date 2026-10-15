@@ -675,8 +675,8 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
           toast('⚠️ El título del inmueble es obligatorio', 'warning');
           return false;
         }
-        if (formData.title.length > 80) {
-          toast('⚠️ El título no puede exceder los 80 caracteres', 'warning');
+        if (formData.title.length > 200) {
+          toast('⚠️ El título no puede exceder los 200 caracteres', 'warning');
           return false;
         }
         if (formData.description.length > 1500) {
@@ -1536,7 +1536,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
               label="Título del Inmueble *"
               placeholder="Ej. Hermosa Casa Quinta en Conjunto Cerrado de San Diego"
               value={formData.title}
-              characterCount={{ current: formData.title.length, max: 80 }}
+              characterCount={{ current: formData.title.length, max: 200 }}
               onChange={(e) =>
                 updateForm((prev) => ({ ...prev, title: e.target.value }))
               }
