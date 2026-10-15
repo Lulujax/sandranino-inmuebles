@@ -55,7 +55,9 @@ export default function InventarioPage() {
           const matchCity = prop.city.toLowerCase().includes(q);
           const matchSector = prop.sector?.toLowerCase().includes(q) || false;
           const matchState = prop.state.toLowerCase().includes(q);
-          if (!matchTitle && !matchCity && !matchSector && !matchState) return false;
+          const matchCode = prop.internal_code?.toLowerCase().includes(q) || false;
+          if (!matchTitle && !matchCity && !matchSector && !matchState && !matchCode)
+            return false;
         }
 
         if (filters.type !== 'Todos' && prop.type !== filters.type) {

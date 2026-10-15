@@ -43,7 +43,6 @@ export function toPublicProperty(inmueble: Inmueble): Inmueble {
     owner_phone: _ownerPhone,
     contact_type: _contactType,
     notes: _notes,
-    internal_code: _internalCode,
     address,
     ...rest
   } = inmueble;
@@ -115,12 +114,25 @@ export const propertiesStore = {
 
   getPublic: async (): Promise<Inmueble[]> => {
     const supabase = createClient();
+
+    // Lectura directa de publicados (incluye el correlativo público de cada ficha)
     const { data, error } = await supabase
+      .from('inmuebles')
+      .select('*')
+      .eq('status', 'Publicado')
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      return ((data as Inmueble[]) || []).map(toPublicProperty);
+    }
+
+    // Respaldo: vista pública (por si la tabla no estuviera accesible)
+    const { data: viewData, error: viewError } = await supabase
       .from('inmuebles_publicos')
       .select('*')
       .order('created_at', { ascending: false });
-    if (error) throw error;
-    return (data as Inmueble[]) || [];
+    if (viewError) throw viewError;
+    return (viewData as Inmueble[]) || [];
   },
 
   getById: async (id: string): Promise<Inmueble | null> => {
@@ -141,13 +153,27 @@ export const propertiesStore = {
 
   getPublicById: async (id: string): Promise<Inmueble | null> => {
     const supabase = createClient();
+
+    // Lectura directa del publicado (incluye el correlativo público de la ficha)
     const { data, error } = await supabase
+      .from('inmuebles')
+      .select('*')
+      .eq('id', id)
+      .eq('status', 'Publicado')
+      .maybeSingle();
+
+    if (!error && data) {
+      return toPublicProperty(data as Inmueble);
+    }
+
+    // Respaldo: vista pública (por si la tabla no estuviera accesible)
+    const { data: viewData, error: viewError } = await supabase
       .from('inmuebles_publicos')
       .select('*')
       .eq('id', id)
       .maybeSingle();
-    if (error) throw error;
-    return (data as Inmueble) || null;
+    if (viewError) throw viewError;
+    return (viewData as Inmueble) || null;
   },
 
   save: async (inmueble: Partial<Inmueble>): Promise<Inmueble> => {

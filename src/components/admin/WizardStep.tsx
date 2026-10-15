@@ -58,10 +58,16 @@ import {
 import {
   WizardFormData,
   PropertyType,
+  PropertyStatus,
   Inmueble,
 } from '@/lib/types';
 import { ESTADOS_VENEZUELA, VENEZUELA } from '@/lib/venezuela';
-import { formatPrice, parseContactInfo, formatContactNameForSave } from '@/lib/utils';
+import {
+  formatPrice,
+  parseContactInfo,
+  formatContactNameForSave,
+  generateNextPropertyCode,
+} from '@/lib/utils';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { propertiesStore, INVENTORY_LIMIT } from '@/lib/properties';
@@ -203,6 +209,9 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [currentStep, setCurrentStep] = useState(1);
+  const isEditing = Boolean(editId);
+  const [maxStepReached, setMaxStepReached] = useState(isEditing ? 8 : 1);
+  const [existingStatus, setExistingStatus] = useState<PropertyStatus>('Publicado');
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [isProcessingImages, setIsProcessingImages] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<WizardFormData | null>(null);
@@ -215,6 +224,17 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
       .then((data) => setInventoryCount(data.length))
       .catch(() => setInventoryCount(0));
   }, []);
+
+  useEffect(() => {
+    if (editId) {
+      setMaxStepReached(8);
+      propertiesStore.getById(editId).then((existing) => {
+        if (existing?.status) {
+          setExistingStatus(existing.status);
+        }
+      });
+    }
+  }, [editId]);
 
   const isInventoryFull = !editId && inventoryCount >= INVENTORY_LIMIT;
 
@@ -697,7 +717,9 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep((prev) => Math.min(prev + 1, 8));
+      const next = Math.min(currentStep + 1, 8);
+      setMaxStepReached((prev) => Math.max(prev, next));
+      setCurrentStep(next);
     }
   };
 
@@ -705,8 +727,69 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
+  const handleStepClick = (targetStep: number) => {
+    if (targetStep === currentStep) return;
+
+    // Si nos movemos hacia adelante desde el paso actual, validamos el paso actual para evitar datos rotos
+    if (targetStep > currentStep) {
+      if (!validateStep(currentStep)) return;
+    }
+
+    setMaxStepReached((prev) => Math.max(prev, targetStep));
+    setCurrentStep(targetStep);
+  };
+
+  const validateAllSteps = (): boolean => {
+    for (let s = 1; s <= 7; s++) {
+      if (!validateStep(s)) {
+        setCurrentStep(s);
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleSaveChanges = async () => {
+    if (!validateAllSteps()) return;
+
+    if (isInventoryFull) {
+      toast(`⚠️ Has alcanzado el límite de ${INVENTORY_LIMIT} inmuebles de tu inventario.`, 'warning');
+      return;
+    }
+
+    try {
+      setIsProcessingImages(true);
+      const targetStatus = existingStatus || 'Publicado';
+      const payload = await createInmueblePayload(targetStatus);
+      await propertiesStore.save(payload);
+      storage.remove(STORAGE_KEYS.DRAFT);
+      toast('Inmueble actualizado con éxito', 'success');
+      router.push('/admin/inmuebles');
+    } catch {
+      toast('Error al guardar los cambios', 'error');
+    } finally {
+      setIsProcessingImages(false);
+    }
+  };
+
+  const resolveInternalCode = async (): Promise<string | undefined> => {
+    const manual = formData.internal_code.trim();
+    if (manual) return manual;
+
+    // Correlativo automático: SN-01, SN-02, SN-03... (siguiente número libre)
+    try {
+      const all = await propertiesStore.getAll();
+      const codes = all
+        .filter((p) => p.id !== editId)
+        .map((p) => p.internal_code);
+      return generateNextPropertyCode(codes);
+    } catch {
+      return undefined;
+    }
+  };
+
   const createInmueblePayload = async (
-    status: 'Borrador' | 'Publicado'
+    status: PropertyStatus
   ): Promise<Partial<Inmueble>> => {
     const now = new Date().toISOString();
     const existing = editId ? await propertiesStore.getById(editId) : null;
@@ -735,7 +818,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
       offices: formData.offices,
       price: formData.price || 0,
       currency: 'USD',
-      internal_code: formData.internal_code.trim() || undefined,
+      internal_code: await resolveInternalCode(),
       contact_type: formData.contact_type || 'Propietario',
       owner_name: formatContactNameForSave(formData.owner_name, formData.contact_type || 'Propietario') || undefined,
       owner_phone: formData.owner_phone.trim() || undefined,
@@ -833,6 +916,32 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
 
       {/* BARRA DE PROGRESO */}
       <div className="bg-[#faf9f6] p-5 sm:p-7 rounded-2xl border border-stone-200/80 shadow-card">
+        {/* Banner de Modo Edición Rápida */}
+        {isEditing && (
+          <div className="flex flex-wrap items-center justify-between gap-2.5 mb-5 pb-4 border-b border-stone-200/70">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/70">
+                <FileEdit size={13} strokeWidth={1.5} />
+                <span>Navegación libre por pasos</span>
+              </span>
+              <span className="text-xs text-stone-600 hidden sm:inline font-body">
+                Haz clic directo en cualquier punto (ej. 7 Precio o 5 Fotos) para editarlo sin efecto cascada.
+              </span>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={handleSaveChanges}
+              disabled={isProcessingImages}
+              className="gap-1.5 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 shadow-2xs font-medium cursor-pointer"
+            >
+              <Check size={14} strokeWidth={2} />
+              <span>Guardar cambios</span>
+            </Button>
+          </div>
+        )}
+
         {/* Versión Desktop: círculos numerados conectados con líneas finas */}
         <div className="hidden md:flex items-center justify-between relative px-2">
           {/* Línea conectora fina */}
@@ -842,43 +951,61 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
             const stepNumber = index + 1;
             const isCompleted = stepNumber < currentStep;
             const isCurrent = stepNumber === currentStep;
+            const isClickable = isEditing || stepNumber <= maxStepReached;
 
             return (
-              <div key={title} className="relative z-10 flex flex-col items-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (stepNumber < currentStep) setCurrentStep(stepNumber);
-                  }}
-                  className={`w-8.5 h-8.5 rounded-full flex items-center justify-center text-xs font-medium font-body transition-all duration-200 ${
-                    isCompleted
-                      ? 'bg-emerald-700 text-white shadow-xs cursor-pointer hover:bg-emerald-800'
-                      : isCurrent
-                      ? 'bg-[#1e3a5f] text-white ring-4 ring-brand/15 shadow-sm scale-110'
-                      : 'bg-white border border-stone-300 text-stone-400 cursor-not-allowed'
+              <button
+                key={title}
+                type="button"
+                disabled={!isClickable}
+                onClick={() => isClickable && handleStepClick(stepNumber)}
+                title={
+                  isClickable
+                    ? `Ir directamente al Paso ${stepNumber}: ${title}`
+                    : `Completa los pasos anteriores para desbloquear este paso`
+                }
+                className={`group relative z-10 flex flex-col items-center focus:outline-none transition-all duration-150 ${
+                  isClickable
+                    ? 'cursor-pointer hover:-translate-y-0.5'
+                    : 'cursor-not-allowed opacity-40'
+                }`}
+              >
+                <div
+                  className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold font-body transition-all duration-200 ${
+                    isCurrent
+                      ? 'bg-[#1e3a5f] text-white ring-4 ring-[#1e3a5f]/15 shadow-sm scale-110'
+                      : isCompleted && !isEditing
+                      ? 'bg-emerald-700 text-white shadow-xs group-hover:bg-emerald-800'
+                      : isClickable
+                      ? 'bg-white border-2 border-stone-300 text-stone-700 shadow-2xs group-hover:border-[#1e3a5f] group-hover:text-[#1e3a5f] group-hover:bg-[#1e3a5f]/5'
+                      : 'bg-white border border-stone-300 text-stone-400'
                   }`}
                 >
-                  {isCompleted ? <Check size={16} strokeWidth={1.5} /> : stepNumber}
-                </button>
+                  {isCompleted && !isEditing ? (
+                    <Check size={16} strokeWidth={2} />
+                  ) : (
+                    stepNumber
+                  )}
+                </div>
                 <span
                   className={`text-[11px] font-body uppercase tracking-wider mt-2 whitespace-nowrap transition-colors ${
                     isCurrent
-                      ? 'text-brand font-semibold'
-                      : isCompleted
-                      ? 'text-emerald-800 font-medium'
+                      ? 'text-[#1e3a5f] font-bold'
+                      : isClickable
+                      ? 'text-stone-600 group-hover:text-[#1e3a5f] font-medium'
                       : 'text-stone-400'
                   }`}
                 >
                   {title}
                 </span>
-              </div>
+              </button>
             );
           })}
         </div>
 
-        {/* Versión Mobile: 'Paso X de 8: Nombre' + barra horizontal animada */}
+        {/* Versión Mobile: 'Paso X de 8: Nombre' + barra horizontal animada + selector rápido táctil */}
         <div className="md:hidden">
-          <div className="flex items-center justify-between mb-2.5">
+          <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] font-medium text-[#C97B5A] uppercase tracking-[0.2em] font-body">
               Paso {currentStep} de 8
             </span>
@@ -886,11 +1013,47 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
               {STEP_TITLES[currentStep - 1]}
             </span>
           </div>
-          <div className="w-full bg-[#f5f1ea] h-2 rounded-full overflow-hidden">
+          <div className="w-full bg-[#f5f1ea] h-2 rounded-full overflow-hidden mb-3">
             <div
               className="bg-[#1e3a5f] h-full rounded-full transition-all duration-300 ease-editorial"
               style={{ width: `${(currentStep / 8) * 100}%` }}
             />
+          </div>
+
+          {/* Selector rápido horizontal deslizable en móvil */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-2 px-2 scrollbar-none">
+            {STEP_TITLES.map((title, index) => {
+              const stepNumber = index + 1;
+              const isCurrent = stepNumber === currentStep;
+              const isClickable = isEditing || stepNumber <= maxStepReached;
+
+              return (
+                <button
+                  key={title}
+                  type="button"
+                  disabled={!isClickable}
+                  onClick={() => isClickable && handleStepClick(stepNumber)}
+                  className={`shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium font-body transition-all duration-150 flex items-center gap-1.5 ${
+                    isCurrent
+                      ? 'bg-[#1e3a5f] text-white shadow-xs'
+                      : isClickable
+                      ? 'bg-white border border-stone-200 text-stone-700 active:bg-stone-100'
+                      : 'bg-stone-100/60 border border-stone-200/50 text-stone-400 opacity-40 cursor-not-allowed'
+                  }`}
+                >
+                  <span
+                    className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-bold ${
+                      isCurrent
+                        ? 'bg-white/25 text-white'
+                        : 'bg-stone-100 text-stone-600'
+                    }`}
+                  >
+                    {stepNumber}
+                  </span>
+                  <span>{title}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -1595,16 +1758,16 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
               <div className="flex items-center gap-1.5 mb-1">
                 <Hash size={14} strokeWidth={1.5} className="text-[#C97B5A]" />
                 <span className="text-xs font-medium uppercase tracking-wider text-stone-700 font-body">
-                  Código Interno (opcional)
+                  Código / Referencia (opcional)
                 </span>
               </div>
               <Input
-                placeholder="Ej. SN-V-01"
+                placeholder="Automático: SN-01, SN-02..."
                 value={formData.internal_code}
                 onChange={(e) =>
                   updateForm((prev) => ({ ...prev, internal_code: e.target.value }))
                 }
-                helperText="Solo para tu control interno de expedientes."
+                helperText="Correlativo público que verá el cliente en la ficha. Si lo dejas vacío, se asigna automáticamente al guardar."
               />
             </div>
 
@@ -1879,26 +2042,39 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
         )}
 
         <div className="grid grid-cols-2 sm:flex sm:items-center gap-2.5 w-full sm:w-auto">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={handleSaveDraft}
-            disabled={isProcessingImages || isInventoryFull}
-            title={isInventoryFull ? `Límite de ${INVENTORY_LIMIT} inmuebles alcanzado` : undefined}
-            className="gap-1.5 text-xs sm:text-sm px-3 sm:px-4 justify-center"
-          >
-            <FileEdit size={15} strokeWidth={1.5} />
-            <span className="truncate">Guardar borrador</span>
-          </Button>
+          {isEditing ? (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleSaveChanges}
+              disabled={isProcessingImages}
+              className="gap-1.5 text-xs sm:text-sm px-3 sm:px-4 justify-center text-emerald-800 border-emerald-300/80 bg-emerald-50 hover:bg-emerald-100/80 cursor-pointer shadow-2xs"
+            >
+              <Check size={15} strokeWidth={2} />
+              <span className="truncate">Guardar cambios</span>
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleSaveDraft}
+              disabled={isProcessingImages || isInventoryFull}
+              title={isInventoryFull ? `Límite de ${INVENTORY_LIMIT} inmuebles alcanzado` : undefined}
+              className="gap-1.5 text-xs sm:text-sm px-3 sm:px-4 justify-center"
+            >
+              <FileEdit size={15} strokeWidth={1.5} />
+              <span className="truncate">Guardar borrador</span>
+            </Button>
+          )}
 
           {currentStep === 8 ? (
             <Button
               type="button"
               variant="primary"
-              onClick={handlePublish}
+              onClick={isEditing ? handleSaveChanges : handlePublish}
               disabled={isProcessingImages || isInventoryFull}
               title={isInventoryFull ? `Límite de ${INVENTORY_LIMIT} inmuebles alcanzado` : undefined}
-              className="gap-1.5 bg-emerald-700 hover:bg-emerald-800 focus:ring-emerald-600 text-xs sm:text-sm px-3 sm:px-4 justify-center"
+              className="gap-1.5 bg-emerald-700 hover:bg-emerald-800 focus:ring-emerald-600 text-xs sm:text-sm px-3 sm:px-4 justify-center cursor-pointer shadow-sm"
             >
               {isProcessingImages ? (
                 <>
@@ -1907,8 +2083,8 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
                 </>
               ) : (
                 <>
-                  <Check size={16} strokeWidth={1.5} />
-                  <span>Publicar</span>
+                  <Check size={16} strokeWidth={2} />
+                  <span>{isEditing ? 'Guardar y Finalizar' : 'Publicar'}</span>
                 </>
               )}
             </Button>
@@ -1918,7 +2094,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
               variant="primary"
               onClick={handleNext}
               disabled={isProcessingImages}
-              className="gap-1.5 group text-xs sm:text-sm px-3 sm:px-4 justify-center"
+              className="gap-1.5 group text-xs sm:text-sm px-3 sm:px-4 justify-center cursor-pointer"
             >
               {isProcessingImages ? (
                 <>

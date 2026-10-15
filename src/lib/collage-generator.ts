@@ -308,7 +308,12 @@ export async function generatePropertyCollage(
   // Código / Ref inferior izquierda
   ctx.fillStyle = '#A8A29E';
   ctx.font = '500 14px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
-  ctx.fillText(`Ficha: sandranino-inmuebles.vercel.app  •  Century21 A1`, textX, footerY + 200);
+  const refPrefix = property.internal_code ? `Ref: ${property.internal_code}  •  ` : '';
+  ctx.fillText(
+    `${refPrefix}Ficha: sandranino-inmuebles.vercel.app  •  Century21 A1`,
+    textX,
+    footerY + 200
+  );
 
   // 6. Convertir a Blob y File
   return new Promise((resolve, reject) => {

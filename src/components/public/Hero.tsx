@@ -13,9 +13,10 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { FaWhatsapp, FaInstagram, FaFacebook } from 'react-icons/fa';
+import { FaWhatsapp, FaInstagram, FaFacebook, FaTiktok } from 'react-icons/fa';
 import { PerfilAsesor } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
+import { getSocialProfileUrl, normalizeWhatsAppPhone } from '@/lib/utils';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { FadeInUp } from '@/components/ui/FadeInUp';
@@ -53,9 +54,10 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
             ...data,
             full_name: data.full_name?.replace(/Nino/g, 'Niño') || prev.full_name,
             profile_photo_url: data.profile_photo_url || prev.profile_photo_url || '/images/sandra-nino-hero.png',
-            instagram: data.instagram || prev.instagram || 'sandranino.inmuebles',
-            facebook: data.facebook || prev.facebook || 'sandranino.asesora',
-            email: data.email || prev.email || 'sandra.nino@gmail.com',
+            instagram: data.instagram || prev.instagram || 'https://www.instagram.com/sandranino_century21a1',
+            facebook: data.facebook || prev.facebook || 'https://www.facebook.com/consorcio.vergara.1',
+            tiktok: data.tiktok || prev.tiktok || 'https://www.tiktok.com/@inmuebles_carabobo_sandr',
+            email: data.email || prev.email || 'asesorsandranino@gmail.com',
           }));
         }
       });
@@ -67,7 +69,7 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
   }, []);
 
   const advisorName = asesor.full_name?.replace(/Nino/g, 'Niño') || 'Sandra Niño';
-  const cleanWhatsapp = asesor.whatsapp.replace(/\D/g, '');
+  const cleanWhatsapp = normalizeWhatsAppPhone(asesor.whatsapp);
   const whatsappUrl = `https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(
     'Hola Sandra, vi tu inventario de inmuebles exclusivos y me gustaría recibir asesoría.'
   )}`;
@@ -77,9 +79,16 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
   const whatsappSellUrl = `https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(
     'Hola Sandra, tengo una propiedad que deseo vender en Carabobo y quisiera una valoración de mercado.'
   )}`;
-  const instagramHandle = asesor.instagram || 'sandranino.inmuebles';
-  const facebookHandle = asesor.facebook || 'sandranino.asesora';
-  const emailAddress = asesor.email || 'sandra.nino@gmail.com';
+  const instagramUrl =
+    getSocialProfileUrl('instagram', asesor.instagram) ||
+    'https://www.instagram.com/sandranino_century21a1';
+  const facebookUrl =
+    getSocialProfileUrl('facebook', asesor.facebook) ||
+    'https://www.facebook.com/consorcio.vergara.1';
+  const tiktokUrl =
+    getSocialProfileUrl('tiktok', asesor.tiktok) ||
+    'https://www.tiktok.com/@inmuebles_carabobo_sandr';
+  const emailAddress = asesor.email || 'asesorsandranino@gmail.com';
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] text-text-body font-body selection:bg-terracotta/20 selection:text-text-heading">
@@ -218,10 +227,10 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
                   </a>
                 </div>
 
-                {/* Íconos de redes sociales y correo (siempre visibles con Instagram, Facebook y Correo) */}
+                {/* Íconos de redes sociales y correo (siempre visibles con Instagram, Facebook, TikTok y Correo) */}
                 <div className="mt-6 flex items-center justify-center md:justify-start gap-3">
                   <a
-                    href={`https://instagram.com/${instagramHandle.replace(/^@/, '')}`}
+                    href={instagramUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     title="Instagram de Sandra Niño"
@@ -232,7 +241,7 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
                   </a>
 
                   <a
-                    href={`https://facebook.com/${facebookHandle}`}
+                    href={facebookUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     title="Facebook de Sandra Niño"
@@ -240,6 +249,17 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
                     className="w-10 h-10 rounded-xl bg-white border border-stone-200/80 text-brand hover:bg-brand hover:text-white flex items-center justify-center shadow-2xs transition-all duration-200 hover:-translate-y-0.5"
                   >
                     <FaFacebook size={18} />
+                  </a>
+
+                  <a
+                    href={tiktokUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="TikTok de Sandra Niño"
+                    aria-label="TikTok"
+                    className="w-10 h-10 rounded-xl bg-white border border-stone-200/80 text-stone-900 hover:bg-stone-900 hover:text-white flex items-center justify-center shadow-2xs transition-all duration-200 hover:-translate-y-0.5"
+                  >
+                    <FaTiktok size={17} />
                   </a>
 
                   <a

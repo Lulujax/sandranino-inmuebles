@@ -51,10 +51,11 @@ export interface PerfilAsesor {
   id: string;
   full_name: string;
   profile_photo_url?: string;
-  whatsapp: string; // formato internacional e.g. 584241234567
+  whatsapp: string; // formato local (04244960102) o internacional (584244960102)
   email?: string;
   instagram?: string;
   facebook?: string;
+  tiktok?: string;
   hero_text?: string;
   created_at?: string;
   updated_at?: string;

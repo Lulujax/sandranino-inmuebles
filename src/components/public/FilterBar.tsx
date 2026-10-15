@@ -52,7 +52,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           type="text"
           value={filters.searchQuery}
           onChange={(e) => handleChange('searchQuery', e.target.value)}
-          placeholder="Buscar por título, municipio, sector, urbanización..."
+          placeholder="Buscar por título, referencia (SN-01), municipio o sector..."
           className="w-full pl-11 pr-4 py-3 bg-[#f5f1ea]/50 border border-stone-200 rounded-xl text-sm text-text-heading placeholder-stone-400 font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all duration-200"
         />
       </div>

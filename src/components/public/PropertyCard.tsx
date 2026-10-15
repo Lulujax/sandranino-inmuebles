@@ -50,6 +50,15 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, index = 0 
               {property.type} en {property.operation}
             </Badge>
           </div>
+
+          {/* Correlativo público discreto */}
+          {property.internal_code && (
+            <div className="absolute top-3.5 right-3.5 z-10">
+              <span className="inline-block text-[10px] font-mono font-medium tracking-wide px-2 py-1 rounded-md bg-black/35 text-white/95 backdrop-blur-xs">
+                Ref {property.internal_code}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Contenido Editorial */}

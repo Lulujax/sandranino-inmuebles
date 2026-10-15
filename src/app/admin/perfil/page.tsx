@@ -13,9 +13,10 @@ import {
   RotateCcw,
   Sparkles,
 } from 'lucide-react';
-import { FaWhatsapp, FaInstagram, FaFacebook } from 'react-icons/fa';
+import { FaWhatsapp, FaInstagram, FaFacebook, FaTiktok } from 'react-icons/fa';
 import { MOCK_ASESOR } from '@/data/mock-properties';
 import { PerfilAsesor } from '@/lib/types';
+import { getSocialProfileUrl, normalizeWhatsAppPhone } from '@/lib/utils';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { propertiesStore, calculateInventoryCapacity } from '@/lib/properties';
 import { storage } from '@/lib/storage';
@@ -40,6 +41,7 @@ export default function MiPerfilPage() {
   const [email, setEmail] = useState(MOCK_ASESOR.email || '');
   const [instagram, setInstagram] = useState(MOCK_ASESOR.instagram || '');
   const [facebook, setFacebook] = useState(MOCK_ASESOR.facebook || '');
+  const [tiktok, setTiktok] = useState(MOCK_ASESOR.tiktok || '');
 
   // Adaptador y recorte de fotografía
   const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
@@ -75,6 +77,7 @@ export default function MiPerfilPage() {
       setEmail(savedProfile.email || '');
       setInstagram(savedProfile.instagram || '');
       setFacebook(savedProfile.facebook || '');
+      setTiktok(savedProfile.tiktok || '');
     }
 
     if (isSupabaseConfigured()) {
@@ -95,18 +98,11 @@ export default function MiPerfilPage() {
             setEmail(p.email || '');
             setInstagram(p.instagram || '');
             setFacebook(p.facebook || '');
+            setTiktok(p.tiktok || '');
           }
         });
     }
   }, []);
-
-  const cleanSocialHandle = (val: string, domain: string): string => {
-    return val
-      .trim()
-      .replace(new RegExp(`^https?:\\/\\/(www\\.)?${domain}\\/`, 'i'), '')
-      .replace(/^@/, '')
-      .replace(/\/+$/, '');
-  };
 
   // Manejo de selección de archivo con validación estricta de píxeles mínimos
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,9 +151,10 @@ export default function MiPerfilPage() {
     setProfilePhotoUrl(newPhotoUrl);
 
     const currentProfile = storage.get<PerfilAsesor | null>(STORAGE_KEYS.PROFILE, null) || MOCK_ASESOR;
-    const cleanWhatsapp = whatsapp.replace(/\D/g, '');
-    const cleanIg = cleanSocialHandle(instagram, 'instagram\\.com');
-    const cleanFb = cleanSocialHandle(facebook, 'facebook\\.com');
+    const cleanWhatsapp = normalizeWhatsAppPhone(whatsapp);
+    const cleanIg = getSocialProfileUrl('instagram', instagram) || '';
+    const cleanFb = getSocialProfileUrl('facebook', facebook) || '';
+    const cleanTk = getSocialProfileUrl('tiktok', tiktok) || '';
 
     const updated: PerfilAsesor = {
       ...currentProfile,
@@ -167,6 +164,7 @@ export default function MiPerfilPage() {
       email: email.trim(),
       instagram: cleanIg,
       facebook: cleanFb,
+      tiktok: cleanTk,
       updated_at: new Date().toISOString(),
     };
 
@@ -188,6 +186,7 @@ export default function MiPerfilPage() {
             email: email.trim() || null,
             instagram: cleanIg || null,
             facebook: cleanFb || null,
+            tiktok: cleanTk || null,
             updated_at: new Date().toISOString(),
           });
         }
@@ -221,9 +220,11 @@ export default function MiPerfilPage() {
           data: { user },
         } = await supabase.auth.getUser();
         if (user) {
-          const cleanWhatsapp = whatsapp.replace(/\D/g, '') || currentProfile.whatsapp || '584241234567';
-          const cleanIg = cleanSocialHandle(instagram, 'instagram\\.com');
-          const cleanFb = cleanSocialHandle(facebook, 'facebook\\.com');
+          const cleanWhatsapp =
+            normalizeWhatsAppPhone(whatsapp) || currentProfile.whatsapp || '584244960102';
+          const cleanIg = getSocialProfileUrl('instagram', instagram) || '';
+          const cleanFb = getSocialProfileUrl('facebook', facebook) || '';
+          const cleanTk = getSocialProfileUrl('tiktok', tiktok) || '';
 
           const { error } = await supabase.from('perfil_asesor').upsert({
             id: user.id,
@@ -233,6 +234,7 @@ export default function MiPerfilPage() {
             email: email.trim() || null,
             instagram: cleanIg || null,
             facebook: cleanFb || null,
+            tiktok: cleanTk || null,
             updated_at: new Date().toISOString(),
           });
           if (error) {
@@ -255,18 +257,20 @@ export default function MiPerfilPage() {
       return;
     }
 
-    const cleanWhatsapp = whatsapp.replace(/\D/g, '');
+    const cleanWhatsapp = normalizeWhatsAppPhone(whatsapp);
     if (!cleanWhatsapp) {
       toast('El número de WhatsApp es obligatorio', 'warning');
       return;
     }
 
-    const cleanIg = cleanSocialHandle(instagram, 'instagram\\.com');
-    const cleanFb = cleanSocialHandle(facebook, 'facebook\\.com');
+    const cleanIg = getSocialProfileUrl('instagram', instagram) || '';
+    const cleanFb = getSocialProfileUrl('facebook', facebook) || '';
+    const cleanTk = getSocialProfileUrl('tiktok', tiktok) || '';
 
     setWhatsapp(cleanWhatsapp);
     setInstagram(cleanIg);
     setFacebook(cleanFb);
+    setTiktok(cleanTk);
 
     const updatedProfile: PerfilAsesor = {
       ...MOCK_ASESOR,
@@ -276,6 +280,7 @@ export default function MiPerfilPage() {
       email: email.trim(),
       instagram: cleanIg,
       facebook: cleanFb,
+      tiktok: cleanTk,
       updated_at: new Date().toISOString(),
     };
 
@@ -297,6 +302,7 @@ export default function MiPerfilPage() {
             email: email.trim() || null,
             instagram: cleanIg || null,
             facebook: cleanFb || null,
+            tiktok: cleanTk || null,
             updated_at: new Date().toISOString(),
           });
           if (error) {
@@ -490,7 +496,9 @@ export default function MiPerfilPage() {
           <div className="p-4 rounded-xl bg-[#f9ede7] border border-[#C97B5A]/30 flex items-start gap-3">
             <FaWhatsapp size={19} className="text-[#1d6447] shrink-0 mt-0.5" />
             <p className="text-xs sm:text-sm text-stone-800 leading-relaxed font-body">
-              El número de WhatsApp es el canal principal para recibir prospectos de compradores e interesados en cada una de tus fichas inmobiliarias.
+              El número de WhatsApp es el canal principal para recibir prospectos de compradores e
+              interesados en cada una de tus fichas inmobiliarias. Tus demás redes sociales
+              aparecerán como opciones de contacto alternas en la página pública de cada inmueble.
             </p>
           </div>
 
@@ -500,11 +508,11 @@ export default function MiPerfilPage() {
               <span>WhatsApp (obligatorio) *</span>
             </div>
             <Input
-              placeholder="584241234567"
+              placeholder="04244960102"
               value={whatsapp}
               onChange={(e) => setWhatsapp(e.target.value)}
               required
-              helperText="Formato internacional sin el símbolo +, ej: 584241234567"
+              helperText="Formato local (04244960102) o internacional (584244960102), sin el símbolo +"
             />
           </div>
 
@@ -528,10 +536,10 @@ export default function MiPerfilPage() {
               <span>Instagram (opcional)</span>
             </div>
             <Input
-              placeholder="sandranino.inmuebles"
+              placeholder="https://www.instagram.com/sandranino_century21a1"
               value={instagram}
               onChange={(e) => setInstagram(e.target.value)}
-              helperText="Tu usuario en Instagram sin @"
+              helperText="Pega el enlace completo de tu perfil (o solo el usuario, sin @)"
             />
           </div>
 
@@ -541,10 +549,23 @@ export default function MiPerfilPage() {
               <span>Facebook (opcional)</span>
             </div>
             <Input
-              placeholder="sandranino.asesora"
+              placeholder="https://www.facebook.com/consorcio.vergara.1"
               value={facebook}
               onChange={(e) => setFacebook(e.target.value)}
-              helperText="Nombre de tu página o perfil profesional en Facebook"
+              helperText="Pega el enlace completo de tu página o perfil profesional"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-stone-700">
+              <FaTiktok size={14} className="text-stone-900" />
+              <span>TikTok (opcional)</span>
+            </div>
+            <Input
+              placeholder="https://www.tiktok.com/@inmuebles_carabobo_sandr"
+              value={tiktok}
+              onChange={(e) => setTiktok(e.target.value)}
+              helperText="Pega el enlace completo de tu perfil (o solo el usuario, sin @)"
             />
           </div>
         </FadeInUp>

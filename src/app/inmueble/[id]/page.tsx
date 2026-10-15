@@ -18,8 +18,10 @@ import {
   Bed,
   Bath,
   Car,
+  Mail,
+  Hash,
 } from 'lucide-react';
-import { FaWhatsapp } from 'react-icons/fa';
+import { FaWhatsapp, FaInstagram, FaFacebook, FaTiktok } from 'react-icons/fa';
 import { MOCK_ASESOR } from '@/data/mock-properties';
 import { Inmueble, PerfilAsesor, PropertyType } from '@/lib/types';
 import { propertiesStore, toPublicProperty } from '@/lib/properties';
@@ -31,6 +33,7 @@ import {
   formatArea,
   getPropertyMainArea,
   getWhatsAppInquiryLink,
+  getSocialProfileUrl,
 } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
 import { PropertyGallery } from '@/components/public/PropertyGallery';
@@ -157,8 +160,23 @@ export default function PropertyDetailPage() {
   const whatsappLink = getWhatsAppInquiryLink(
     asesor.whatsapp,
     property.title,
-    property.price
+    property.price,
+    property.internal_code
   );
+
+  const instagramUrl = getSocialProfileUrl(
+    'instagram',
+    asesor.instagram || MOCK_ASESOR.instagram
+  );
+  const facebookUrl = getSocialProfileUrl(
+    'facebook',
+    asesor.facebook || MOCK_ASESOR.facebook
+  );
+  const tiktokUrl = getSocialProfileUrl(
+    'tiktok',
+    asesor.tiktok || MOCK_ASESOR.tiktok
+  );
+  const emailAddress = (asesor.email || MOCK_ASESOR.email || '').trim();
 
   const TypeIcon = getPropertyTypeIcon(property.type);
   const OperationIcon = property.operation === 'Venta' ? Tag : KeyRound;
@@ -217,6 +235,11 @@ export default function PropertyDetailPage() {
               {property.sector ? `${property.sector}, ` : ''}
               {property.city}, {property.state}
             </span>
+            {property.internal_code && (
+              <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-white border border-stone-200/90 text-stone-500">
+                Ref: {property.internal_code}
+              </span>
+            )}
           </div>
 
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2">
@@ -314,18 +337,82 @@ export default function PropertyDetailPage() {
                   ¿Deseas visitar este inmueble?
                 </h3>
                 <p className="text-xs sm:text-sm text-stone-600 mt-1.5 leading-relaxed font-body">
-                  Escríbeme directamente por WhatsApp para coordinar una cita privada o resolver inquietudes legales y técnicas.
+                  Escríbeme directamente por WhatsApp o por cualquiera de mis redes sociales para
+                  coordinar una cita privada o resolver inquietudes legales y técnicas.
                 </p>
               </div>
-              <a
-                href={whatsappLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full inline-flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl bg-[#1d6447] hover:bg-[#164e37] text-white font-body font-semibold text-sm tracking-wide shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 cursor-pointer"
-              >
-                <FaWhatsapp size={20} className="shrink-0" />
-                <span>Contactar a Sandra por WhatsApp</span>
-              </a>
+              <div className="space-y-3">
+                <a
+                  href={whatsappLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl bg-[#1d6447] hover:bg-[#164e37] text-white font-body font-semibold text-sm tracking-wide shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 cursor-pointer"
+                >
+                  <FaWhatsapp size={20} className="shrink-0" />
+                  <span>Contactar a Sandra por WhatsApp</span>
+                </a>
+
+                {(instagramUrl || facebookUrl || tiktokUrl || emailAddress) && (
+                  <div className="pt-3 border-t border-stone-200/70 space-y-2.5">
+                    <span className="text-[10px] font-body font-medium uppercase tracking-[0.18em] text-stone-400 block">
+                      O encuéntrame en
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      {instagramUrl && (
+                        <a
+                          href={instagramUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="Instagram de Sandra"
+                          className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white border border-stone-200/90 text-stone-700 hover:text-white hover:bg-[#C13584] hover:border-[#C13584] text-xs font-medium font-body transition-all duration-150 shadow-2xs"
+                        >
+                          <FaInstagram size={14} className="shrink-0" />
+                          <span>Instagram</span>
+                        </a>
+                      )}
+
+                      {facebookUrl && (
+                        <a
+                          href={facebookUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="Facebook de Sandra"
+                          className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white border border-stone-200/90 text-stone-700 hover:text-white hover:bg-[#1877F2] hover:border-[#1877F2] text-xs font-medium font-body transition-all duration-150 shadow-2xs"
+                        >
+                          <FaFacebook size={14} className="shrink-0" />
+                          <span>Facebook</span>
+                        </a>
+                      )}
+
+                      {tiktokUrl && (
+                        <a
+                          href={tiktokUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="TikTok de Sandra"
+                          className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white border border-stone-200/90 text-stone-700 hover:text-white hover:bg-[#010101] hover:border-[#010101] text-xs font-medium font-body transition-all duration-150 shadow-2xs"
+                        >
+                          <FaTiktok size={13} className="shrink-0" />
+                          <span>TikTok</span>
+                        </a>
+                      )}
+
+                      {emailAddress && (
+                        <a
+                          href={`mailto:${emailAddress}?subject=${encodeURIComponent(
+                            `Consulta sobre: ${property.title}`
+                          )}`}
+                          aria-label="Correo electrónico de Sandra"
+                          className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white border border-stone-200/90 text-stone-700 hover:text-white hover:bg-[#C97B5A] hover:border-[#C97B5A] text-xs font-medium font-body transition-all duration-150 shadow-2xs"
+                        >
+                          <Mail size={14} strokeWidth={1.5} className="shrink-0" />
+                          <span>Correo</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             <ShareButtons property={property} />
@@ -351,6 +438,15 @@ export default function PropertyDetailPage() {
                 {property.city}, {property.state}
               </span>
             </div>
+            {property.internal_code && (
+              <div className="flex items-center gap-3 text-stone-700 bg-white/70 p-3.5 rounded-xl border border-stone-200/60">
+                <Hash size={18} strokeWidth={1.5} className="text-[#C97B5A] shrink-0" />
+                <span>
+                  <strong className="text-text-heading font-medium">Referencia:</strong>{' '}
+                  {property.internal_code}
+                </span>
+              </div>
+            )}
             {property.show_exact_location && property.address && (
               <div className="flex items-center gap-3 text-stone-700 bg-white/70 p-3.5 rounded-xl border border-stone-200/60">
                 <MapPin size={18} strokeWidth={1.5} className="text-[#C97B5A] shrink-0" />

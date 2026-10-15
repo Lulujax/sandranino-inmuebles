@@ -42,16 +42,82 @@ export function formatDate(dateString: string): string {
 }
 
 /**
+ * Normaliza un número venezolano al formato internacional requerido por wa.me
+ * Acepta tanto formato local (04244960102) como internacional (584244960102)
+ */
+export function normalizeWhatsAppPhone(phone: string): string {
+  let clean = (phone || '').replace(/\D/g, '');
+  if (clean.startsWith('0')) {
+    clean = `58${clean.replace(/^0+/, '')}`;
+  }
+  return clean;
+}
+
+/**
+ * Genera el siguiente correlativo público de inmueble (ej: SN-06) tomando como
+ * base el número más alto encontrado en los códigos existentes.
+ */
+export function generateNextPropertyCode(
+  existingCodes: (string | null | undefined)[]
+): string {
+  let max = 0;
+  for (const code of existingCodes) {
+    if (!code) continue;
+    const matches = code.match(/\d+/g);
+    if (!matches) continue;
+    for (const group of matches) {
+      const n = parseInt(group, 10);
+      if (Number.isFinite(n) && n > max) max = n;
+    }
+  }
+  return `SN-${String(max + 1).padStart(2, '0')}`;
+}
+
+/**
  * Genera el enlace de WhatsApp oficial de Sandra con mensaje predeterminado
  */
 export function getWhatsAppInquiryLink(
   phone: string,
   propertyTitle: string,
-  price: number
+  price: number,
+  code?: string
 ): string {
-  const cleanPhone = phone.replace(/\D/g, '');
-  const message = `Hola Sandra, estoy interesado en el inmueble "${propertyTitle}" (${formatPrice(price)}) que vi en tu página. ¿Sigue disponible?`;
+  const cleanPhone = normalizeWhatsAppPhone(phone);
+  const refText = code ? ` (Ref: ${code})` : '';
+  const message = `Hola Sandra, estoy interesado en el inmueble "${propertyTitle}"${refText} (${formatPrice(price)}) que vi en tu página. ¿Sigue disponible?`;
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+}
+
+/**
+ * Convierte lo que se tenga guardado en el perfil (enlace completo o usuario)
+ * en la URL oficial y funcional de cada red social.
+ */
+export function getSocialProfileUrl(
+  platform: 'instagram' | 'facebook' | 'tiktok',
+  value?: string | null
+): string | null {
+  const raw = (value || '').trim();
+  if (!raw) return null;
+
+  const domains: Record<typeof platform, string> = {
+    instagram: 'instagram\\.com',
+    facebook: 'facebook\\.com',
+    tiktok: 'tiktok\\.com',
+  };
+
+  const handle = raw
+    .replace(/^https?:\/\//i, '')
+    .replace(new RegExp(`^(www\\.|m\\.|web\\.)?${domains[platform]}\\/`, 'i'), '')
+    .split(/[?#]/)[0]
+    .replace(/^@/, '')
+    .replace(/\/+$/, '')
+    .trim();
+
+  if (!handle || /\s/.test(handle)) return null;
+
+  if (platform === 'instagram') return `https://www.instagram.com/${handle}`;
+  if (platform === 'facebook') return `https://www.facebook.com/${handle}`;
+  return `https://www.tiktok.com/@${handle}`;
 }
 
 /**
@@ -79,6 +145,7 @@ export function getShareUrls(
     shareableUrl,
     '',
     `🏡 *${property.title.toUpperCase()}*`,
+    property.internal_code ? `🏷️ Ref: *${property.internal_code}*` : '',
     locationText ? `📍 Ubicación: ${locationText}` : '',
     priceText
       ? `💼 ${property.operation || 'Precio'}: *${priceText}*`
@@ -169,5 +236,34 @@ export function formatContactNameForSave(name: string, type: ContactType): strin
   const clean = name.replace(/^\[(Colega|Propietario)\]\s*/i, '').trim();
   if (!clean) return '';
   return type === 'Colega' ? `[Colega] ${clean}` : clean;
+}
+
+/**
+ * Formatea el texto de la columna 'Asesor o Referencia' para reportes (PDF / Excel).
+ * Muestra el Propietario o el Colega asesor según corresponda, y opcionalmente
+ * anexa el código de referencia interno si está habilitado.
+ */
+export function formatPropertyAdvisorOrReference(
+  property: Partial<Inmueble>,
+  includeInternalCode = false
+): string {
+  const contact = parseContactInfo(property);
+  const isColleague = contact.type === 'Colega';
+  const rolePrefix = isColleague ? 'Colega' : 'Propietario';
+
+  let contactText = '';
+  if (contact.name) {
+    contactText = `${rolePrefix}: ${contact.name}`;
+  } else if (contact.phone) {
+    contactText = `${rolePrefix}: ${contact.phone}`;
+  } else {
+    contactText = isColleague ? 'Colega Asesor' : 'Propietario Directo';
+  }
+
+  if (includeInternalCode && property.internal_code?.trim()) {
+    return `${contactText} (${property.internal_code.trim()})`;
+  }
+
+  return contactText;
 }
 

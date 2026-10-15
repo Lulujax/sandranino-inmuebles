@@ -14,8 +14,9 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Inmueble } from '@/lib/types';
 import { propertiesStore } from '@/lib/properties';
-import { getPropertyMainArea } from '@/lib/utils';
+import { getPropertyMainArea, formatPropertyAdvisorOrReference } from '@/lib/utils';
 import { downloadBulkPropertiesZip } from '@/lib/property-zip-exporter';
+import { exportPropertiesToExcel } from '@/lib/excel-exporter';
 import { StatCard } from '@/components/admin/StatCard';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
@@ -29,6 +30,7 @@ export default function HerramientasPage() {
   const [includeInternalCode, setIncludeInternalCode] = useState(false);
   const [properties, setProperties] = useState<Inmueble[]>([]);
   const [isExportingZip, setIsExportingZip] = useState(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [zipProgress, setZipProgress] = useState<{
     current: number;
     total: number;
@@ -62,78 +64,37 @@ export default function HerramientasPage() {
     return parts.length > 0 ? parts.join('_') : 'completo';
   };
 
-  // Escapar celda CSV protegiendo contra inyección de fórmulas en Excel
-  const formatCsvValue = (val: unknown): string => {
-    if (val === undefined || val === null) return '';
-    if (typeof val === 'number') return String(val);
-
-    let str = String(val);
-    if (/^[=+\-@\t\r]/.test(str)) {
-      str = `'${str}`;
-    }
-
-    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
-      return `"${str.replace(/"/g, '""')}"`;
-    }
-    return str;
-  };
-
-  // EXPORTACIÓN EXCEL
-  const handleExportExcel = () => {
+  // EXPORTACIÓN EXCEL (.xlsx)
+  const handleExportExcel = async () => {
     const filtered = filteredProperties;
-    const slug = getExportSlug();
-    const filename = `inventario_sandra_nino_${slug}.csv`;
+    if (filtered.length === 0) {
+      toast('No hay inmuebles para exportar con los filtros seleccionados', 'warning');
+      return;
+    }
 
-    const headers = [
-      'N°',
-      'Tipo de Inmueble',
-      'Venta o Alquiler',
-      'Ubicacion',
-      'metros',
-      'Precio de Venta o Canon',
-      'Asesor o Referencia',
-    ];
-
-    const rows: string[] = [];
-    rows.push(headers.join(','));
-
-    filtered.forEach((p, idx) => {
-      const ubicacion = p.sector ? `${p.sector}, ${p.city}` : p.city;
-      const metros = getPropertyMainArea(p) ?? p.built_area ?? p.total_area ?? p.land_area ?? 0;
-      const referencia =
-        includeInternalCode && p.internal_code ? p.internal_code : 'Sandra Niño';
-
-      const row = [
-        idx + 1,
-        p.type,
-        p.operation,
-        ubicacion,
-        metros,
-        p.price,
-        referencia,
-      ];
-
-      rows.push(row.map(formatCsvValue).join(','));
-    });
-
-    const csvContent = '\uFEFF' + rows.join('\r\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    toast(`Excel ${filename} descargado con éxito (${filtered.length} inmuebles)`, 'success');
+    try {
+      setIsExportingExcel(true);
+      const slug = getExportSlug();
+      const filename = `inventario_sandra_nino_${slug}.xlsx`;
+      await exportPropertiesToExcel(filtered, filename, includeInternalCode);
+      toast(`Excel ${filename} descargado con éxito (${filtered.length} inmuebles)`, 'success');
+    } catch (err) {
+      console.error('Error al exportar Excel:', err);
+      toast('Ocurrió un error al generar el archivo Excel (.xlsx)', 'error');
+    } finally {
+      setIsExportingExcel(false);
+    }
   };
 
   // EXPORTACIÓN PDF
   const handleExportPDF = () => {
     try {
       const filtered = filteredProperties;
+      if (filtered.length === 0) {
+        toast('No hay inmuebles para exportar con los filtros seleccionados', 'warning');
+        return;
+      }
+
       const dateStr = new Date().toLocaleDateString('es-VE');
       const slug = getExportSlug();
       const filename = `inventario_sandra_nino_${slug}.pdf`;
@@ -163,8 +124,7 @@ export default function HerramientasPage() {
       const tableData = filtered.map((p, idx) => {
         const ubicacion = p.sector ? `${p.sector}, ${p.city}` : p.city;
         const metros = getPropertyMainArea(p) ?? p.built_area ?? p.total_area ?? p.land_area ?? 0;
-        const referencia =
-          includeInternalCode && p.internal_code ? p.internal_code : 'Sandra Niño';
+        const referencia = formatPropertyAdvisorOrReference(p, includeInternalCode);
 
         return [
           idx + 1,
@@ -209,12 +169,31 @@ export default function HerramientasPage() {
           fillColor: [250, 249, 246],
         },
         columnStyles: {
-          0: { cellWidth: 12, halign: 'center' },
-          4: { halign: 'right' },
-          5: { halign: 'right', fontStyle: 'bold' },
+          0: { cellWidth: 10, halign: 'center' },
+          1: { cellWidth: 26 },
+          2: { cellWidth: 24 },
+          3: { cellWidth: 42 },
+          4: { cellWidth: 20, halign: 'right' },
+          5: { cellWidth: 26, halign: 'right', fontStyle: 'bold' },
+          6: { halign: 'left' },
         },
         margin: { left: 14, right: 14, bottom: 14 },
       });
+
+      // Numeración de páginas en el pie de página
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(140, 140, 140);
+        doc.text(
+          `Página ${i} de ${pageCount} — Sandra Niño Inmuebles`,
+          pageWidth / 2,
+          doc.internal.pageSize.getHeight() - 8,
+          { align: 'center' }
+        );
+      }
 
       const pdfBlob = doc.output('blob');
       const url = URL.createObjectURL(pdfBlob);
@@ -227,7 +206,8 @@ export default function HerramientasPage() {
       URL.revokeObjectURL(url);
 
       toast(`PDF ${filename} en Hoja Carta descargado (${filtered.length} inmuebles)`, 'success');
-    } catch {
+    } catch (err) {
+      console.error('Error al exportar PDF:', err);
       toast('Ocurrió un error al generar el archivo PDF', 'error');
     }
   };
@@ -400,16 +380,22 @@ export default function HerramientasPage() {
             type="button"
             variant="success"
             onClick={handleExportExcel}
+            disabled={isExportingExcel || filteredProperties.length === 0}
             className="group gap-2.5 px-6 py-3.5 font-medium text-xs uppercase tracking-wider shadow-sm hover:shadow-luxury hover:-translate-y-0.5"
           >
-            <FileSpreadsheet size={16} strokeWidth={1.5} className="transition-transform duration-200 group-hover:scale-110" />
-            <span>Descargar Excel</span>
+            {isExportingExcel ? (
+              <Loader2 size={16} className="animate-spin text-white" />
+            ) : (
+              <FileSpreadsheet size={16} strokeWidth={1.5} className="transition-transform duration-200 group-hover:scale-110" />
+            )}
+            <span>{isExportingExcel ? 'Generando Excel...' : 'Descargar Excel (.xlsx)'}</span>
           </Button>
 
           <Button
             type="button"
             variant="terracotta"
             onClick={handleExportPDF}
+            disabled={filteredProperties.length === 0}
             className="group gap-2.5 px-6 py-3.5 font-medium text-xs uppercase tracking-wider shadow-sm hover:shadow-luxury hover:-translate-y-0.5"
           >
             <FileText size={16} strokeWidth={1.5} className="transition-transform duration-200 group-hover:scale-110" />

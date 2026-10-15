@@ -462,6 +462,11 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                     <p className="font-display font-semibold text-brand text-sm mt-0.5">
                       {formatPrice(prop.price, prop.operation)}
                     </p>
+                    {prop.internal_code && (
+                      <span className="inline-block mt-1.5 text-[10px] font-mono text-stone-500 bg-[#f5f1ea] border border-stone-200/80 rounded px-1.5 py-0.5">
+                        Ref: {prop.internal_code}
+                      </span>
+                    )}
                   </div>
                 </div>
 
