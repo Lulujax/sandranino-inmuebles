@@ -1251,18 +1251,6 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
                     }))
                   }
                 />
-                <Input
-                  label="Año de construcción"
-                  type="number"
-                  placeholder="Ej. 2018"
-                  value={formData.year ?? ''}
-                  onChange={(e) =>
-                    updateForm((prev) => ({
-                      ...prev,
-                      year: e.target.value ? Number(e.target.value) : undefined,
-                    }))
-                  }
-                />
               </div>
             )}
 
@@ -1851,11 +1839,6 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
                     {formData.offices != null && formData.offices > 0 && (
                       <span>
                         <strong>Oficinas:</strong> {formData.offices}
-                      </span>
-                    )}
-                    {formData.year != null && formData.year > 0 && (
-                      <span>
-                        <strong>Año:</strong> {formData.year}
                       </span>
                     )}
                   </div>

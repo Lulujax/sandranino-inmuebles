@@ -18,7 +18,6 @@ import {
   Bed,
   Bath,
   Car,
-  Calendar,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { MOCK_ASESOR } from '@/data/mock-properties';
@@ -412,15 +411,6 @@ export default function PropertyDetailPage() {
                 <span>
                   <strong className="text-text-heading font-medium">Estacionamientos:</strong>{' '}
                   {property.parking}
-                </span>
-              </div>
-            )}
-            {property.year != null && property.year > 0 && (
-              <div className="flex items-center gap-3 text-stone-700 bg-white/70 p-3.5 rounded-xl border border-stone-200/60">
-                <Calendar size={18} strokeWidth={1.5} className="text-[#C97B5A] shrink-0" />
-                <span>
-                  <strong className="text-text-heading font-medium">Año:</strong>{' '}
-                  {property.year}
                 </span>
               </div>
             )}

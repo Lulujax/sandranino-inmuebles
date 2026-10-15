@@ -171,9 +171,6 @@ export function generatePropertyDetailsText(property: Inmueble): string {
   if (property.total_area) {
     specs.push(`• Área total: ${property.total_area} m²`);
   }
-  if (property.year) {
-    specs.push(`• Año: ${property.year}`);
-  }
   if (property.height) {
     specs.push(`• Altura: ${property.height} m`);
   }
