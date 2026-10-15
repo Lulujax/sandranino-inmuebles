@@ -10,6 +10,8 @@ export type PropertyType =
 
 export type PropertyStatus = 'Publicado' | 'Borrador' | 'Pausado' | 'Vendido';
 
+export type ContactType = 'Propietario' | 'Colega';
+
 export interface Inmueble {
   id: string;
   user_id?: string;
@@ -34,6 +36,7 @@ export interface Inmueble {
   price: number;
   currency: 'USD';
   internal_code?: string; // Interno
+  contact_type?: ContactType; // Interno (Propietario Directo o Colega Asesor)
   owner_name?: string; // Interno
   owner_phone?: string; // Interno
   notes?: string; // Interno
@@ -71,6 +74,7 @@ export interface AdminFilterState {
   status: string; // 'Todos' | PropertyStatus
   operation: string; // 'Todas' | OperationType
   type: string; // 'Todos' | PropertyType
+  contactType?: string; // 'Todos' | 'Propietario' | 'Colega'
   sortBy: 'recent' | 'oldest' | 'price_desc' | 'price_asc';
 }
 
@@ -100,6 +104,7 @@ export interface WizardFormData {
   // Price & internals
   price?: number;
   internal_code: string;
+  contact_type?: ContactType;
   owner_name: string;
   owner_phone: string;
   notes: string;

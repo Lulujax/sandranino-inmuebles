@@ -14,6 +14,7 @@ import {
   Home,
   CheckCircle2,
   User,
+  Handshake,
   HardDrive,
   FolderDown,
   Loader2,
@@ -21,7 +22,7 @@ import {
 import { FaWhatsapp } from 'react-icons/fa';
 import { Inmueble, AdminFilterState, PropertyStatus } from '@/lib/types';
 import { propertiesStore, calculateInventoryCapacity } from '@/lib/properties';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, parseContactInfo } from '@/lib/utils';
 import { downloadSinglePropertyZip } from '@/lib/property-zip-exporter';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
@@ -38,6 +39,7 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
     status: 'Todos',
     operation: 'Todas',
     type: 'Todos',
+    contactType: 'Todos',
     sortBy: 'recent',
   });
 
@@ -111,22 +113,32 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
   const filteredProperties = useMemo(() => {
     return properties
       .filter((prop) => {
+        const contact = parseContactInfo(prop);
+
         if (filters.searchQuery) {
           const q = filters.searchQuery.toLowerCase();
           const matchTitle = prop.title.toLowerCase().includes(q);
           const matchCity = prop.city.toLowerCase().includes(q);
           const matchSector = prop.sector?.toLowerCase().includes(q) || false;
           const matchCode = prop.internal_code?.toLowerCase().includes(q) || false;
-          const matchOwnerName = prop.owner_name?.toLowerCase().includes(q) || false;
-          const matchOwnerPhone = prop.owner_phone?.toLowerCase().includes(q) || false;
+          const matchOwnerName = contact.name.toLowerCase().includes(q);
+          const matchOwnerPhone = contact.phone?.toLowerCase().includes(q) || false;
+          const matchLabel = contact.label.toLowerCase().includes(q);
           if (
             !matchTitle &&
             !matchCity &&
             !matchSector &&
             !matchCode &&
             !matchOwnerName &&
-            !matchOwnerPhone
+            !matchOwnerPhone &&
+            !matchLabel
           ) {
+            return false;
+          }
+        }
+
+        if (filters.contactType && filters.contactType !== 'Todos') {
+          if (contact.type !== filters.contactType) {
             return false;
           }
         }
@@ -305,7 +317,8 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
         className="bg-[#faf9f6] p-3.5 sm:p-4 rounded-2xl border border-stone-200/80 shadow-card grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5"
       >
         {/* Buscador */}
-        <div className="relative sm:col-span-2 lg:col-span-4">
+        {/* Búsqueda */}
+        <div className="relative col-span-2 sm:col-span-2 md:col-span-4 lg:col-span-3">
           <Search
             size={15}
             strokeWidth={1.5}
@@ -313,15 +326,28 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
           />
           <input
             type="text"
-            placeholder="Buscar título, código, propietario..."
+            placeholder="Buscar título, ref, contacto, colega..."
             value={filters.searchQuery}
             onChange={(e) => setFilters((f) => ({ ...f, searchQuery: e.target.value }))}
             className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-stone-200 rounded-xl text-text-heading placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all shadow-xs font-body"
           />
         </div>
 
+        {/* Origen / Contacto */}
+        <div className="col-span-1 sm:col-span-1 md:col-span-2 lg:col-span-2">
+          <select
+            value={filters.contactType || 'Todos'}
+            onChange={(e) => setFilters((f) => ({ ...f, contactType: e.target.value }))}
+            className="w-full px-2.5 py-2 text-xs bg-white border border-stone-200 rounded-xl text-text-heading focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all shadow-xs cursor-pointer font-body"
+          >
+            <option value="Todos">Origen: Todos</option>
+            <option value="Propietario">🏠 Directo (Dueño)</option>
+            <option value="Colega">🤝 Colega Asesor</option>
+          </select>
+        </div>
+
         {/* Estado */}
-        <div className="lg:col-span-2">
+        <div className="col-span-1 sm:col-span-1 md:col-span-2 lg:col-span-2">
           <select
             value={filters.status}
             onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
@@ -336,7 +362,7 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
         </div>
 
         {/* Operación */}
-        <div className="lg:col-span-2">
+        <div className="col-span-1 sm:col-span-1 md:col-span-2 lg:col-span-1">
           <select
             value={filters.operation}
             onChange={(e) => setFilters((f) => ({ ...f, operation: e.target.value }))}
@@ -349,7 +375,7 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
         </div>
 
         {/* Tipo */}
-        <div className="lg:col-span-2">
+        <div className="col-span-1 sm:col-span-1 md:col-span-2 lg:col-span-2">
           <select
             value={filters.type}
             onChange={(e) => setFilters((f) => ({ ...f, type: e.target.value }))}
@@ -366,7 +392,7 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
         </div>
 
         {/* Ordenamiento */}
-        <div className="lg:col-span-2">
+        <div className="col-span-2 sm:col-span-2 md:col-span-4 lg:col-span-2">
           <select
             value={filters.sortBy}
             onChange={(e) =>
@@ -391,7 +417,8 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
         ) : (
           filteredProperties.map((prop, idx) => {
             const thumbUrl = prop.images[0] || 'https://placehold.co/100x100?text=SN';
-            const cleanOwnerPhone = prop.owner_phone?.replace(/\D/g, '') || '';
+            const contact = parseContactInfo(prop);
+            const cleanOwnerPhone = contact.phone?.replace(/\D/g, '') || '';
             return (
               <FadeInUp
                 key={prop.id}
@@ -438,25 +465,35 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                   </div>
                 </div>
 
-                {/* Datos internos del propietario en vista móvil */}
-                {(prop.owner_name || prop.owner_phone) && (
+                {/* Datos internos del contacto / captación en vista móvil */}
+                {(contact.name || contact.phone) && (
                   <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white border border-stone-200/80 text-xs">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <User size={13} strokeWidth={1.5} className="text-[#C97B5A] shrink-0" />
+                      {contact.type === 'Colega' ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/70 shrink-0">
+                          <Handshake size={11} strokeWidth={1.5} />
+                          <span>Colega</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200/70 shrink-0">
+                          <User size={11} strokeWidth={1.5} />
+                          <span>Directo</span>
+                        </span>
+                      )}
                       <span className="font-medium text-text-heading truncate">
-                        {prop.owner_name || 'Propietario'}
+                        {contact.name || contact.label}
                       </span>
                     </div>
-                    {prop.owner_phone && (
+                    {contact.phone && (
                       <a
                         href={`https://wa.me/${cleanOwnerPhone}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 px-2 py-0.5 rounded-full transition-colors shrink-0"
-                        title={`Escribir por WhatsApp a ${prop.owner_name || prop.owner_phone}`}
+                        title={`Escribir por WhatsApp (${contact.label}) a ${contact.name || contact.phone}`}
                       >
                         <FaWhatsapp size={12} />
-                        <span>{prop.owner_phone}</span>
+                        <span>{contact.phone}</span>
                       </a>
                     )}
                   </div>
@@ -569,7 +606,7 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
               <thead>
                 <tr className="border-b border-stone-200/80 bg-[#faf9f6] text-[10px] font-semibold text-stone-600 uppercase tracking-wider font-body">
                   <th className="py-3 px-3.5">Inmueble</th>
-                  <th className="py-3 px-2.5">Propietario</th>
+                  <th className="py-3 px-2.5">Contacto / Origen</th>
                   <th className="py-3 px-2.5">Tipo / Operación</th>
                   <th className="py-3 px-2.5">Precio</th>
                   <th className="py-3 px-2.5">Estado</th>
@@ -579,7 +616,8 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
               <tbody className="divide-y divide-stone-100 text-xs font-body">
                 {filteredProperties.map((prop) => {
                   const thumbUrl = prop.images[0] || 'https://placehold.co/100x100?text=SN';
-                  const cleanOwnerPhone = prop.owner_phone?.replace(/\D/g, '') || '';
+                  const contact = parseContactInfo(prop);
+                  const cleanOwnerPhone = contact.phone?.replace(/\D/g, '') || '';
                   const statusSelectStyle =
                     prop.status === 'Publicado'
                       ? 'bg-[#edf7ee] text-emerald-800 border-emerald-300/80'
@@ -625,31 +663,41 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                         </div>
                       </td>
 
-                      {/* Propietario (Uso interno) */}
+                      {/* Contacto / Captación (Uso interno) */}
                       <td className="py-3 px-2.5 whitespace-nowrap">
-                        {prop.owner_name || prop.owner_phone ? (
-                          <div className="flex flex-col gap-0.5">
-                            {prop.owner_name && (
-                              <span
-                                className="text-xs font-medium text-text-heading flex items-center gap-1"
-                                title={prop.owner_name}
-                              >
-                                <User size={12} strokeWidth={1.5} className="text-[#C97B5A] shrink-0" />
-                                <span className="truncate max-w-[110px] xl:max-w-[140px]">
-                                  {prop.owner_name}
+                        {contact.name || contact.phone ? (
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-1.5">
+                              {contact.type === 'Colega' ? (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/70 shrink-0">
+                                  <Handshake size={10} strokeWidth={1.5} />
+                                  <span>Colega</span>
                                 </span>
-                              </span>
-                            )}
-                            {prop.owner_phone && (
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200/70 shrink-0">
+                                  <User size={10} strokeWidth={1.5} />
+                                  <span>Directo</span>
+                                </span>
+                              )}
+                              {contact.name && (
+                                <span
+                                  className="text-xs font-medium text-text-heading truncate max-w-[100px] xl:max-w-[130px]"
+                                  title={`${contact.label}: ${contact.name}`}
+                                >
+                                  {contact.name}
+                                </span>
+                              )}
+                            </div>
+                            {contact.phone && (
                               <a
                                 href={`https://wa.me/${cleanOwnerPhone}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 px-1.5 py-0.5 rounded-full transition-colors w-fit"
-                                title={`Contactar por WhatsApp a ${prop.owner_name || prop.owner_phone}`}
+                                title={`Contactar por WhatsApp (${contact.label}) a ${contact.name || contact.phone}`}
                               >
                                 <FaWhatsapp size={11} />
-                                <span>{prop.owner_phone}</span>
+                                <span>{contact.phone}</span>
                               </a>
                             )}
                           </div>

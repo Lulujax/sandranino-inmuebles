@@ -1,6 +1,6 @@
 import type JSZip from 'jszip';
 import { Inmueble } from './types';
-import { formatPrice, formatDate } from './utils';
+import { formatPrice, formatDate, parseContactInfo } from './utils';
 
 /**
  * Carga JSZip bajo demanda (lazy-loading) únicamente al hacer clic en descargar.
@@ -198,6 +198,24 @@ export function generatePropertyDetailsText(property: Inmueble): string {
   if (typeof window !== 'undefined' && property.id) {
     lines.push('🌐 *FICHA EN LA WEB:*');
     lines.push(`${window.location.origin}/inmueble/${property.id}`);
+    lines.push('');
+  }
+
+  // Datos internos de contacto / captación (propietario o colega asesor)
+  if (property.owner_name || property.owner_phone || property.notes) {
+    const contact = parseContactInfo(property);
+    lines.push('🔒 *CONTACTO / CAPTACIÓN (USO INTERNO):*');
+    lines.push(`• Origen / Tipo: ${contact.label}`);
+    if (contact.name) {
+      lines.push(`• Contacto: ${contact.name}`);
+    }
+    if (contact.phone) {
+      lines.push(`• Teléfono: ${contact.phone}`);
+    }
+    if (property.notes && property.notes.trim()) {
+      lines.push(`• Notas internas: ${property.notes.trim()}`);
+    }
+    lines.push('');
   }
 
   return lines.join('\r\n').trim();

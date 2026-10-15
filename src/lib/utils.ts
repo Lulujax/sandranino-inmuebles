@@ -1,4 +1,4 @@
-import { Inmueble, OperationType } from './types';
+import { Inmueble, OperationType, ContactType } from './types';
 
 /**
  * Formatea un precio numérico a dólares (USD)
@@ -118,5 +118,56 @@ export function getPropertyMainArea(inmueble: Partial<Inmueble>): number | undef
  */
 export function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(' ');
+}
+
+export interface ParsedContact {
+  type: ContactType;
+  name: string;
+  phone?: string;
+  label: string; // 'Propietario Directo' | 'Colega Asesor'
+}
+
+/**
+ * Analiza la información de contacto interno para saber si es Propietario Directo
+ * o Colega Asesor (punta compartida / alianza), manteniendo compatibilidad total.
+ */
+export function parseContactInfo(prop?: {
+  owner_name?: string | null;
+  owner_phone?: string | null;
+  contact_type?: ContactType | string | null;
+}): ParsedContact {
+  const rawName = (prop?.owner_name || '').trim();
+  const phone = prop?.owner_phone?.trim() || undefined;
+
+  let type: ContactType = 'Propietario';
+  let cleanName = rawName;
+
+  if (prop?.contact_type === 'Colega' || prop?.contact_type === 'Colega Asesor') {
+    type = 'Colega';
+    cleanName = rawName.replace(/^\[(Colega|Propietario)\]\s*/i, '').trim();
+  } else if (/^\[Colega\]/i.test(rawName)) {
+    type = 'Colega';
+    cleanName = rawName.replace(/^\[Colega\]\s*/i, '').trim();
+  } else if (/^\[Propietario\]/i.test(rawName)) {
+    type = 'Propietario';
+    cleanName = rawName.replace(/^\[Propietario\]\s*/i, '').trim();
+  }
+
+  return {
+    type,
+    name: cleanName,
+    phone,
+    label: type === 'Colega' ? 'Colega Asesor' : 'Propietario Directo',
+  };
+}
+
+/**
+ * Formatea el nombre para guardarlo retrocompatiblemente en Supabase
+ * prefijando [Colega] si es un colega asesor y no propietario.
+ */
+export function formatContactNameForSave(name: string, type: ContactType): string {
+  const clean = name.replace(/^\[(Colega|Propietario)\]\s*/i, '').trim();
+  if (!clean) return '';
+  return type === 'Colega' ? `[Colega] ${clean}` : clean;
 }
 

@@ -47,6 +47,8 @@ import {
   StickyNote,
   FileEdit,
   User,
+  UserCheck,
+  Handshake,
   Phone,
   Camera,
   Image as ImageIcon,
@@ -59,7 +61,7 @@ import {
   Inmueble,
 } from '@/lib/types';
 import { ESTADOS_VENEZUELA, VENEZUELA } from '@/lib/venezuela';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, parseContactInfo, formatContactNameForSave } from '@/lib/utils';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { propertiesStore, INVENTORY_LIMIT } from '@/lib/properties';
@@ -238,8 +240,9 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
     description: initialData?.description || '',
     price: initialData?.price,
     internal_code: initialData?.internal_code || '',
-    owner_name: initialData?.owner_name || '',
-    owner_phone: initialData?.owner_phone || '',
+    contact_type: parseContactInfo(initialData).type,
+    owner_name: parseContactInfo(initialData).name,
+    owner_phone: parseContactInfo(initialData).phone || '',
     notes: initialData?.notes || '',
   });
 
@@ -264,6 +267,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
   // Sincronizar si initialData cambia (modo edición)
   useEffect(() => {
     if (initialData) {
+      const parsed = parseContactInfo(initialData);
       setFormData({
         operation: initialData.operation || undefined,
         type: initialData.type || undefined,
@@ -286,8 +290,9 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
         description: initialData.description || '',
         price: initialData.price,
         internal_code: initialData.internal_code || '',
-        owner_name: initialData.owner_name || '',
-        owner_phone: initialData.owner_phone || '',
+        contact_type: parsed.type,
+        owner_name: parsed.name,
+        owner_phone: parsed.phone || '',
         notes: initialData.notes || '',
       });
     }
@@ -360,8 +365,9 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
       description: pendingDraft.description || '',
       price: pendingDraft.price,
       internal_code: pendingDraft.internal_code || '',
-      owner_name: pendingDraft.owner_name || '',
-      owner_phone: pendingDraft.owner_phone || '',
+      contact_type: parseContactInfo(pendingDraft).type,
+      owner_name: parseContactInfo(pendingDraft).name,
+      owner_phone: parseContactInfo(pendingDraft).phone || '',
       notes: pendingDraft.notes || '',
     });
     setPendingDraft(null);
@@ -730,7 +736,8 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
       price: formData.price || 0,
       currency: 'USD',
       internal_code: formData.internal_code.trim() || undefined,
-      owner_name: formData.owner_name.trim() || undefined,
+      contact_type: formData.contact_type || 'Propietario',
+      owner_name: formatContactNameForSave(formData.owner_name, formData.contact_type || 'Propietario') || undefined,
       owner_phone: formData.owner_phone.trim() || undefined,
       notes: formData.notes.trim() || undefined,
       images: formData.images,
@@ -1613,27 +1620,91 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
               />
             </div>
 
-            {/* Datos del Propietario / Aliado (Uso Interno) */}
+            {/* Datos del Contacto / Captación (Uso Interno) */}
             <div className="bg-white rounded-xl p-4 sm:p-5 border border-stone-200/80 space-y-4">
               <div>
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-text-heading flex items-center gap-1.5 font-body">
-                  <User size={14} strokeWidth={1.5} className="text-[#C97B5A]" />
-                  <span>Datos del Propietario — Uso Interno (opcional)</span>
+                  <UserCheck size={14} strokeWidth={1.5} className="text-[#C97B5A]" />
+                  <span>Contacto y Origen de Captación — Uso Interno (opcional)</span>
                 </h4>
                 <p className="text-[11px] text-stone-500 mt-0.5 font-body">
-                  Información 100% privada. Solo se mostrará en tu tabla de &quot;Mis Inmuebles&quot; y nunca será visible al público.
+                  Información 100% confidencial. Identifica si es tu cartera propia o una captación compartida con un colega asesor.
                 </p>
               </div>
+
+              {/* Selector de origen / tipo de contacto */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => updateForm((prev) => ({ ...prev, contact_type: 'Propietario' }))}
+                  className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                    formData.contact_type !== 'Colega'
+                      ? 'bg-amber-50/70 border-amber-300 text-stone-900 shadow-2xs ring-1 ring-amber-300'
+                      : 'bg-stone-50/70 border-stone-200 text-stone-600 hover:bg-stone-100/60'
+                  }`}
+                >
+                  <div
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      formData.contact_type !== 'Colega'
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'bg-white text-stone-400 border border-stone-200'
+                    }`}
+                  >
+                    <User size={16} strokeWidth={1.5} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold leading-tight font-display text-text-heading">
+                      Propietario Directo
+                    </p>
+                    <p className="text-[11px] text-stone-500 leading-tight mt-0.5 truncate font-body">
+                      Cartera propia (Dueño del inmueble)
+                    </p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => updateForm((prev) => ({ ...prev, contact_type: 'Colega' }))}
+                  className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                    formData.contact_type === 'Colega'
+                      ? 'bg-indigo-50/70 border-indigo-300 text-stone-900 shadow-2xs ring-1 ring-indigo-300'
+                      : 'bg-stone-50/70 border-stone-200 text-stone-600 hover:bg-stone-100/60'
+                  }`}
+                >
+                  <div
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      formData.contact_type === 'Colega'
+                        ? 'bg-indigo-100 text-indigo-800'
+                        : 'bg-white text-stone-400 border border-stone-200'
+                    }`}
+                  >
+                    <Handshake size={16} strokeWidth={1.5} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold leading-tight font-display text-text-heading">
+                      Colega Asesor / Aliado
+                    </p>
+                    <p className="text-[11px] text-stone-500 leading-tight mt-0.5 truncate font-body">
+                      Punta compartida / Inmobiliaria externa
+                    </p>
+                  </div>
+                </button>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <div className="flex items-center gap-1.5 mb-1">
-                    <User size={13} strokeWidth={1.5} className="text-stone-400" />
+                    {formData.contact_type === 'Colega' ? (
+                      <Handshake size={13} strokeWidth={1.5} className="text-indigo-600" />
+                    ) : (
+                      <User size={13} strokeWidth={1.5} className="text-stone-400" />
+                    )}
                     <span className="text-xs font-medium uppercase tracking-wider text-stone-700 font-body">
-                      Nombre del Propietario
+                      {formData.contact_type === 'Colega' ? 'Nombre del Colega / Inmobiliaria' : 'Nombre del Propietario'}
                     </span>
                   </div>
                   <Input
-                    placeholder="Ej. Sr. Carlos Mendoza"
+                    placeholder={formData.contact_type === 'Colega' ? 'Ej. Lic. Marcos Rivas (Rent-A-House)' : 'Ej. Sr. Carlos Mendoza'}
                     value={formData.owner_name}
                     onChange={(e) =>
                       updateForm((prev) => ({ ...prev, owner_name: e.target.value }))
@@ -1644,7 +1715,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
                   <div className="flex items-center gap-1.5 mb-1">
                     <Phone size={13} strokeWidth={1.5} className="text-stone-400" />
                     <span className="text-xs font-medium uppercase tracking-wider text-stone-700 font-body">
-                      Teléfono del Propietario
+                      {formData.contact_type === 'Colega' ? 'Teléfono / WhatsApp del Colega' : 'Teléfono del Propietario'}
                     </span>
                   </div>
                   <Input
@@ -1738,7 +1809,10 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
                       <Badge variant="gray">Código: {formData.internal_code}</Badge>
                     )}
                     {formData.owner_name && (
-                      <Badge variant="gray">Propietario: {formData.owner_name}</Badge>
+                      <Badge variant="gray">
+                        {formData.contact_type === 'Colega' ? '🤝 Colega: ' : '🏠 Propietario: '}
+                        {formData.owner_name}
+                      </Badge>
                     )}
                   </div>
 

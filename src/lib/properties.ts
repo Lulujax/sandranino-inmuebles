@@ -1,5 +1,6 @@
 import { Inmueble } from './types';
 import { createClient } from './supabase/client';
+import { parseContactInfo } from './utils';
 
 /**
  * Límites de inventario para el plan gratuito
@@ -40,6 +41,7 @@ export function toPublicProperty(inmueble: Inmueble): Inmueble {
   const {
     owner_name: _ownerName,
     owner_phone: _ownerPhone,
+    contact_type: _contactType,
     notes: _notes,
     internal_code: _internalCode,
     address,
@@ -96,7 +98,10 @@ export const propertiesStore = {
 
     const { data, error } = await query;
     if (error) throw error;
-    const result = (data as Inmueble[]) || [];
+    const result = ((data as Inmueble[]) || []).map((p) => ({
+      ...p,
+      contact_type: p.contact_type || parseContactInfo(p).type,
+    }));
 
     // Guardar en caché
     propertiesCache = {
@@ -126,7 +131,12 @@ export const propertiesStore = {
       .eq('id', id)
       .maybeSingle();
     if (error) throw error;
-    return (data as Inmueble) || null;
+    if (!data) return null;
+    const item = data as Inmueble;
+    return {
+      ...item,
+      contact_type: item.contact_type || parseContactInfo(item).type,
+    };
   },
 
   getPublicById: async (id: string): Promise<Inmueble | null> => {
@@ -147,6 +157,7 @@ export const propertiesStore = {
       user_id: _userId,
       created_at: _createdAt,
       updated_at: _updatedAt,
+      contact_type: _contactType,
       ...payload
     } = inmueble;
 
@@ -164,7 +175,11 @@ export const propertiesStore = {
         .single();
       if (error) throw error;
       propertiesCache = null;
-      return data as Inmueble;
+      const saved = data as Inmueble;
+      return {
+        ...saved,
+        contact_type: inmueble.contact_type || parseContactInfo(saved).type,
+      };
     }
 
     const { data, error } = await supabase
@@ -174,7 +189,11 @@ export const propertiesStore = {
       .single();
     if (error) throw error;
     propertiesCache = null;
-    return data as Inmueble;
+    const saved = data as Inmueble;
+    return {
+      ...saved,
+      contact_type: inmueble.contact_type || parseContactInfo(saved).type,
+    };
   },
 
   update: async (id: string, changes: Partial<Inmueble>): Promise<Inmueble> => {
@@ -183,6 +202,7 @@ export const propertiesStore = {
       id: _id,
       user_id: _userId,
       created_at: _createdAt,
+      contact_type: _contactType,
       ...payload
     } = changes;
 
@@ -194,7 +214,11 @@ export const propertiesStore = {
       .single();
     if (error) throw error;
     propertiesCache = null;
-    return data as Inmueble;
+    const updated = data as Inmueble;
+    return {
+      ...updated,
+      contact_type: changes.contact_type || parseContactInfo(updated).type,
+    };
   },
 
   delete: async (id: string): Promise<void> => {
