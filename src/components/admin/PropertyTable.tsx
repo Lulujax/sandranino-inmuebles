@@ -18,6 +18,7 @@ import {
   HardDrive,
   FolderDown,
   Loader2,
+  Lock,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Inmueble, AdminFilterState, PropertyStatus } from '@/lib/types';
@@ -27,6 +28,7 @@ import { downloadSinglePropertyZip } from '@/lib/property-zip-exporter';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
 import { FadeInUp } from '@/components/ui/FadeInUp';
+import { InfoPrivadaModal } from '@/components/admin/InfoPrivadaModal';
 
 interface PropertyTableProps {
   initialProperties: Inmueble[];
@@ -49,6 +51,7 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
 
   const { toast } = useToast();
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [infoPrivadaProp, setInfoPrivadaProp] = useState<Inmueble | null>(null);
 
   const handleDownloadZip = async (prop: Inmueble) => {
     if (downloadingId) return;
@@ -519,7 +522,7 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                     <option value="Vendido">Vendido</option>
                   </select>
 
-                  <div className="flex items-center gap-1">
+                  <div className="flex flex-wrap items-center justify-end gap-1">
                     <Link
                       href={`/inmueble/${prop.id}`}
                       target="_blank"
@@ -549,6 +552,14 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                       ) : (
                         <FolderDown size={16} strokeWidth={1.5} />
                       )}
+                    </button>
+                    <button
+                      onClick={() => setInfoPrivadaProp(prop)}
+                      className="p-2 text-stone-500 hover:text-amber-600 hover:bg-amber-100/60 rounded-lg transition-colors cursor-pointer"
+                      title="Info privada (ubicación exacta y fachadas)"
+                      aria-label="Info privada del inmueble"
+                    >
+                      <Lock size={16} strokeWidth={1.5} />
                     </button>
                     <button
                       onClick={() => handleMarkSold(prop.id)}
@@ -798,6 +809,16 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
                             )}
                           </button>
 
+                          {/* Info privada */}
+                          <button
+                            onClick={() => setInfoPrivadaProp(prop)}
+                            className="p-1.5 text-stone-500 hover:text-amber-600 hover:bg-amber-100/60 rounded-lg transition-colors cursor-pointer"
+                            title="Info privada (ubicación exacta y fachadas)"
+                            aria-label="Info privada del inmueble"
+                          >
+                            <Lock size={15} strokeWidth={1.5} />
+                          </button>
+
                           {/* Marcar como Vendido */}
                           <button
                             onClick={() => handleMarkSold(prop.id)}
@@ -849,6 +870,13 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
           </div>
         )}
       </FadeInUp>
+
+      {/* 🔒 Modal de info privada por inmueble */}
+      <InfoPrivadaModal
+        isOpen={Boolean(infoPrivadaProp)}
+        property={infoPrivadaProp}
+        onClose={() => setInfoPrivadaProp(null)}
+      />
     </div>
   );
 };

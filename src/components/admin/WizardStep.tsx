@@ -54,6 +54,8 @@ import {
   Image as ImageIcon,
   Loader2,
   AlertCircle,
+  Lock,
+  ImagePlus,
 } from 'lucide-react';
 import {
   WizardFormData,
@@ -76,6 +78,9 @@ import { useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
+import { privateInfoStore, MAX_FACHADAS } from '@/lib/private-info';
+import { compressImageToBlob, compressImageToDataUrl } from '@/lib/image-compress';
+import { Lightbox } from '@/components/ui/Lightbox';
 
 const STEP_TITLES = [
   'Operación',
@@ -217,6 +222,13 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
   const [pendingDraft, setPendingDraft] = useState<WizardFormData | null>(null);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [inventoryCount, setInventoryCount] = useState(0);
+  const [fachadaThumbs, setFachadaThumbs] = useState<Record<string, string>>({});
+  const [isUploadingFacade, setIsUploadingFacade] = useState(false);
+  const [facadeLightbox, setFacadeLightbox] = useState<{
+    urls: string[];
+    index: number;
+  } | null>(null);
+  const fachadaInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     propertiesStore
@@ -234,6 +246,27 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
         }
       });
     }
+  }, [editId]);
+
+  // 🔒 Cargar info privada del inmueble en edición (requiere tu sesión)
+  useEffect(() => {
+    if (!editId) return;
+    let active = true;
+    privateInfoStore
+      .get(editId)
+      .then((info) => {
+        if (!active || !info) return;
+        setFormData((prev) => ({
+          ...prev,
+          ubicacion_privada: info.ubicacion_exacta || '',
+          fachada_privadas: info.fachada_urls || [],
+          notas_privada: info.notas || '',
+        }));
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
   }, [editId]);
 
   const isInventoryFull = !editId && inventoryCount >= INVENTORY_LIMIT;
@@ -264,6 +297,9 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
     owner_name: parseContactInfo(initialData).name,
     owner_phone: parseContactInfo(initialData).phone || '',
     notes: initialData?.notes || '',
+    ubicacion_privada: initialData?.ubicacion_privada || '',
+    fachada_privadas: initialData?.fachada_privadas || [],
+    notas_privada: initialData?.notas_privada || '',
   });
 
   // Sensores para reordenar fotos con @dnd-kit (optimizado para desktop y móvil sin bloquear el scroll táctil)
@@ -288,7 +324,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
   useEffect(() => {
     if (initialData) {
       const parsed = parseContactInfo(initialData);
-      setFormData({
+      setFormData((prev) => ({
         operation: initialData.operation || undefined,
         type: initialData.type || undefined,
         state: initialData.state || '',
@@ -314,7 +350,10 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
         owner_name: parsed.name,
         owner_phone: parsed.phone || '',
         notes: initialData.notes || '',
-      });
+        ubicacion_privada: initialData.ubicacion_privada ?? prev.ubicacion_privada,
+        fachada_privadas: initialData.fachada_privadas ?? prev.fachada_privadas,
+        notas_privada: initialData.notas_privada ?? prev.notas_privada,
+      }));
     }
   }, [initialData]);
 
@@ -329,7 +368,10 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
         saved.state ||
         saved.title ||
         (saved.images && saved.images.length > 0) ||
-        saved.price)
+        saved.price ||
+        saved.ubicacion_privada ||
+        saved.notas_privada ||
+        (saved.fachada_privadas && saved.fachada_privadas.length > 0))
     ) {
       setPendingDraft(saved);
     }
@@ -346,7 +388,10 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
         Boolean(formData.state) ||
         Boolean(formData.title.trim()) ||
         formData.images.length > 0 ||
-        Boolean(formData.price);
+        Boolean(formData.price) ||
+        Boolean(formData.ubicacion_privada) ||
+        formData.fachada_privadas.length > 0 ||
+        Boolean(formData.notas_privada);
 
       if (hasAnyData) {
         storage.set(STORAGE_KEYS.DRAFT, formData);
@@ -389,6 +434,9 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
       owner_name: parseContactInfo(pendingDraft).name,
       owner_phone: parseContactInfo(pendingDraft).phone || '',
       notes: pendingDraft.notes || '',
+      ubicacion_privada: pendingDraft.ubicacion_privada || '',
+      fachada_privadas: pendingDraft.fachada_privadas || [],
+      notas_privada: pendingDraft.notas_privada || '',
     });
     setPendingDraft(null);
     setHasInteracted(true);
@@ -447,55 +495,6 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
     }));
   };
 
-  // Comprimir archivo de imagen a Data URL persistente para almacenamiento local
-  const fileToCompressedDataUrl = (file: File, fallbackBlobUrl: string): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new window.Image();
-      img.onload = () => {
-        try {
-          const maxDim = 1200;
-          let { width, height } = img;
-          if (width > maxDim || height > maxDim) {
-            if (width > height) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            } else {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
-          }
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            resolve(fallbackBlobUrl);
-            return;
-          }
-          ctx.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-          resolve(dataUrl);
-        } catch {
-          resolve(fallbackBlobUrl);
-        }
-      };
-      img.onerror = () => {
-        // Respaldo con FileReader si la decodificación por Image/Canvas falla
-        const reader = new FileReader();
-        reader.onload = () => {
-          if (typeof reader.result === 'string') {
-            resolve(reader.result);
-          } else {
-            resolve(fallbackBlobUrl);
-          }
-        };
-        reader.onerror = () => resolve(fallbackBlobUrl);
-        reader.readAsDataURL(file);
-      };
-      img.src = fallbackBlobUrl;
-    });
-  };
-
   // Procesar múltiples archivos (drag & drop, cámara o galería)
   const processFiles = (files: File[]) => {
     if (!files.length) return;
@@ -530,7 +529,8 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
 
     setIsProcessingImages(true);
 
-    // 2. Subir a Supabase Storage bucket 'inmuebles' en ruta ${userId}/${filename} (con respaldo a Data URL comprimida)
+    // 2. Subir a Supabase Storage bucket 'inmuebles': se COMPRIME antes de subir
+    // para cuidar la cuota gratuita (~200 KB por foto en vez de 3-6 MB)
     const uploadToStorageOrCompress = async (file: File, blobUrl: string, idx: number): Promise<string> => {
       try {
         const supabase = createClient();
@@ -539,16 +539,17 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
         } = await supabase.auth.getUser();
 
         if (user) {
-          const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-          const safeExt = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif', 'avif'].includes(ext) ? ext : 'jpg';
-          const filePath = `${user.id}/${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}.${safeExt}`;
+          const compressed = await compressImageToBlob(file);
+          const filePath = `${user.id}/${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}.jpg`;
+          const uploadBlob = compressed || file;
+          const contentType = compressed ? 'image/jpeg' : file.type || 'image/jpeg';
 
           const { error: uploadError } = await supabase.storage
             .from('inmuebles')
-            .upload(filePath, file, {
+            .upload(filePath, uploadBlob, {
               cacheControl: '3600',
               upsert: false,
-              contentType: file.type || 'image/jpeg',
+              contentType,
             });
 
           if (!uploadError) {
@@ -562,7 +563,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
         }
       } catch {}
 
-      return fileToCompressedDataUrl(file, blobUrl);
+      return compressImageToDataUrl(file, blobUrl);
     };
 
     Promise.all(
@@ -659,6 +660,94 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
         };
       });
     }
+  };
+
+  // Firmar miniaturas de fachadas privadas (URL temporal de 1 hora, solo tú)
+  useEffect(() => {
+    const missing = formData.fachada_privadas.filter(
+      (path) => path && !fachadaThumbs[path]
+    );
+    if (missing.length === 0) return;
+    let active = true;
+    missing.forEach(async (path) => {
+      const url = await privateInfoStore.getSignedUrl(path);
+      if (url && active) {
+        setFachadaThumbs((prev) => ({ ...prev, [path]: url }));
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [formData.fachada_privadas, fachadaThumbs]);
+
+  // Subir fotos de fachada privadas (comprimidas, bucket 'inmuebles-privadas')
+  const handleFacadeInputChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (!files.length) return;
+
+    const remaining = MAX_FACHADAS - formData.fachada_privadas.length;
+    if (remaining <= 0) {
+      toast(`⚠️ Máximo ${MAX_FACHADAS} fotos de fachada`, 'warning');
+      return;
+    }
+    const filesToAdd = files.slice(0, remaining);
+    if (files.length > remaining) {
+      toast(`⚠️ Solo se agregaron ${remaining} fotos (máximo ${MAX_FACHADAS})`, 'warning');
+    }
+
+    setIsUploadingFacade(true);
+    for (const file of filesToAdd) {
+      try {
+        const facadePath = await privateInfoStore.uploadFacade(file);
+        updateForm((prev) => ({
+          ...prev,
+          fachada_privadas: [...prev.fachada_privadas, facadePath],
+        }));
+        const url = await privateInfoStore.getSignedUrl(facadePath);
+        if (url) {
+          setFachadaThumbs((prev) => ({ ...prev, [facadePath]: url }));
+        }
+      } catch (err) {
+        console.error('Error al subir fachada:', err);
+        toast(
+          err instanceof Error ? err.message : 'Error al subir la foto de fachada',
+          'error'
+        );
+      }
+    }
+    setIsUploadingFacade(false);
+  };
+
+  // Eliminar foto de fachada (actualiza el array y borra del bucket privado)
+  const handleRemoveFacade = (index: number) => {
+    const facadePath = formData.fachada_privadas[index];
+    if (!facadePath) return;
+    updateForm((prev) => ({
+      ...prev,
+      fachada_privadas: prev.fachada_privadas.filter((_, i) => i !== index),
+    }));
+    setFachadaThumbs((prev) => {
+      const next = { ...prev };
+      delete next[facadePath];
+      return next;
+    });
+    privateInfoStore.deleteFacade(facadePath);
+  };
+
+  // Abrir galería a pantalla completa de una fachada privada (mini galería)
+  const openFacadeLightbox = (index: number) => {
+    const facadePath = formData.fachada_privadas[index];
+    const signedUrl = fachadaThumbs[facadePath];
+    if (!signedUrl) return;
+    const signedUrls = formData.fachada_privadas
+      .map((p) => fachadaThumbs[p])
+      .filter(Boolean);
+    const signedIndex = signedUrls.indexOf(signedUrl);
+    if (signedIndex === -1) return;
+    setFacadeLightbox({ urls: signedUrls, index: signedIndex });
   };
 
   // Validaciones obligatorias por paso (BUG 6)
@@ -761,7 +850,8 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
       setIsProcessingImages(true);
       const targetStatus = existingStatus || 'Publicado';
       const payload = await createInmueblePayload(targetStatus);
-      await propertiesStore.save(payload);
+      const saved = await propertiesStore.save(payload);
+      await persistPrivateInfo(saved.id);
       storage.remove(STORAGE_KEYS.DRAFT);
       toast('Inmueble actualizado con éxito', 'success');
       router.push('/admin/inmuebles');
@@ -831,6 +921,33 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
     };
   };
 
+  // 🔒 Guarda o limpia la info privada (tabla separada de inmuebles)
+  const persistPrivateInfo = async (savedId: string) => {
+    const ubicacion = formData.ubicacion_privada.trim();
+    const notas = formData.notas_privada.trim();
+    const fachadas = formData.fachada_privadas.filter(Boolean);
+    if (!savedId) return;
+    try {
+      if (!ubicacion && !notas && fachadas.length === 0) {
+        await privateInfoStore.remove(savedId);
+        return;
+      }
+      await privateInfoStore.save(savedId, {
+        ubicacion_exacta: ubicacion || undefined,
+        fachada_urls: fachadas,
+        notas: notas || undefined,
+      });
+    } catch (err) {
+      console.error('Error al guardar info privada:', err);
+      toast(
+        `⚠️ El inmueble se guardó, pero la info privada no pudo guardarse: ${
+          err instanceof Error ? err.message : 'error desconocido'
+        }`,
+        'warning'
+      );
+    }
+  };
+
   const handleSaveDraft = async () => {
     if (isInventoryFull) {
       toast(`⚠️ Has alcanzado el límite de ${INVENTORY_LIMIT} inmuebles de tu inventario. Pausa o elimina inmuebles antiguos para crear uno nuevo.`, 'warning');
@@ -839,7 +956,8 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
 
     try {
       const draftInmueble = await createInmueblePayload('Borrador');
-      await propertiesStore.save(draftInmueble);
+      const draftSaved = await propertiesStore.save(draftInmueble);
+      await persistPrivateInfo(draftSaved.id);
       storage.remove(STORAGE_KEYS.DRAFT);
       toast('Borrador guardado', 'success');
       router.push('/admin/inmuebles');
@@ -856,7 +974,8 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
 
     try {
       const publishedInmueble = await createInmueblePayload('Publicado');
-      await propertiesStore.save(publishedInmueble);
+      const publishedSaved = await propertiesStore.save(publishedInmueble);
+      await persistPrivateInfo(publishedSaved.id);
       storage.remove(STORAGE_KEYS.DRAFT);
       toast('Inmueble publicado', 'success');
       router.push('/admin/inmuebles');
@@ -1895,6 +2014,146 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
                 className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-lg text-base sm:text-sm text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs transition-all"
               />
             </div>
+
+            {/* 🔒 Info Privada — Solo Tú */}
+            <div className="bg-white rounded-xl p-4 sm:p-5 border border-stone-200/80 space-y-4">
+              <div>
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-text-heading flex items-center gap-1.5 font-body">
+                  <Lock size={14} strokeWidth={1.5} className="text-amber-600" />
+                  <span>Info Privada — Solo Tú (opcional)</span>
+                </h4>
+                <p className="text-[11px] text-stone-500 mt-0.5 font-body">
+                  Ubicación exacta, fotos de la fachada de enfrente y notas para cuando vayas a
+                  enseñar el inmueble. Se guarda en un lugar aparte que la web pública no puede ver.
+                </p>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-stone-700 mb-1.5 font-body">
+                  <MapPin size={14} strokeWidth={1.5} className="text-amber-600" />
+                  <span>Ubicación Exacta Privada (opcional)</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={formData.ubicacion_privada}
+                  onChange={(e) =>
+                    updateForm((prev) => ({ ...prev, ubicacion_privada: e.target.value }))
+                  }
+                  placeholder="Ej. Casa esquinera de dos pisos color marrón con portón rojo, al final de la calle del distribuidor, enfrente de la farmacia..."
+                  className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-lg text-base sm:text-sm text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs transition-all"
+                />
+                <p className="text-[11px] text-stone-400 mt-1">
+                  Describe el punto con todo el detalle que necesites para llegar sin llamar a
+                  nadie.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-stone-700 font-body">
+                    <Camera size={14} strokeWidth={1.5} className="text-amber-600" />
+                    <span>Fachada de Enfrente (hasta {MAX_FACHADAS} fotos, privada)</span>
+                  </label>
+                  {formData.fachada_privadas.length < MAX_FACHADAS && (
+                    <button
+                      type="button"
+                      onClick={() => fachadaInputRef.current?.click()}
+                      disabled={isUploadingFacade}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200/80 px-3 py-1.5 rounded-lg hover:bg-emerald-200/70 transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {isUploadingFacade ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <ImagePlus size={13} />
+                      )}
+                      <span>{isUploadingFacade ? 'Subiendo...' : 'Agregar'}</span>
+                    </button>
+                  )}
+                </div>
+                <input
+                  ref={fachadaInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleFacadeInputChange}
+                />
+                {formData.fachada_privadas.length === 0 ? (
+                  <div className="border border-dashed border-stone-200 rounded-xl p-4 text-center bg-stone-50/60">
+                    <p className="text-[11px] text-stone-500">
+                      Toma una foto del inmueble que está justo enfrente para reconocerlo al
+                      llegar sin preguntar a terceros.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    {formData.fachada_privadas.map((facadePath, i) => (
+                      <div
+                        key={`${facadePath}-${i}`}
+                        className="relative aspect-[4/3] rounded-lg overflow-hidden border border-stone-200/80 bg-[#f5f1ea] group"
+                      >
+                        {fachadaThumbs[facadePath] ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={fachadaThumbs[facadePath]}
+                            alt={`Fachada ${i + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Loader2 size={16} className="animate-spin text-stone-400" />
+                          </div>
+                        )}
+                        {fachadaThumbs[facadePath] && (
+                          <button
+                            type="button"
+                            onClick={() => openFacadeLightbox(i)}
+                            className="absolute inset-0 z-[15] cursor-zoom-in"
+                            title="Ver foto ampliada"
+                            aria-label={`Ver fachada ${i + 1} ampliada`}
+                          >
+                            <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/25 transition-colors">
+                              <Maximize2
+                                size={17}
+                                className="text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                              />
+                            </span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFacade(i)}
+                          className="absolute top-1.5 right-1.5 z-30 w-7 h-7 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-md flex items-center justify-center transition-all cursor-pointer"
+                          title="Eliminar foto de fachada"
+                          aria-label="Eliminar foto de fachada"
+                        >
+                          <X size={12} strokeWidth={2.5} />
+                        </button>
+                        <span className="absolute bottom-1 right-1.5 text-[10px] font-mono bg-black/60 text-white px-1.5 py-0.5 rounded-md pointer-events-none">
+                          #{i + 1}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-stone-700 mb-1.5 font-body">
+                  <StickyNote size={14} strokeWidth={1.5} className="text-amber-600" />
+                  <span>Notas Extra Privadas (opcional)</span>
+                </label>
+                <textarea
+                  rows={2}
+                  value={formData.notas_privada}
+                  onChange={(e) =>
+                    updateForm((prev) => ({ ...prev, notas_privada: e.target.value }))
+                  }
+                  placeholder="Detalles para llegar sin equivocarte de puerta o de entrada..."
+                  className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-lg text-base sm:text-sm text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs transition-all"
+                />
+              </div>
+            </div>
           </div>
         )}
 
@@ -2115,6 +2374,16 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) =
           )}
         </div>
       </div>
+
+      {facadeLightbox && (
+        <Lightbox
+          urls={facadeLightbox.urls}
+          initialIndex={facadeLightbox.index}
+          title="Fotos Privadas de Fachada"
+          note="Solo tú puedes verlas"
+          onClose={() => setFacadeLightbox(null)}
+        />
+      )}
     </div>
   );
 };

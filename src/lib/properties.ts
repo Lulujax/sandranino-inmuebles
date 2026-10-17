@@ -5,12 +5,14 @@ import { parseContactInfo } from './utils';
 /**
  * Límites de inventario para el plan gratuito
  * - Capacidad gratuita incluida: 1 GB (1,000 MB)
- * - Con fotos optimizadas por inmueble (~2 MB por ficha), 350 inmuebles ocupan ~700 MB
- * - Permite un amplio inventario de 350 propiedades manteniéndose dentro de la cuota gratuita
+ * - Por ficha reservamos ~2.4 MB MEDIDO con el uso real (oct 2026):
+ *   fotos públicas comprimidas al subir (~1.71 MB/ficha con 12.8 fotos)
+ *   + hasta 3 fachadas privadas comprimidas (~0.72 MB, bucket aparte)
+ * - 350 inmuebles ocupan ~840 MB, dejando ~160 MB para perfil, BD y sistema
  */
 export const INVENTORY_LIMIT = 350;
 export const STORAGE_LIMIT_MB = 1000;
-export const ESTIMATED_MB_PER_PROPERTY = 2.0;
+export const ESTIMATED_MB_PER_PROPERTY = 2.4;
 
 export interface InventoryCapacity {
   total: number;

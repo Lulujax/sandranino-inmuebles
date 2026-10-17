@@ -47,6 +47,18 @@ export interface Inmueble {
   updated_at: string;
 }
 
+// 🔒 Info privada por inmueble (tabla y bucket separados, SOLO visible con tu sesión)
+export interface InfoPrivadaInmueble {
+  id: string;
+  inmueble_id: string;
+  user_id: string;
+  ubicacion_exacta?: string;
+  fachada_urls: string[]; // rutas dentro del bucket privado 'inmuebles-privadas'
+  notas?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface PerfilAsesor {
   id: string;
   full_name: string;
@@ -109,4 +121,8 @@ export interface WizardFormData {
   owner_name: string;
   owner_phone: string;
   notes: string;
+  // 🔒 Info privada (solo tú): ubicación exacta descripción, fachadas y notas extra
+  ubicacion_privada: string;
+  fachada_privadas: string[]; // rutas en bucket privado
+  notas_privada: string;
 }

@@ -1,6 +1,7 @@
 import type JSZip from 'jszip';
-import { Inmueble } from './types';
+import { Inmueble, InfoPrivadaInmueble } from './types';
 import { formatPrice, formatDate, parseContactInfo } from './utils';
+import { privateInfoStore } from './private-info';
 
 /**
  * Carga JSZip bajo demanda (lazy-loading) únicamente al hacer clic en descargar.
@@ -118,7 +119,10 @@ async function fetchImageAsBlob(
  * Genera el archivo de texto (.txt) con la descripción y todos los detalles
  * técnicos, de ubicación e información privada del inmueble.
  */
-export function generatePropertyDetailsText(property: Inmueble): string {
+export function generatePropertyDetailsText(
+  property: Inmueble,
+  privateInfo?: InfoPrivadaInmueble | null
+): string {
   const lines: string[] = [];
 
   // Título principal en negrita para WhatsApp
@@ -215,6 +219,28 @@ export function generatePropertyDetailsText(property: Inmueble): string {
     lines.push('');
   }
 
+  // 🔒 Info privada de orientación (solo aparece en tus ZIP, jamás en lo público)
+  if (privateInfo) {
+    const privLines: string[] = [];
+    if (privateInfo.ubicacion_exacta?.trim()) {
+      privLines.push(`• Ubicación exacta: ${privateInfo.ubicacion_exacta.trim()}`);
+    }
+    if (privateInfo.notas?.trim()) {
+      privLines.push(`• Notas: ${privateInfo.notas.trim()}`);
+    }
+    const facadeCount = privateInfo.fachada_urls?.filter(Boolean).length || 0;
+    if (facadeCount > 0) {
+      privLines.push(
+        `• Fotos de fachada de enfrente incluidas en esta carpeta como fachada_XX: ${facadeCount}`
+      );
+    }
+    if (privLines.length > 0) {
+      lines.push('🔒 *INFO PRIVADA DE ORIENTACIÓN (USO INTERNO):*');
+      lines.push(...privLines);
+      lines.push('');
+    }
+  }
+
   return lines.join('\r\n').trim();
 }
 
@@ -235,8 +261,16 @@ export async function addPropertyToZip(
     throw new Error(`No se pudo crear la carpeta "${folderName}" en el archivo ZIP`);
   }
 
+  // 🔒 Info privada (solo con tu sesión; si falla, continúa sin bloquear el ZIP)
+  let privateInfo: InfoPrivadaInmueble | null = null;
+  try {
+    privateInfo = await privateInfoStore.get(property.id);
+  } catch {
+    privateInfo = null;
+  }
+
   // 1. Agregar archivo de texto con descripción y detalles
-  const txtContent = generatePropertyDetailsText(property);
+  const txtContent = generatePropertyDetailsText(property, privateInfo);
   folder.file('descripcion_y_detalles.txt', txtContent);
 
   // 2. Descargar y agregar todas las fotos
@@ -251,6 +285,16 @@ export async function addPropertyToZip(
     if (imageResult) {
       const numStr = String(i + 1).padStart(2, '0');
       folder.file(`foto_${numStr}.${imageResult.ext}`, imageResult.blob);
+    }
+  }
+
+  // 3. 🔒 Fotos de fachada de enfrente (bucket privado, vía URLs firmadas)
+  const facadeUrls = privateInfo?.fachada_urls?.filter(Boolean) || [];
+  if (facadeUrls.length > 0) {
+    const facadeBlobs = await privateInfoStore.getFacadeBlobs(facadeUrls);
+    for (let i = 0; i < facadeBlobs.length; i++) {
+      const numStr = String(i + 1).padStart(2, '0');
+      folder.file(`fachada_${numStr}.jpg`, facadeBlobs[i].blob);
     }
   }
 }
