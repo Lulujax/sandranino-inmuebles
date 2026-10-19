@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, X, Lock } from 'lucide-react';
 
 interface LightboxProps {
@@ -49,13 +50,15 @@ export const Lightbox: React.FC<LightboxProps> = ({
     };
   }, [onClose, urls.length]);
 
-  if (urls.length === 0) return null;
+  if (typeof document === 'undefined' || urls.length === 0) return null;
   const safeIndex = Math.min(Math.max(index, 0), urls.length - 1);
 
   const goPrev = () => setIndex((i) => Math.max(0, i - 1));
   const goNext = () => setIndex((i) => Math.min(urls.length - 1, i + 1));
 
-  return (
+  // Portal al <body>: el zoom vive a nivel del documento, inmune a transform
+  // o animaciones de la página que robarían el posicionamiento fixed.
+  return createPortal(
     <div
       className="fixed inset-0 z-[70] bg-black/95 backdrop-blur-sm flex flex-col animate-fade-in-up font-body select-none"
       onClick={onClose}
@@ -157,6 +160,7 @@ export const Lightbox: React.FC<LightboxProps> = ({
           </p>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

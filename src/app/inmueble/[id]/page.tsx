@@ -38,6 +38,7 @@ import {
 import { Badge } from '@/components/ui/Badge';
 import { PropertyGallery } from '@/components/public/PropertyGallery';
 import { ShareButtons } from '@/components/public/ShareButtons';
+import { InfoPrivadaSeccion } from '@/components/public/InfoPrivadaSeccion';
 
 function getPropertyTypeIcon(type: PropertyType) {
   switch (type) {
@@ -254,6 +255,13 @@ export default function PropertyDetailPage() {
 
         {/* Galería de Fotos */}
         <PropertyGallery images={property.images} title={property.title} />
+
+        {/* 🔒 Info Privada: solo visible con la sesión del asesor */}
+        <InfoPrivadaSeccion
+          inmuebleId={property.id}
+          enabled={isAdminPreview}
+          title={property.title}
+        />
 
         {/* Grid de tarjetas de detalles principales (Tipo / Operación / Superficie) */}
         <div

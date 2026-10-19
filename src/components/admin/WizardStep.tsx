@@ -205,17 +205,22 @@ const SortablePhotoItem: React.FC<SortablePhotoItemProps> = ({
 interface WizardStepProps {
   initialData?: Partial<WizardFormData>;
   editId?: string | null;
+  /** Permite abrir el asistente directamente en un paso (ej: ?paso=7). */
+  initialStep?: number;
 }
 
-export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId }) => {
+export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId, initialStep }) => {
   const router = useRouter();
   const { toast } = useToast();
   const prefersReducedMotion = useReducedMotion();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [currentStep, setCurrentStep] = useState(1);
+  const safeInitialStep = initialStep
+    ? Math.min(Math.max(Math.trunc(initialStep), 1), 8)
+    : 1;
+  const [currentStep, setCurrentStep] = useState(safeInitialStep);
   const isEditing = Boolean(editId);
-  const [maxStepReached, setMaxStepReached] = useState(isEditing ? 8 : 1);
+  const [maxStepReached, setMaxStepReached] = useState(isEditing ? 8 : safeInitialStep);
   const [existingStatus, setExistingStatus] = useState<PropertyStatus>('Publicado');
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [isProcessingImages, setIsProcessingImages] = useState(false);

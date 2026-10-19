@@ -13,6 +13,8 @@ import { Loader2 } from 'lucide-react';
 function PublicarContent() {
   const searchParams = useSearchParams();
   const editId = searchParams.get('edit');
+  const pasoParam = Number.parseInt(searchParams.get('paso') || '1', 10) || 1;
+  const initialStep = Math.min(Math.max(pasoParam, 1), 8);
   const [initialPropertyData, setInitialPropertyData] = useState<
     Partial<WizardFormData> | undefined
   >(undefined);
@@ -111,7 +113,7 @@ function PublicarContent() {
         </p>
       </FadeInUp>
 
-      <WizardStep initialData={initialPropertyData} editId={editId} />
+      <WizardStep initialData={initialPropertyData} editId={editId} initialStep={initialStep} />
     </div>
   );
 }
