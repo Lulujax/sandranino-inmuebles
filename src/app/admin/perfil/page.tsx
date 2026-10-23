@@ -523,7 +523,7 @@ export default function MiPerfilPage() {
             </div>
             <Input
               type="email"
-              placeholder="sandra@ejemplo.com"
+              placeholder="Correo"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               helperText="Si lo dejas vacío, no se habilitará el botón de contacto por correo"

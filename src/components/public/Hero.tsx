@@ -20,6 +20,7 @@ import { getSocialProfileUrl, normalizeWhatsAppPhone } from '@/lib/utils';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { FadeInUp } from '@/components/ui/FadeInUp';
+import { Header } from '@/components/public/Header';
 import { FeaturedProperties } from '@/components/public/FeaturedProperties';
 
 interface HeroProps {
@@ -92,8 +93,14 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] text-text-body font-body selection:bg-terracotta/20 selection:text-text-heading">
+      {/* Header fijo con navegación por secciones */}
+      <Header whatsappUrl={whatsappUrl} />
+
       {/* Hero Principal con fondo arquitectónico de villa de lujo y máscara suave */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] border-b border-stone-200/60 py-16 md:py-20">
+      <section
+        id="inicio"
+        className="relative overflow-hidden bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] border-b border-stone-200/60 pt-24 sm:pt-28 md:pt-32 pb-16 md:pb-20 scroll-mt-16"
+      >
         {/* Fondo arquitectónico con vista a Valencia */}
         <div
           className="absolute inset-0 bg-cover bg-center pointer-events-none opacity-80 sm:opacity-85 md:opacity-90"
@@ -278,10 +285,15 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
       </section>
       
       {/* Sección: Propiedades Destacadas (Selección Exclusiva de Inmuebles) */}
-      <FeaturedProperties />
+      <div id="inmuebles" className="scroll-mt-20">
+        <FeaturedProperties />
+      </div>
 
       {/* Sección: ¿Qué puedo hacer por ti? */}
-      <section className="py-16 md:py-24 bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea]">
+      <section
+        id="servicios"
+        className="py-16 md:py-24 bg-gradient-to-br from-[#faf9f6] to-[#f5f1ea] scroll-mt-20"
+      >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <FadeInUp className="text-center max-w-2xl mx-auto mb-14">
             <span className="text-xs font-body font-medium uppercase tracking-[0.25em] text-[#C97B5A] block mb-2">
@@ -343,7 +355,10 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
       </section>
 
       {/* Sección: ¿Por qué trabajar conmigo? */}
-      <section className="py-16 md:py-24 bg-[#f5f1ea]/60 border-t border-stone-200/60">
+      <section
+        id="diferenciales"
+        className="py-16 md:py-24 bg-[#f5f1ea]/60 border-t border-stone-200/60 scroll-mt-20"
+      >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <FadeInUp className="text-center max-w-2xl mx-auto mb-14">
             <span className="text-xs font-body font-medium uppercase tracking-[0.25em] text-[#C97B5A] block mb-2">
@@ -398,7 +413,10 @@ export const Hero: React.FC<HeroProps> = ({ asesor: initialAsesor }) => {
       </section>
 
       {/* CTA Final con fondo arquitectónico de Valencia y máscara de contraste */}
-      <section className="py-20 md:py-28 text-cream-50 relative overflow-hidden bg-[#152a45]">
+      <section
+        id="contacto"
+        className="py-20 md:py-28 text-cream-50 relative overflow-hidden bg-[#152a45] scroll-mt-16"
+      >
         <div
           className="absolute inset-0 bg-cover bg-center pointer-events-none transform scale-105"
           style={{

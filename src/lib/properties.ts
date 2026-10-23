@@ -44,15 +44,10 @@ export function toPublicProperty(inmueble: Inmueble): Inmueble {
     owner_name: _ownerName,
     owner_phone: _ownerPhone,
     contact_type: _contactType,
-    notes: _notes,
-    address,
     ...rest
   } = inmueble;
 
-  return {
-    ...rest,
-    address: inmueble.show_exact_location ? address : undefined,
-  };
+  return rest;
 }
 
 let propertiesCache: {

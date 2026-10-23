@@ -455,15 +455,6 @@ export default function PropertyDetailPage() {
                 </span>
               </div>
             )}
-            {property.show_exact_location && property.address && (
-              <div className="flex items-center gap-3 text-stone-700 bg-white/70 p-3.5 rounded-xl border border-stone-200/60">
-                <MapPin size={18} strokeWidth={1.5} className="text-[#C97B5A] shrink-0" />
-                <span>
-                  <strong className="text-text-heading font-medium">Dirección:</strong>{' '}
-                  {property.address}
-                </span>
-              </div>
-            )}
             {property.built_area != null && property.built_area > 0 && (
               <div className="flex items-center gap-3 text-stone-700 bg-white/70 p-3.5 rounded-xl border border-stone-200/60">
                 <Maximize2 size={18} strokeWidth={1.5} className="text-[#C97B5A] shrink-0" />

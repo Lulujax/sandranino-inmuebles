@@ -102,6 +102,7 @@ export const VENEZUELA: Record<string, string[]> = {
     'San Diego',
     'San Joaquín',
     'Valencia',
+    "Otro",
   ],
   'Cojedes': [
     'Anzoátegui',

@@ -148,7 +148,7 @@ export default function LoginPage() {
               label="Correo Electrónico"
               type="email"
               autoComplete="email"
-              placeholder="sandra@ejemplo.com"
+              placeholder="Correo"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required

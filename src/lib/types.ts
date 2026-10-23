@@ -22,8 +22,6 @@ export interface Inmueble {
   state: string;
   city: string;
   sector?: string;
-  address?: string; // Interno
-  show_exact_location?: boolean;
   bedrooms?: number;
   bathrooms?: number;
   parking?: number;
@@ -39,7 +37,6 @@ export interface Inmueble {
   contact_type?: ContactType; // Interno (Propietario Directo o Colega Asesor)
   owner_name?: string; // Interno
   owner_phone?: string; // Interno
-  notes?: string; // Interno
   images: string[];
   status: PropertyStatus;
   visits: number;
@@ -97,8 +94,6 @@ export interface WizardFormData {
   state: string;
   city: string;
   sector: string;
-  address: string;
-  show_exact_location: boolean;
   // Dynamic fields
   bedrooms?: number;
   bathrooms?: number;
@@ -120,8 +115,7 @@ export interface WizardFormData {
   contact_type?: ContactType;
   owner_name: string;
   owner_phone: string;
-  notes: string;
-  // 🔒 Info privada (solo tú): ubicación exacta descripción, fachadas y notas extra
+  // 🔒 Info privada (solo tú): ubicación exacta descripción, fachadas y notas unificadas extra
   ubicacion_privada: string;
   fachada_privadas: string[]; // rutas en bucket privado
   notas_privada: string;

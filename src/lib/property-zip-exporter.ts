@@ -149,9 +149,6 @@ export function generatePropertyDetailsText(
 
   if (locParts.length > 0) {
     lines.push(`📍 *UBICACIÓN:* ${locParts.join(', ')}`);
-    if (property.show_exact_location && property.address) {
-      lines.push(`• Dirección: ${property.address}`);
-    }
     lines.push('');
   }
 
@@ -203,7 +200,8 @@ export function generatePropertyDetailsText(
   }
 
   // Datos internos de contacto / captación (propietario o colega asesor)
-  if (property.owner_name || property.owner_phone || property.notes) {
+  // (Las notas privadas unificadas viven en el bloque 🔒 de abajo, junto a info_privada_inmuebles)
+  if (property.owner_name || property.owner_phone) {
     const contact = parseContactInfo(property);
     lines.push('🔒 *CONTACTO / CAPTACIÓN (USO INTERNO):*');
     lines.push(`• Origen / Tipo: ${contact.label}`);
@@ -212,9 +210,6 @@ export function generatePropertyDetailsText(
     }
     if (contact.phone) {
       lines.push(`• Teléfono: ${contact.phone}`);
-    }
-    if (property.notes && property.notes.trim()) {
-      lines.push(`• Notas internas: ${property.notes.trim()}`);
     }
     lines.push('');
   }

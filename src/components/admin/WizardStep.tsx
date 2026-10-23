@@ -282,8 +282,6 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId, ini
     state: initialData?.state || '',
     city: initialData?.city || '',
     sector: initialData?.sector || '',
-    address: initialData?.address || '',
-    show_exact_location: initialData?.show_exact_location || false,
     bedrooms: initialData?.bedrooms,
     bathrooms: initialData?.bathrooms,
     parking: initialData?.parking,
@@ -301,7 +299,6 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId, ini
     contact_type: parseContactInfo(initialData).type,
     owner_name: parseContactInfo(initialData).name,
     owner_phone: parseContactInfo(initialData).phone || '',
-    notes: initialData?.notes || '',
     ubicacion_privada: initialData?.ubicacion_privada || '',
     fachada_privadas: initialData?.fachada_privadas || [],
     notas_privada: initialData?.notas_privada || '',
@@ -335,8 +332,6 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId, ini
         state: initialData.state || '',
         city: initialData.city || '',
         sector: initialData.sector || '',
-        address: initialData.address || '',
-        show_exact_location: initialData.show_exact_location || false,
         bedrooms: initialData.bedrooms,
         bathrooms: initialData.bathrooms,
         parking: initialData.parking,
@@ -354,7 +349,6 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId, ini
         contact_type: parsed.type,
         owner_name: parsed.name,
         owner_phone: parsed.phone || '',
-        notes: initialData.notes || '',
         ubicacion_privada: initialData.ubicacion_privada ?? prev.ubicacion_privada,
         fachada_privadas: initialData.fachada_privadas ?? prev.fachada_privadas,
         notas_privada: initialData.notas_privada ?? prev.notas_privada,
@@ -419,8 +413,6 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId, ini
       state: pendingDraft.state || '',
       city: pendingDraft.city || '',
       sector: pendingDraft.sector || '',
-      address: pendingDraft.address || '',
-      show_exact_location: pendingDraft.show_exact_location || false,
       bedrooms: pendingDraft.bedrooms,
       bathrooms: pendingDraft.bathrooms,
       parking: pendingDraft.parking,
@@ -438,7 +430,6 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId, ini
       contact_type: parseContactInfo(pendingDraft).type,
       owner_name: parseContactInfo(pendingDraft).name,
       owner_phone: parseContactInfo(pendingDraft).phone || '',
-      notes: pendingDraft.notes || '',
       ubicacion_privada: pendingDraft.ubicacion_privada || '',
       fachada_privadas: pendingDraft.fachada_privadas || [],
       notas_privada: pendingDraft.notas_privada || '',
@@ -900,8 +891,6 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId, ini
       state: formData.state || 'Carabobo',
       city: formData.city || 'Valencia',
       sector: formData.sector.trim() || undefined,
-      address: formData.address.trim() || undefined,
-      show_exact_location: formData.show_exact_location,
       bedrooms: formData.bedrooms,
       bathrooms: formData.bathrooms,
       parking: formData.parking,
@@ -917,7 +906,6 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId, ini
       contact_type: formData.contact_type || 'Propietario',
       owner_name: formatContactNameForSave(formData.owner_name, formData.contact_type || 'Propietario') || undefined,
       owner_phone: formData.owner_phone.trim() || undefined,
-      notes: formData.notes.trim() || undefined,
       images: formData.images,
       status,
       visits: existing?.visits ?? 0,
@@ -1370,37 +1358,14 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId, ini
               }
             />
 
-            {/* Dirección exacta */}
-            <Input
-              label="Dirección exacta (opcional, uso interno)"
-              placeholder="Ej. Calle Los Cedros, Casa #4"
-              value={formData.address}
-              onChange={(e) =>
-                updateForm((prev) => ({ ...prev, address: e.target.value }))
-              }
-            />
-
-            {/* Checkbox mostrar en público */}
-            <div className="flex items-center gap-2.5 pt-2 font-body">
-              <input
-                type="checkbox"
-                id="show_exact"
-                checked={formData.show_exact_location}
-                onChange={(e) =>
-                  updateForm((prev) => ({
-                    ...prev,
-                    show_exact_location: e.target.checked,
-                  }))
-                }
-                className="w-4 h-4 text-brand rounded border-stone-300 focus:ring-brand/20 accent-brand cursor-pointer"
-              />
-              <label
-                htmlFor="show_exact"
-                className="text-xs sm:text-sm text-stone-700 select-none cursor-pointer"
-              >
-                Mostrar dirección exacta en la página pública
-              </label>
-            </div>
+            {/* Recordatorio: lo privado de ubicación vive en el Paso 7 */}
+            <p className="text-xs text-stone-500 leading-relaxed font-body flex items-start gap-2 pt-1">
+              <MapPin size={14} strokeWidth={1.5} className="text-[#C97B5A] shrink-0 mt-0.5" />
+              <span>
+                La ubicación exacta privada (calles internas, cómo llegar, referencias) va en el{' '}
+                <span className="font-medium text-[#C97B5A]">Paso 7, sección 🔒 Info Privada</span>.
+              </span>
+            </p>
           </div>
         )}
 
@@ -2004,22 +1969,6 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId, ini
               </div>
             </div>
 
-            <div>
-              <label className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-stone-700 mb-1.5 font-body">
-                <StickyNote size={14} strokeWidth={1.5} className="text-[#C97B5A]" />
-                <span>Notas Privadas (opcional)</span>
-              </label>
-              <textarea
-                rows={3}
-                value={formData.notes}
-                onChange={(e) =>
-                  updateForm((prev) => ({ ...prev, notes: e.target.value }))
-                }
-                placeholder="Comentarios confidenciales sobre propietarios, comisiones o llaves (no se publican)..."
-                className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-lg text-base sm:text-sm text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs transition-all"
-              />
-            </div>
-
             {/* 🔒 Info Privada — Solo Tú */}
             <div className="bg-white rounded-xl p-4 sm:p-5 border border-stone-200/80 space-y-4">
               <div>
@@ -2146,15 +2095,15 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId, ini
               <div>
                 <label className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-stone-700 mb-1.5 font-body">
                   <StickyNote size={14} strokeWidth={1.5} className="text-amber-600" />
-                  <span>Notas Extra Privadas (opcional)</span>
+                  <span>Notas Privadas (opcional)</span>
                 </label>
                 <textarea
-                  rows={2}
+                  rows={3}
                   value={formData.notas_privada}
                   onChange={(e) =>
                     updateForm((prev) => ({ ...prev, notas_privada: e.target.value }))
                   }
-                  placeholder="Detalles para llegar sin equivocarte de puerta o de entrada..."
+                  placeholder="Comentarios confidenciales sobre propietarios, comisiones, llaves o detalles para llegar sin equivocarte de puerta..."
                   className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-lg text-base sm:text-sm text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs transition-all"
                 />
               </div>

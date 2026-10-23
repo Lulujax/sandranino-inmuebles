@@ -45,8 +45,6 @@ function PublicarContent() {
           state: existing.state,
           city: existing.city,
           sector: existing.sector || '',
-          address: existing.address || '',
-          show_exact_location: existing.show_exact_location || false,
           bedrooms: existing.bedrooms,
           bathrooms: existing.bathrooms,
           parking: existing.parking,
@@ -64,7 +62,6 @@ function PublicarContent() {
           contact_type: existing.contact_type || parsedContact.type,
           owner_name: parsedContact.name || existing.owner_name || '',
           owner_phone: parsedContact.phone || existing.owner_phone || '',
-          notes: existing.notes || '',
         });
         setIsLoading(false);
       })
