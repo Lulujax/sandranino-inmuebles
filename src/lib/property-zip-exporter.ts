@@ -28,6 +28,15 @@ export function sanitizeFolderName(name: string): string {
 }
 
 /**
+ * Devuelve el nombre de carpeta/archivo de un inmueble usando su código
+ * interno (ej: SN-01). Si no tiene código, usa el título como respaldo.
+ */
+export function getPropertyFolderName(property: Inmueble): string {
+  const code = property.internal_code?.trim();
+  return sanitizeFolderName(code || property.title);
+}
+
+/**
  * Convierte un Data URL (base64) a Blob
  */
 function dataUrlToBlob(dataUrl: string): { blob: Blob; ext: string } {
@@ -241,8 +250,8 @@ export function generatePropertyDetailsText(
 
 /**
  * Añade un inmueble específico a una instancia de JSZip:
- * Crea una carpeta con el título del inmueble, dentro coloca el archivo .txt
- * con la descripción y detalles, y todas las fotos.
+ * Crea una carpeta con el código interno del inmueble, dentro coloca el
+ * archivo .txt con la descripción y detalles, y todas las fotos.
  */
 export async function addPropertyToZip(
   zip: JSZip,
@@ -250,7 +259,7 @@ export async function addPropertyToZip(
   customFolderName?: string,
   onProgress?: (imageIndex: number, totalImages: number) => void
 ): Promise<void> {
-  const folderName = customFolderName || sanitizeFolderName(property.title);
+  const folderName = customFolderName || getPropertyFolderName(property);
   const folder = zip.folder(folderName);
   if (!folder) {
     throw new Error(`No se pudo crear la carpeta "${folderName}" en el archivo ZIP`);
@@ -310,7 +319,7 @@ export function triggerFileDownload(blob: Blob, filename: string): void {
 
 /**
  * Empaqueta y descarga un único inmueble en un archivo .zip:
- * - Dentro contiene una carpeta con el título del inmueble
+ * - El nombre del ZIP y la carpeta interna usan el código del inmueble
  * - Dentro de la carpeta: un txt con descripción y detalles, y todas las fotos
  */
 export async function downloadSinglePropertyZip(
@@ -327,13 +336,13 @@ export async function downloadSinglePropertyZip(
     compressionOptions: { level: 6 },
   });
 
-  const zipFilename = `${sanitizeFolderName(property.title)}.zip`;
+  const zipFilename = `${getPropertyFolderName(property)}.zip`;
   triggerFileDownload(zipBlob, zipFilename);
 }
 
 /**
  * Empaqueta y descarga un grupo de inmuebles en un único archivo .zip:
- * - Cada inmueble tiene su propia carpeta con su título
+ * - Cada inmueble tiene su propia carpeta con su código interno
  * - Dentro de cada carpeta: txt con descripción y detalles, y sus fotos
  */
 export async function downloadBulkPropertiesZip(
@@ -353,13 +362,12 @@ export async function downloadBulkPropertiesZip(
     const prop = properties[i];
     onProgress?.(i + 1, properties.length, prop.title);
 
-    let baseFolderName = sanitizeFolderName(prop.title);
+    const baseFolderName = getPropertyFolderName(prop);
     let uniqueFolderName = baseFolderName;
     let counter = 2;
 
     while (usedFolderNames.has(uniqueFolderName.toLowerCase())) {
-      const suffix = prop.internal_code ? `_${prop.internal_code}` : `_${counter}`;
-      uniqueFolderName = `${baseFolderName}${suffix}`;
+      uniqueFolderName = `${baseFolderName}_${counter}`;
       counter++;
     }
     usedFolderNames.add(uniqueFolderName.toLowerCase());
