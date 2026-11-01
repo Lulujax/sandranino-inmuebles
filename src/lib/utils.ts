@@ -267,3 +267,39 @@ export function formatPropertyAdvisorOrReference(
   return contactText;
 }
 
+/**
+ * Anexa o actualiza la referencia ('REF: [Nombre]') al final de la descripción
+ * de un inmueble usando única y exclusivamente el nombre del contacto
+ * (sin agregar las palabras 'Colega' ni 'Propietario').
+ *
+ * Evita duplicar líneas si el inmueble se guarda varias veces o si el usuario
+ * ya escribió previamente dicha referencia.
+ */
+export function formatDescriptionWithContactRef(
+  description?: string | null,
+  ownerName?: string | null
+): string {
+  const rawDesc = (description || '').trim();
+  const contact = parseContactInfo({ owner_name: ownerName });
+  const cleanName = contact.name.trim();
+
+  // Limpiar cualquier línea previa de referencia al final (ej: '\n\nREF: Marcos Rivas')
+  const descWithoutTrailingRef = rawDesc
+    .replace(/(?:\r?\n)+\s*REF(?:\s*:|\s+)[^\r\n]*$/i, '')
+    .trim();
+
+  if (!cleanName) {
+    return descWithoutTrailingRef;
+  }
+
+  const refLine = `REF: ${cleanName}`;
+
+  // Si la descripción limpia ya contiene esa referencia exacta en alguna otra parte, no duplicar
+  if (descWithoutTrailingRef.toLowerCase().includes(refLine.toLowerCase())) {
+    return descWithoutTrailingRef;
+  }
+
+  return descWithoutTrailingRef ? `${descWithoutTrailingRef}\n\n${refLine}` : refLine;
+}
+
+

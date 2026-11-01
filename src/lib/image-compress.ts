@@ -1,11 +1,11 @@
 // ============================================================================
 // Compresión de imágenes compartida (fotos públicas y privada del wizard)
-// Misma lógica que venía en WizardStep: redimensiona a máx. 1200px por lado
-// y exporta JPEG calidad 0.8 mediante canvas, con respaldos por si falla.
+// Redimensiona a máx. 1920px por lado y exporta JPEG calidad 0.83 mediante canvas,
+// con respaldos por si falla. Sin pérdida perceptible para web/WhatsApp.
 // ============================================================================
 
-const MAX_DIM = 1200;
-const QUALITY = 0.8;
+const MAX_DIM = 1920;
+const QUALITY = 0.83;
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -41,7 +41,7 @@ function scaledCanvas(img: HTMLImageElement): HTMLCanvasElement | null {
 }
 
 /**
- * Comprime una imagen a Data URL persistente (JPEG ~0.8, máx 1200px).
+ * Comprime una imagen a Data URL persistente (JPEG ~0.83, máx 1920px).
  * Fallback: se devuelve el blobUrl original o un Data URL vía FileReader.
  */
 export async function compressImageToDataUrl(

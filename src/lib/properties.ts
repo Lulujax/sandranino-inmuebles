@@ -1,6 +1,6 @@
 import { Inmueble } from './types';
 import { createClient } from './supabase/client';
-import { parseContactInfo } from './utils';
+import { parseContactInfo, formatDescriptionWithContactRef } from './utils';
 
 /**
  * Límites de inventario para el plan gratuito
@@ -40,6 +40,11 @@ export function calculateInventoryCapacity(count: number): InventoryCapacity {
 }
 
 export function toPublicProperty(inmueble: Inmueble): Inmueble {
+  const formattedDesc = formatDescriptionWithContactRef(
+    inmueble.description,
+    inmueble.owner_name
+  );
+
   const {
     owner_name: _ownerName,
     owner_phone: _ownerPhone,
@@ -47,7 +52,10 @@ export function toPublicProperty(inmueble: Inmueble): Inmueble {
     ...rest
   } = inmueble;
 
-  return rest;
+  return {
+    ...rest,
+    description: formattedDesc,
+  };
 }
 
 let propertiesCache: {
@@ -97,6 +105,7 @@ export const propertiesStore = {
     const result = ((data as Inmueble[]) || []).map((p) => ({
       ...p,
       contact_type: p.contact_type || parseContactInfo(p).type,
+      description: formatDescriptionWithContactRef(p.description, p.owner_name),
     }));
 
     // Guardar en caché
@@ -129,7 +138,7 @@ export const propertiesStore = {
       .select('*')
       .order('created_at', { ascending: false });
     if (viewError) throw viewError;
-    return (viewData as Inmueble[]) || [];
+    return ((viewData as Inmueble[]) || []).map(toPublicProperty);
   },
 
   getById: async (id: string): Promise<Inmueble | null> => {
@@ -145,6 +154,7 @@ export const propertiesStore = {
     return {
       ...item,
       contact_type: item.contact_type || parseContactInfo(item).type,
+      description: formatDescriptionWithContactRef(item.description, item.owner_name),
     };
   },
 
@@ -170,7 +180,7 @@ export const propertiesStore = {
       .eq('id', id)
       .maybeSingle();
     if (viewError) throw viewError;
-    return (viewData as Inmueble) || null;
+    return viewData ? toPublicProperty(viewData as Inmueble) : null;
   },
 
   save: async (inmueble: Partial<Inmueble>): Promise<Inmueble> => {
@@ -183,6 +193,13 @@ export const propertiesStore = {
       contact_type: _contactType,
       ...payload
     } = inmueble;
+
+    if (payload.description !== undefined || payload.owner_name !== undefined) {
+      payload.description = formatDescriptionWithContactRef(
+        payload.description,
+        payload.owner_name
+      );
+    }
 
     // Si viene un UUID válido existente, actualizamos; de lo contrario, insertamos (user_id automático por default auth.uid())
     const isUuid =
@@ -228,6 +245,13 @@ export const propertiesStore = {
       contact_type: _contactType,
       ...payload
     } = changes;
+
+    if (payload.description !== undefined && payload.owner_name !== undefined) {
+      payload.description = formatDescriptionWithContactRef(
+        payload.description,
+        payload.owner_name
+      );
+    }
 
     const { data, error } = await supabase
       .from('inmuebles')

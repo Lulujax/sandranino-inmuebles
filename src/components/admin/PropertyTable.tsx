@@ -18,11 +18,12 @@ import {
   HardDrive,
   FolderDown,
   Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Inmueble, AdminFilterState, PropertyStatus } from '@/lib/types';
 import { propertiesStore, calculateInventoryCapacity } from '@/lib/properties';
-import { formatPrice, parseContactInfo } from '@/lib/utils';
+import { formatPrice, parseContactInfo, formatDescriptionWithContactRef } from '@/lib/utils';
 import { downloadSinglePropertyZip } from '@/lib/property-zip-exporter';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
@@ -49,6 +50,46 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
 
   const { toast } = useToast();
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [isSyncingRefs, setIsSyncingRefs] = useState(false);
+
+  const handleSyncDatabaseRefs = async () => {
+    if (isSyncingRefs) return;
+    try {
+      setIsSyncingRefs(true);
+      toast('Verificando descripciones en la base de datos...', 'info');
+      const allProps = await propertiesStore.getAll(undefined, true);
+      let count = 0;
+
+      for (const prop of allProps) {
+        const contact = parseContactInfo(prop);
+        if (!contact.name) continue;
+
+        const currentDesc = (prop.description || '').trim();
+        const targetDesc = formatDescriptionWithContactRef(prop.description, prop.owner_name);
+
+        if (currentDesc !== targetDesc) {
+          await propertiesStore.update(prop.id, {
+            description: targetDesc,
+            owner_name: prop.owner_name,
+          });
+          count++;
+        }
+      }
+
+      if (count > 0) {
+        const refreshed = await propertiesStore.getAll(undefined, true);
+        setProperties(refreshed);
+        toast(`✅ Se actualizaron las referencias de ${count} inmueble(s) en la base de datos.`, 'success');
+      } else {
+        toast('✨ Todas las descripciones ya tienen su referencia al día en la base de datos.', 'info');
+      }
+    } catch (err) {
+      console.error('Error al sincronizar referencias en BD:', err);
+      toast('Error al sincronizar referencias en la base de datos.', 'error');
+    } finally {
+      setIsSyncingRefs(false);
+    }
+  };
 
   const handleDownloadZip = async (prop: Inmueble) => {
     if (downloadingId) return;
@@ -233,23 +274,36 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
             Administra, actualiza, edita o pausa las propiedades publicadas en tu inventario exclusivo.
           </p>
         </div>
-        {capacity.isFull ? (
-          <div
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-stone-200 text-stone-500 font-body font-medium text-xs uppercase tracking-wider cursor-not-allowed shadow-none"
-            title={`Has alcanzado el límite de ${capacity.max} inmuebles de tu inventario. Pausa o elimina inmuebles antiguos para crear uno nuevo.`}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={handleSyncDatabaseRefs}
+            disabled={isSyncingRefs}
+            title="Asegura que todos los inmuebles existentes con contacto cargado tengan 'REF: [Nombre]' en la base de datos"
+            className="inline-flex items-center justify-center gap-2 px-3.5 py-3 rounded-xl bg-white border border-stone-200/90 hover:bg-stone-50 text-stone-700 font-body font-medium text-xs uppercase tracking-wider shadow-2xs hover:border-stone-300 transition-all duration-150 cursor-pointer disabled:opacity-50"
           >
-            <PlusCircle size={16} strokeWidth={1.5} />
-            <span>Tope {capacity.max} alcanzado</span>
-          </div>
-        ) : (
-          <Link
-            href="/admin/publicar"
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#1e3a5f] hover:bg-[#152a45] text-white font-body font-medium text-xs uppercase tracking-wider shadow-sm hover:shadow-luxury hover:-translate-y-0.5 transition-all duration-200"
-          >
-            <PlusCircle size={16} strokeWidth={1.5} />
-            <span>+ Nuevo Inmueble</span>
-          </Link>
-        )}
+            <RefreshCw size={14} className={isSyncingRefs ? 'animate-spin text-[#1e3a5f]' : 'text-[#C97B5A]'} />
+            <span>{isSyncingRefs ? 'Actualizando BD...' : 'Sincronizar REF en BD'}</span>
+          </button>
+
+          {capacity.isFull ? (
+            <div
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-stone-200 text-stone-500 font-body font-medium text-xs uppercase tracking-wider cursor-not-allowed shadow-none"
+              title={`Has alcanzado el límite de ${capacity.max} inmuebles de tu inventario. Pausa o elimina inmuebles antiguos para crear uno nuevo.`}
+            >
+              <PlusCircle size={16} strokeWidth={1.5} />
+              <span>Tope {capacity.max} alcanzado</span>
+            </div>
+          ) : (
+            <Link
+              href="/admin/publicar"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#1e3a5f] hover:bg-[#152a45] text-white font-body font-medium text-xs uppercase tracking-wider shadow-sm hover:shadow-luxury hover:-translate-y-0.5 transition-all duration-200"
+            >
+              <PlusCircle size={16} strokeWidth={1.5} />
+              <span>+ Nuevo Inmueble</span>
+            </Link>
+          )}
+        </div>
       </FadeInUp>
 
       {/* Widget de Capacidad del Inventario (Límite Gratuito 1 GB) */}

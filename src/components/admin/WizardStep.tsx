@@ -69,6 +69,7 @@ import {
   parseContactInfo,
   formatContactNameForSave,
   generateNextPropertyCode,
+  formatDescriptionWithContactRef,
 } from '@/lib/utils';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
@@ -879,13 +880,17 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId, ini
   ): Promise<Partial<Inmueble>> => {
     const now = new Date().toISOString();
     const existing = editId ? await propertiesStore.getById(editId) : null;
+    const finalDescription = formatDescriptionWithContactRef(
+      formData.description,
+      formData.owner_name
+    );
 
     return {
       id: editId || undefined,
       title:
         formData.title.trim() ||
         `${formData.type || 'Inmueble'} en ${formData.city || 'Venezuela'}`,
-      description: formData.description.trim(),
+      description: finalDescription,
       operation: formData.operation || 'Venta',
       type: formData.type || 'Casa',
       state: formData.state || 'Carabobo',
@@ -1807,6 +1812,11 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId, ini
                 placeholder="Describe los beneficios, amenidades, planta eléctrica, pozo de agua, acabados y cercanías..."
                 className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-lg text-base sm:text-sm text-text-heading font-body focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand shadow-xs transition-all"
               />
+              <p className="text-[11px] text-stone-500 mt-1.5 font-body">
+                💡 Al guardar, se anexará automáticamente{' '}
+                <span className="font-mono text-stone-700 font-medium">REF: [Nombre]</span>{' '}
+                al final con el contacto que indiques en el paso siguiente.
+              </p>
             </div>
           </div>
         )}
@@ -1948,6 +1958,11 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId, ini
                     value={formData.owner_name}
                     onChange={(e) =>
                       updateForm((prev) => ({ ...prev, owner_name: e.target.value }))
+                    }
+                    helperText={
+                      formData.owner_name.trim()
+                        ? `Se colocará automáticamente como "REF: ${parseContactInfo({ owner_name: formData.owner_name }).name}" al final de la descripción.`
+                        : 'Se anexará automáticamente como "REF: [Nombre]" al final de la descripción.'
                     }
                   />
                 </div>
@@ -2223,8 +2238,8 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId, ini
 
               {formData.description && (
                 <div className="pt-3 border-t border-stone-200/60 font-body">
-                  <p className="text-xs text-stone-700 line-clamp-3 leading-relaxed">
-                    {formData.description}
+                  <p className="text-xs text-stone-700 line-clamp-4 leading-relaxed whitespace-pre-line">
+                    {formatDescriptionWithContactRef(formData.description, formData.owner_name)}
                   </p>
                 </div>
               )}

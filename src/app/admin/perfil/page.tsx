@@ -12,6 +12,7 @@ import {
   Camera,
   RotateCcw,
   Sparkles,
+  RefreshCw,
 } from 'lucide-react';
 import { FaWhatsapp, FaInstagram, FaFacebook, FaTiktok } from 'react-icons/fa';
 import { MOCK_ASESOR } from '@/data/mock-properties';
@@ -29,6 +30,20 @@ import {
   ProfilePhotoModal,
   MIN_PROFILE_PHOTO_PIXELS,
 } from '@/components/admin/ProfilePhotoModal';
+
+interface StorageUsage {
+  success: boolean;
+  totalBytes: number;
+  totalMb: number;
+  totalGb: number;
+  totalHuman: string;
+  limitMb: number;
+  limitGb: number;
+  limitHuman: string;
+  percentage: number;
+  byBucket: Record<string, { bytes: number; mb: number; gb: number; count: number; human: string }>;
+  checkedAt: string;
+}
 
 export default function MiPerfilPage() {
   const { toast } = useToast();
@@ -56,12 +71,33 @@ export default function MiPerfilPage() {
 
   // Inventario y capacidad de almacenamiento gratuito
   const [propertyCount, setPropertyCount] = useState(0);
+  const [storageUsage, setStorageUsage] = useState<StorageUsage | null>(null);
+  const [loadingStorage, setLoadingStorage] = useState(false);
 
   useEffect(() => {
     propertiesStore
       .getAll()
       .then((data) => setPropertyCount(data.length))
       .catch(() => setPropertyCount(0));
+  }, []);
+
+  const fetchStorageUsage = async () => {
+    try {
+      setLoadingStorage(true);
+      const res = await fetch('/api/admin/storage-usage', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        setStorageUsage(data);
+      }
+    } catch {
+      // Silencioso
+    } finally {
+      setLoadingStorage(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStorageUsage();
   }, []);
 
   const capacity = calculateInventoryCapacity(propertyCount);
@@ -586,18 +622,29 @@ export default function MiPerfilPage() {
       {/* Capacidad y Estado del Sistema (Límite Gratuito 1 GB) */}
       <FadeInUp delay={0.16} className="bg-[#faf9f6] p-6 sm:p-7 rounded-2xl border border-stone-200/80 shadow-card space-y-5 font-body">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200/60 pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#1e3a5f]/8 text-[#1e3a5f] flex items-center justify-center border border-stone-200/80">
-              <HardDrive size={18} strokeWidth={1.5} />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#1e3a5f]/8 text-[#1e3a5f] flex items-center justify-center border border-stone-200/80">
+                <HardDrive size={18} strokeWidth={1.5} />
+              </div>
+              <div>
+                <h3 className="font-display text-lg font-semibold text-text-heading">
+                  Capacidad y Almacenamiento
+                </h3>
+                <p className="text-xs text-stone-500 font-body">
+                  Espacio real calculado desde Supabase Storage
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-display text-lg font-semibold text-text-heading">
-                Capacidad y Almacenamiento
-              </h3>
-              <p className="text-xs text-stone-500 font-body">
-                Detalles del espacio y cuota asignada a tu plataforma
-              </p>
-            </div>
+            <button
+              type="button"
+              onClick={fetchStorageUsage}
+              disabled={loadingStorage}
+              className="self-start sm:self-auto flex items-center gap-1.5 text-xs font-medium text-stone-600 hover:text-text-heading transition-colors disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={loadingStorage ? 'animate-spin' : ''} />
+              <span>{loadingStorage ? 'Actualizando...' : 'Actualizar'}</span>
+            </button>
           </div>
           <span className="self-start sm:self-auto text-xs font-mono font-medium px-3 py-1 rounded-full bg-[#edf7ee] text-emerald-800 border border-emerald-200 flex items-center gap-1.5">
             <ShieldCheck size={14} />
@@ -633,20 +680,33 @@ export default function MiPerfilPage() {
           <div className="bg-white p-4.5 rounded-xl border border-stone-200/80 space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium uppercase tracking-wider text-stone-500">
-                Fotos y Archivos
+                Fotos y Archivos (Real)
               </span>
               <span className="text-xs font-mono font-bold text-text-heading">
-                ~{capacity.estimatedStorageMb} / {capacity.maxStorageMb} MB
+                {storageUsage ? `${storageUsage.totalMb} / ${storageUsage.limitMb}` : `~${capacity.estimatedStorageMb} / ${capacity.maxStorageMb}`} MB
               </span>
             </div>
             <div className="w-full bg-stone-100 h-2 rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full bg-[#C97B5A] transition-all duration-500"
-                style={{ width: `${Math.max(Math.round((capacity.estimatedStorageMb / capacity.maxStorageMb) * 100), 2)}%` }}
+                style={{
+                  width: `${
+                    storageUsage
+                      ? Math.max(storageUsage.percentage, 2)
+                      : Math.max(Math.round((capacity.estimatedStorageMb / capacity.maxStorageMb) * 100), 2)
+                  }%`,
+                }}
               />
             </div>
             <p className="text-[11px] text-stone-500">
-              {Math.round((capacity.estimatedStorageMb / capacity.maxStorageMb) * 100)}% de 1 GB (Plan Gratuito incluido)
+              {storageUsage
+                ? `${storageUsage.percentage}% de ${storageUsage.limitHuman} usado (${storageUsage.totalHuman})`
+                : `${Math.round((capacity.estimatedStorageMb / capacity.maxStorageMb) * 100)}% de 1 GB (estimado)`}
+              {storageUsage?.byBucket && (
+                <span className="block mt-1">
+                  inmuebles: {storageUsage.byBucket['inmuebles']?.human || '0 B'} · privadas: {storageUsage.byBucket['inmuebles-privadas']?.human || '0 B'}
+                </span>
+              )}
             </p>
           </div>
 
@@ -672,7 +732,12 @@ export default function MiPerfilPage() {
 
         <div className="p-4 rounded-xl bg-[#f5f1ea]/80 border border-stone-200/70 text-xs text-stone-600 leading-relaxed font-body">
           <p>
-            💡 <strong>Capacidad y almacenamiento:</strong> El plan gratuito de tu plataforma incluye hasta 1 GB de almacenamiento (recomendado hasta {capacity.max} propiedades con fotografías de alta resolución optimizadas), sin ningún costo de mantenimiento. Si en el futuro alcanzas este límite o requieres mayor capacidad para expandir tu inventario, es posible contratar almacenamiento adicional.
+            💡 <strong>Capacidad y almacenamiento:</strong> El plan gratuito de tu plataforma incluye hasta 1 GB de almacenamiento. El valor "Real" se calcula sumando todos los archivos en los buckets <code>inmuebles</code> e <code>inmuebles-privadas</code>. Límite recomendado: {capacity.max} propiedades. Si en el futuro alcanzas este límite o requieres mayor capacidad, es posible contratar almacenamiento adicional.
+            {storageUsage?.checkedAt && (
+              <span className="block mt-1 text-[10px] text-stone-400">
+                Última comprobación: {new Date(storageUsage.checkedAt).toLocaleString('es-VE')}
+              </span>
+            )}
           </p>
         </div>
       </FadeInUp>
