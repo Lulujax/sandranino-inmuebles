@@ -267,8 +267,8 @@ export default function PropertyDetailPage() {
         <div
           className={`grid grid-cols-2 ${
             property.type === 'Casa' || property.type === 'Apartamento'
-              ? 'sm:grid-cols-4'
-              : 'sm:grid-cols-3'
+              ? 'sm:grid-cols-5'
+              : 'sm:grid-cols-4'
           } gap-4`}
         >
           <div className="bg-[#faf9f6] p-5 rounded-2xl border border-stone-200/80 shadow-card flex flex-col items-center sm:items-start text-center sm:text-left transition-all hover:shadow-luxury">
@@ -314,6 +314,18 @@ export default function PropertyDetailPage() {
               </span>
             </div>
           )}
+
+          {property.internal_code && (
+            <div className="bg-[#faf9f6] p-5 rounded-2xl border border-stone-200/80 shadow-card flex flex-col items-center sm:items-start text-center sm:text-left transition-all hover:shadow-luxury">
+              <Hash size={20} strokeWidth={1.5} className="text-[#C97B5A] mb-2" />
+              <span className="text-[11px] font-medium uppercase tracking-wider text-stone-400 font-body">
+                Código
+              </span>
+              <span className="text-base font-display font-semibold text-text-heading mt-0.5">
+                {property.internal_code}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Fila 2: Izquierda (Descripción con cuadro más estrecho) y Derecha (Rectángulo Visitar + Compartir) */}
@@ -328,7 +340,7 @@ export default function PropertyDetailPage() {
                 Descripción
               </h2>
               <div className="text-stone-700 leading-relaxed text-sm sm:text-[15px] whitespace-pre-line font-body font-normal">
-                {property.description ||
+                {property.publication_description || property.description ||
                   'No se incluye descripción adicional para este inmueble. Comunícate con Sandra para más información.'}
               </div>
             </div>

@@ -70,6 +70,7 @@ import {
   formatContactNameForSave,
   generateNextPropertyCode,
   formatDescriptionWithContactRef,
+  buildPublicationDescription,
 } from '@/lib/utils';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
@@ -2239,7 +2240,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({ initialData, editId, ini
               {formData.description && (
                 <div className="pt-3 border-t border-stone-200/60 font-body">
                   <p className="text-xs text-stone-700 line-clamp-4 leading-relaxed whitespace-pre-line">
-                    {formatDescriptionWithContactRef(formData.description, formData.owner_name)}
+                    {buildPublicationDescription(formData)}
                   </p>
                 </div>
               )}

@@ -18,6 +18,24 @@ export function formatPrice(price: number, operation?: OperationType): string {
 }
 
 /**
+ * Determina si un precio coincide con una consulta escrita libremente en el buscador.
+ * Acepta números con o sin separadores de miles: "120000", "120,000", "120.000".
+ * Ejemplo: precio 120000 coincide con "120", "120,000" o "$120000".
+ */
+export function matchesPriceQuery(price: number, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return false;
+  // Solo intenta coincidir por precio si la consulta es numérica
+  if (!/^[\d.,\s$]+$/.test(q)) return false;
+
+  const queryDigits = q.replace(/\D/g, '');
+  if (!queryDigits) return false;
+
+  const priceDigits = String(Math.round(price));
+  return priceDigits.includes(queryDigits);
+}
+
+/**
  * Formatea valores de área en metros cuadrados
  */
 export function formatArea(area?: number): string {
@@ -135,7 +153,8 @@ export function getShareUrls(
   const locationParts = [property.sector, property.city, property.state].filter(Boolean);
   const locationText = locationParts.join(', ');
 
-  const fullDesc = property.description ? property.description.trim() : '';
+  const fullDesc =
+    property.publication_description || buildPublicationDescription(property);
 
   const baseUrl = url.split('?')[0];
   // Parámetro dinámico para que WhatsApp ignore cachés viejas fallidas y descargue la imagen de inmediato
@@ -269,8 +288,9 @@ export function formatPropertyAdvisorOrReference(
 
 /**
  * Anexa o actualiza la referencia ('REF: [Nombre]') al final de la descripción
- * de un inmueble usando única y exclusivamente el nombre del contacto
- * (sin agregar las palabras 'Colega' ni 'Propietario').
+ * de un inmueble cuando el contacto es un colega asesor, usando únicamente su
+ * nombre (sin agregar las palabras 'Colega' ni 'Propietario').
+ * Si es propietario o no tiene contacto, la descripción queda sin REF.
  *
  * Evita duplicar líneas si el inmueble se guarda varias veces o si el usuario
  * ya escribió previamente dicha referencia.
@@ -288,7 +308,7 @@ export function formatDescriptionWithContactRef(
     .replace(/(?:\r?\n)+\s*REF(?:\s*:|\s+)[^\r\n]*$/i, '')
     .trim();
 
-  if (!cleanName) {
+  if (!cleanName || contact.type !== 'Colega') {
     return descWithoutTrailingRef;
   }
 
@@ -300,6 +320,108 @@ export function formatDescriptionWithContactRef(
   }
 
   return descWithoutTrailingRef ? `${descWithoutTrailingRef}\n\n${refLine}` : refLine;
+}
+
+/**
+ * Firma que SIEMPRE debe cerrar la descripción de una publicación.
+ */
+export const PUBLICATION_FOOTER = [
+  'Sandra Niño',
+  '0424.496.01.02',
+  'Century21 A1',
+  'Cc. Guaparo',
+].join('\n');
+
+/**
+ * Quita de una descripción las líneas del formato de publicación que ya
+ * estuvieran escritas (REPUBLICACION, REF, código SN-XX y la firma), estén
+ * donde estén dentro del texto y aunque se hayan escrito a mano.
+ * Así el formato se puede regenerar sin duplicar líneas.
+ */
+function stripPublicationFormat(description?: string | null): string {
+  const normalized = (description || '').replace(/\r\n?/g, '\n');
+  const footerSet = new Set(PUBLICATION_FOOTER.split('\n').map((l) => l.toLowerCase()));
+
+  const lines = normalized
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => {
+      if (!line) return true;
+      const lower = line.toLowerCase();
+
+      // Firma (Sandra Niño / teléfono / agencia / oficina)
+      if (footerSet.has(lower)) return false;
+
+      // REPUBLICACION / REPUBLICACIÓN, con o sin dos puntos o texto extra
+      if (/^republicaci[oó]n\b/i.test(line)) return false;
+
+      // REF: Nombre / REF Nombre / REF:Nombre SN-03
+      if (/^ref\b/i.test(line)) return false;
+
+      return true;
+    });
+
+  // Código del portal (SN-XX) al inicio o al final del texto
+  while (lines.length > 0 && !lines[0]) lines.shift();
+  if (lines.length > 0 && /^sn-?\d+$/i.test(lines[0])) lines.shift();
+
+  while (lines.length > 0 && !lines[lines.length - 1]) lines.pop();
+  if (lines.length > 0 && /^sn-?\d+$/i.test(lines[lines.length - 1])) lines.pop();
+
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/**
+ * Construye la descripción de una publicación con el formato establecido:
+ *
+ *   REPUBLICACION            (solo si el contacto es un colega asesor)
+ *   SN-XX
+ *   REF: <nombre del colega> (solo si es colega asesor)
+ *
+ *   <cuerpo de la descripción>
+ *
+ *   Sandra Niño            <- solo con { withSignature: true } (ZIP)
+ *   0424.496.01.02
+ *   Century21 A1
+ *   Cc. Guaparo
+ *
+ * Se usa en la ficha pública (sin firma) y en el ZIP descargable desde
+ * Herramientas (con la firma al final).
+ */
+export function buildPublicationDescription(
+  property: Partial<Inmueble>,
+  options: { withSignature?: boolean } = {}
+): string {
+  const contact = parseContactInfo(property);
+  const isColleague = contact.type === 'Colega';
+  const internalCode = (property.internal_code || '').trim();
+  const body = stripPublicationFormat(property.description);
+
+  const lines: string[] = [];
+
+  if (isColleague) {
+    lines.push('REPUBLICACION');
+  }
+
+  // Primero el código del portal (SN-XX); debajo la referencia, solo si es colega
+  if (internalCode) {
+    lines.push(internalCode);
+  }
+  if (isColleague && contact.name) {
+    lines.push(`REF: ${contact.name}`);
+  }
+
+  if (body) {
+    if (lines.length > 0) lines.push('');
+    lines.push(body);
+  }
+
+  // La firma con los datos de contacto solo se agrega en la descarga del ZIP
+  if (options.withSignature) {
+    lines.push('', PUBLICATION_FOOTER);
+  }
+
+  return lines.join('\n');
 }
 
 

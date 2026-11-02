@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Building2 } from 'lucide-react';
 import { propertiesStore, toPublicProperty } from '@/lib/properties';
 import { FilterState, Inmueble } from '@/lib/types';
-import { getPropertyMainArea } from '@/lib/utils';
+import { getPropertyMainArea, matchesPriceQuery } from '@/lib/utils';
 import { FilterBar } from '@/components/public/FilterBar';
 import { PropertyCard } from '@/components/public/PropertyCard';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
@@ -56,7 +56,15 @@ export default function InventarioPage() {
           const matchSector = prop.sector?.toLowerCase().includes(q) || false;
           const matchState = prop.state.toLowerCase().includes(q);
           const matchCode = prop.internal_code?.toLowerCase().includes(q) || false;
-          if (!matchTitle && !matchCity && !matchSector && !matchState && !matchCode)
+          const matchPrice = matchesPriceQuery(prop.price, q);
+          if (
+            !matchTitle &&
+            !matchCity &&
+            !matchSector &&
+            !matchState &&
+            !matchCode &&
+            !matchPrice
+          )
             return false;
         }
 

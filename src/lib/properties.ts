@@ -1,6 +1,10 @@
 import { Inmueble } from './types';
 import { createClient } from './supabase/client';
-import { parseContactInfo, formatDescriptionWithContactRef } from './utils';
+import {
+  parseContactInfo,
+  formatDescriptionWithContactRef,
+  buildPublicationDescription,
+} from './utils';
 
 /**
  * Límites de inventario para el plan gratuito
@@ -40,6 +44,11 @@ export function calculateInventoryCapacity(count: number): InventoryCapacity {
 }
 
 export function toPublicProperty(inmueble: Inmueble): Inmueble {
+  // El formato de publicación (REPUBLICACION / REF) depende de si el contacto
+  // es colega, así que se calcula ANTES de eliminar la info de contacto interno.
+  const publicationDescription =
+    inmueble.publication_description || buildPublicationDescription(inmueble);
+
   const formattedDesc = formatDescriptionWithContactRef(
     inmueble.description,
     inmueble.owner_name
@@ -55,6 +64,7 @@ export function toPublicProperty(inmueble: Inmueble): Inmueble {
   return {
     ...rest,
     description: formattedDesc,
+    publication_description: publicationDescription,
   };
 }
 
@@ -191,6 +201,7 @@ export const propertiesStore = {
       created_at: _createdAt,
       updated_at: _updatedAt,
       contact_type: _contactType,
+      publication_description: _publicationDescription,
       ...payload
     } = inmueble;
 
@@ -243,6 +254,7 @@ export const propertiesStore = {
       user_id: _userId,
       created_at: _createdAt,
       contact_type: _contactType,
+      publication_description: _publicationDescription,
       ...payload
     } = changes;
 

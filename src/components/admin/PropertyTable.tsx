@@ -22,7 +22,7 @@ import {
 import { FaWhatsapp } from 'react-icons/fa';
 import { Inmueble, AdminFilterState, PropertyStatus } from '@/lib/types';
 import { propertiesStore, calculateInventoryCapacity } from '@/lib/properties';
-import { formatPrice, parseContactInfo } from '@/lib/utils';
+import { formatPrice, matchesPriceQuery, parseContactInfo } from '@/lib/utils';
 import { downloadSinglePropertyZip } from '@/lib/property-zip-exporter';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
@@ -124,6 +124,7 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
           const matchOwnerName = contact.name.toLowerCase().includes(q);
           const matchOwnerPhone = contact.phone?.toLowerCase().includes(q) || false;
           const matchLabel = contact.label.toLowerCase().includes(q);
+          const matchPrice = matchesPriceQuery(prop.price, q);
           if (
             !matchTitle &&
             !matchCity &&
@@ -131,7 +132,8 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
             !matchCode &&
             !matchOwnerName &&
             !matchOwnerPhone &&
-            !matchLabel
+            !matchLabel &&
+            !matchPrice
           ) {
             return false;
           }
@@ -326,7 +328,7 @@ export const PropertyTable: React.FC<PropertyTableProps> = ({ initialProperties 
           />
           <input
             type="text"
-            placeholder="Buscar título, ref, contacto, colega..."
+            placeholder="Buscar título, ref, contacto, colega o precio..."
             value={filters.searchQuery}
             onChange={(e) => setFilters((f) => ({ ...f, searchQuery: e.target.value }))}
             className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-stone-200 rounded-xl text-text-heading placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand transition-all shadow-xs font-body"

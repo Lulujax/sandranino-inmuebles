@@ -1,6 +1,6 @@
 import type JSZip from 'jszip';
 import { Inmueble, InfoPrivadaInmueble } from './types';
-import { formatPrice, formatDate, parseContactInfo } from './utils';
+import { formatPrice, formatDate, parseContactInfo, buildPublicationDescription } from './utils';
 import { privateInfoStore } from './private-info';
 
 /**
@@ -194,10 +194,13 @@ export function generatePropertyDetailsText(
     lines.push('');
   }
 
-  // Descripción
-  if (property.description && property.description.trim()) {
+  // Descripción con el formato de publicación + la firma de Sandra al final
+  const publicationDescription = buildPublicationDescription(property, {
+    withSignature: true,
+  });
+  if (publicationDescription) {
     lines.push('📝 *DESCRIPCIÓN:*');
-    lines.push(property.description.trim());
+    lines.push(publicationDescription);
     lines.push('');
   }
 

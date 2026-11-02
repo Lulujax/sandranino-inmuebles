@@ -17,6 +17,9 @@ export interface Inmueble {
   user_id?: string;
   title: string;
   description?: string;
+  // Descripción con el formato de publicación (REPUBLICACION / REF / firma),
+  // solo se usa en la ficha pública y en la descarga ZIP.
+  publication_description?: string;
   operation: OperationType;
   type: PropertyType;
   state: string;
