@@ -1,19 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { Sidebar } from '@/components/admin/Sidebar';
 import { Topbar } from '@/components/admin/Topbar';
-import { useToast } from '@/components/ui/Toast';
-
-interface SessionPayload {
-  email: string;
-  loggedAt: number;
-  keepSession: boolean;
-}
 
 export default function AdminLayout({
   children,
@@ -25,7 +18,6 @@ export default function AdminLayout({
   const [isAuthorized, setIsAuthorized] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const { toast } = useToast();
 
   // Título según la sección actual
   const getSectionTitle = () => {
@@ -37,20 +29,7 @@ export default function AdminLayout({
     return 'Panel de Administración';
   };
 
-  // Auto-logout por inactividad de 5 minutos (solo si keepSession es false)
-  const handleInactivityLogout = useCallback(async () => {
-    toast('Sesión cerrada por 5 minutos de inactividad', 'info');
-    try {
-      await createClient().auth.signOut();
-    } catch {}
-    storage.remove(STORAGE_KEYS.SESSION);
-    storage.sessionRemove(STORAGE_KEYS.SESSION);
-    router.replace('/login');
-  }, [router, toast]);
-
   useEffect(() => {
-    let cleanupInactivity: (() => void) | undefined;
-
     const verifySession = async () => {
       const supabase = createClient();
       const { data } = await supabase.auth.getUser();
@@ -62,44 +41,11 @@ export default function AdminLayout({
         return;
       }
 
-      const persistentSession = storage.get<SessionPayload | null>(
-        STORAGE_KEYS.SESSION,
-        null
-      );
-
-      // Si existe en localStorage y keepSession es true, permitir acceso sin auto-logout
-      if (persistentSession && persistentSession.keepSession) {
-        setIsAuthorized(true);
-        return;
-      }
-
-      // Si no marcó mantener sesión, permitir acceso + auto-logout de 5 minutos por inactividad
       setIsAuthorized(true);
-
-      let timeoutId: ReturnType<typeof setTimeout>;
-
-      const resetTimer = () => {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(handleInactivityLogout, 5 * 60 * 1000);
-      };
-
-      const events = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'];
-      events.forEach((evt) => window.addEventListener(evt, resetTimer));
-
-      resetTimer();
-
-      cleanupInactivity = () => {
-        clearTimeout(timeoutId);
-        events.forEach((evt) => window.removeEventListener(evt, resetTimer));
-      };
     };
 
     verifySession();
-
-    return () => {
-      if (cleanupInactivity) cleanupInactivity();
-    };
-  }, [handleInactivityLogout, router]);
+  }, [router]);
 
   if (!isAuthorized) {
     return null;

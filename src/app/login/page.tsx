@@ -24,7 +24,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
   const getSafeRedirect = (): string => {
@@ -205,7 +205,7 @@ export default function LoginPage() {
         <div className="mt-8 pt-5 border-t border-stone-200/70 flex items-start gap-3 text-xs text-stone-600 leading-relaxed font-body">
           <KeyRound size={16} strokeWidth={1.5} className="text-[#C97B5A] shrink-0 mt-0.5" />
           <p>
-            Por seguridad inmobiliaria, tu sesión se cerrará automáticamente tras 5 minutos de inactividad salvo que mantengas la sesión activa.
+            La sesión se mantiene activa para evitar tener que volver a iniciar sesión.
           </p>
         </div>
       </FadeInUp>
