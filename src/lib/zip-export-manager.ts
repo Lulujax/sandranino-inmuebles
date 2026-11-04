@@ -87,7 +87,6 @@ class ZipExportManager {
     try {
       await downloadBulkPropertiesZip(properties, filename, {
         signal: this.abortController.signal,
-        chunkSize: 50,
         onProgress: (prog) => {
           this.setState({ progress: prog });
         },

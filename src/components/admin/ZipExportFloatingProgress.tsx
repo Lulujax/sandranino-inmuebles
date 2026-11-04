@@ -39,9 +39,7 @@ export function ZipExportFloatingProgress() {
               Descarga en Progreso
             </span>
             <h4 className="text-xs sm:text-sm font-semibold text-white truncate">
-              {progress.totalParts && progress.totalParts > 1
-                ? `Parte ${progress.partIndex} de ${progress.totalParts}`
-                : 'Generando Paquete ZIP'}
+              Generando Paquete ZIP
             </h4>
           </div>
         </div>

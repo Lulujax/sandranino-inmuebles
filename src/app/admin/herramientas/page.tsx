@@ -407,11 +407,7 @@ export default function HerramientasPage() {
             )}
             <span>
               {isExportingZip && zipProgress
-                ? `Procesando ${zipProgress.current}/${zipProgress.total}${
-                    zipProgress.totalParts && zipProgress.totalParts > 1
-                      ? ` (Parte ${zipProgress.partIndex}/${zipProgress.totalParts})`
-                      : ''
-                  }...`
+                ? `Procesando ${zipProgress.current}/${zipProgress.total}...`
                 : isExportingZip
                 ? 'Preparando...'
                 : 'Descargar ZIP (Fotos + Detalles)'}

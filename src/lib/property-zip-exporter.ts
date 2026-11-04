@@ -296,13 +296,10 @@ export interface BulkProgress {
   current: number;
   total: number;
   title: string;
-  partIndex?: number;
-  totalParts?: number;
 }
 
 export interface BulkExportOptions {
   signal?: AbortSignal;
-  chunkSize?: number;
   onProgress?: (progress: BulkProgress) => void;
 }
 
@@ -421,12 +418,12 @@ export async function downloadSinglePropertyZip(
 }
 
 /**
- * Empaqueta y descarga un grupo de inmuebles en archivos .zip de forma optimizada:
+ * Empaqueta y descarga un grupo de inmuebles en un único archivo .zip:
+ * - Cada inmueble tiene su propia carpeta con su código interno
+ * - Dentro de cada carpeta: txt con descripción y detalles, y sus fotos
  * - Pre-carga la información privada de todos los inmuebles en un solo viaje (Batch SQL)
- * - Descarga fotos en paralelo con concurrencia controlada
- * - Empaqueta sin re-comprimir ('STORE') evitando congelar la CPU
- * - Si el lote excede el tamaño seguro (chunkSize = 50), descarga por partes automáticas
- *   para evitar que la memoria RAM del navegador colapse.
+ * - Descarga fotos en paralelo con concurrencia controlada (5 simultáneas)
+ * - Empaqueta en UN SOLO ARCHIVO ZIP con compresión 'STORE' (cero CPU, instantáneo)
  */
 export async function downloadBulkPropertiesZip(
   properties: Inmueble[],
@@ -442,7 +439,6 @@ export async function downloadBulkPropertiesZip(
 
   const signal = options.signal;
   const onProgress = options.onProgress;
-  const chunkSize = options.chunkSize && options.chunkSize > 0 ? options.chunkSize : 50;
 
   if (!properties || properties.length === 0 || signal?.aborted) return;
 
@@ -452,78 +448,51 @@ export async function downloadBulkPropertiesZip(
 
   if (signal?.aborted) return;
 
-  const totalParts = Math.ceil(properties.length / chunkSize);
   const JSZipClass = await loadJSZip();
-  const baseFilename = zipFilename.replace(/\.zip$/i, '');
+  const zip = new JSZipClass();
+  const usedFolderNames = new Set<string>();
 
-  for (let part = 0; part < totalParts; part++) {
+  for (let i = 0; i < properties.length; i++) {
     if (signal?.aborted) return;
 
-    const startIdx = part * chunkSize;
-    const chunkProperties = properties.slice(startIdx, startIdx + chunkSize);
-    const partNumber = part + 1;
-
-    let zip: JSZip | null = new JSZipClass();
-    const usedFolderNames = new Set<string>();
-
-    for (let i = 0; i < chunkProperties.length; i++) {
-      if (signal?.aborted) return;
-
-      const prop = chunkProperties[i];
-      const globalIndex = startIdx + i + 1;
-
-      onProgress?.({
-        current: globalIndex,
-        total: properties.length,
-        title: prop.title,
-        partIndex: totalParts > 1 ? partNumber : undefined,
-        totalParts: totalParts > 1 ? totalParts : undefined,
-      });
-
-      const baseFolderName = getPropertyFolderName(prop);
-      let uniqueFolderName = baseFolderName;
-      let counter = 2;
-
-      while (usedFolderNames.has(uniqueFolderName.toLowerCase())) {
-        uniqueFolderName = `${baseFolderName}_${counter}`;
-        counter++;
-      }
-      usedFolderNames.add(uniqueFolderName.toLowerCase());
-
-      const prefetchedInfo = privateInfoMap.get(prop.id) || null;
-      await addPropertyToZip(
-        zip,
-        prop,
-        uniqueFolderName,
-        undefined,
-        prefetchedInfo,
-        signal
-      );
-    }
-
-    if (signal?.aborted) return;
-
-    // Empaque instantáneo sin CPU costosa
-    const zipBlob = await zip.generateAsync({
-      type: 'blob',
-      compression: 'STORE',
+    const prop = properties[i];
+    onProgress?.({
+      current: i + 1,
+      total: properties.length,
+      title: prop.title,
     });
 
-    if (signal?.aborted) return;
+    const baseFolderName = getPropertyFolderName(prop);
+    let uniqueFolderName = baseFolderName;
+    let counter = 2;
 
-    const currentZipFilename =
-      totalParts > 1
-        ? `${baseFilename}_parte_${partNumber}_de_${totalParts}.zip`
-        : `${baseFilename}.zip`;
-
-    triggerFileDownload(zipBlob, currentZipFilename);
-
-    // Liberar referencia para que el Garbage Collector libere RAM de inmediato
-    zip = null;
-
-    if (part < totalParts - 1) {
-      // Pausa mínima de 350ms entre partes para dar respiro al navegador
-      await new Promise((resolve) => setTimeout(resolve, 350));
+    while (usedFolderNames.has(uniqueFolderName.toLowerCase())) {
+      uniqueFolderName = `${baseFolderName}_${counter}`;
+      counter++;
     }
+    usedFolderNames.add(uniqueFolderName.toLowerCase());
+
+    const prefetchedInfo = privateInfoMap.get(prop.id) || null;
+    await addPropertyToZip(
+      zip,
+      prop,
+      uniqueFolderName,
+      undefined,
+      prefetchedInfo,
+      signal
+    );
   }
+
+  if (signal?.aborted) return;
+
+  // Empaque instantáneo en un único ZIP sin recálculo de compresión CPU
+  const zipBlob = await zip.generateAsync({
+    type: 'blob',
+    compression: 'STORE',
+  });
+
+  if (signal?.aborted) return;
+
+  const finalFilename = zipFilename.endsWith('.zip') ? zipFilename : `${zipFilename}.zip`;
+  triggerFileDownload(zipBlob, finalFilename);
 }
