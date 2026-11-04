@@ -7,6 +7,7 @@ import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { Sidebar } from '@/components/admin/Sidebar';
 import { Topbar } from '@/components/admin/Topbar';
+import { ZipExportFloatingProgress } from '@/components/admin/ZipExportFloatingProgress';
 
 export default function AdminLayout({
   children,
@@ -77,6 +78,9 @@ export default function AdminLayout({
           {children}
         </main>
       </div>
+
+      {/* Widget flotante persistente para descargas de ZIP */}
+      <ZipExportFloatingProgress />
     </div>
   );
 }

@@ -38,6 +38,39 @@ export const privateInfoStore = {
     };
   },
 
+  /** Trae la info privada de múltiples inmuebles en un solo viaje a Supabase (Batch). */
+  async getBatch(inmuebleIds: string[]): Promise<Map<string, InfoPrivadaInmueble>> {
+    const map = new Map<string, InfoPrivadaInmueble>();
+    const validIds = (inmuebleIds || []).filter(Boolean);
+    if (validIds.length === 0 || !isSupabaseConfigured()) return map;
+
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('info_privada_inmuebles')
+        .select('*')
+        .in('inmueble_id', validIds);
+
+      if (error) {
+        console.warn('Error al consultar lote de info privada:', error);
+        return map;
+      }
+
+      if (data) {
+        for (const row of data) {
+          map.set(row.inmueble_id, {
+            ...(row as InfoPrivadaInmueble),
+            fachada_urls: Array.isArray(row.fachada_urls) ? row.fachada_urls : [],
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Fallo inesperado al consultar lote de info privada:', err);
+    }
+
+    return map;
+  },
+
   /** Guarda (crea o actualiza) la info privada de un inmueble. */
   async save(inmuebleId: string, info: PrivateInfoInput): Promise<void> {
     if (!isSupabaseConfigured()) {
@@ -154,23 +187,28 @@ export const privateInfoStore = {
    * Blob con su URL firmada (solo con tu sesión).
    */
   async getFacadeBlobs(
-    fachadaUrls: string[]
+    fachadaUrls: string[],
+    signal?: AbortSignal
   ): Promise<Array<{ path: string; blob: Blob }>> {
-    const out: Array<{ path: string; blob: Blob }> = [];
-    for (const facadePath of fachadaUrls || []) {
+    const urls = (fachadaUrls || []).filter(Boolean);
+    if (urls.length === 0 || signal?.aborted) return [];
+
+    const tasks = urls.map(async (facadePath) => {
+      if (signal?.aborted) return null;
       try {
-        const supabase = createClient();
         const signed = await privateInfoStore.getSignedUrl(facadePath, 120);
-        if (!signed) continue;
-        const response = await fetch(signed);
-        if (!response.ok) continue;
+        if (!signed || signal?.aborted) return null;
+        const response = await fetch(signed, { signal });
+        if (!response.ok) return null;
         const blobData = await response.blob();
-        if (blobData.size === 0) continue;
-        out.push({ path: facadePath, blob: blobData });
+        if (blobData.size === 0) return null;
+        return { path: facadePath, blob: blobData };
       } catch {
-        // Si una foto no está disponible, seguimos con las demás
+        return null;
       }
-    }
-    return out;
+    });
+
+    const results = await Promise.all(tasks);
+    return results.filter((item): item is { path: string; blob: Blob } => item !== null);
   },
 };

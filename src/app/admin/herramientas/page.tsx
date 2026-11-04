@@ -15,7 +15,7 @@ import autoTable from 'jspdf-autotable';
 import { Inmueble } from '@/lib/types';
 import { propertiesStore } from '@/lib/properties';
 import { getPropertyMainArea, formatPropertyAdvisorOrReference } from '@/lib/utils';
-import { downloadBulkPropertiesZip } from '@/lib/property-zip-exporter';
+import { useZipExport, zipExportManager } from '@/lib/zip-export-manager';
 import { exportPropertiesToExcel } from '@/lib/excel-exporter';
 import { StatCard } from '@/components/admin/StatCard';
 import { Button } from '@/components/ui/Button';
@@ -29,13 +29,8 @@ export default function HerramientasPage() {
   const [filterStatus, setFilterStatus] = useState('Todos');
   const [includeInternalCode, setIncludeInternalCode] = useState(false);
   const [properties, setProperties] = useState<Inmueble[]>([]);
-  const [isExportingZip, setIsExportingZip] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
-  const [zipProgress, setZipProgress] = useState<{
-    current: number;
-    total: number;
-    title: string;
-  } | null>(null);
+  const { isExporting: isExportingZip, progress: zipProgress } = useZipExport();
 
   useEffect(() => {
     propertiesStore
@@ -219,35 +214,31 @@ export default function HerramientasPage() {
       toast('No hay inmuebles para exportar con los filtros seleccionados', 'warning');
       return;
     }
-
-    try {
-      setIsExportingZip(true);
-      const slug = getExportSlug();
-      const filename = `inmuebles_sandra_nino_${slug}.zip`;
-      toast(
-        `Generando paquete ZIP para ${filtered.length} inmueble(s)...`,
-        'info'
-      );
-
-      await downloadBulkPropertiesZip(
-        filtered,
-        filename,
-        (current, total, title) => {
-          setZipProgress({ current, total, title });
-        }
-      );
-
-      toast(
-        `Paquete ZIP ${filename} descargado con éxito (${filtered.length} inmuebles)`,
-        'success'
-      );
-    } catch (err) {
-      console.error('Error al exportar paquete ZIP:', err);
-      toast('Ocurrió un error al generar el archivo ZIP de los inmuebles', 'error');
-    } finally {
-      setIsExportingZip(false);
-      setZipProgress(null);
+    if (isExportingZip) {
+      toast('Ya hay una exportación en curso. Puedes ver el progreso en la esquina inferior.', 'warning');
+      return;
     }
+
+    const slug = getExportSlug();
+    const filename = `inmuebles_sandra_nino_${slug}.zip`;
+    toast(
+      `Generando paquete ZIP para ${filtered.length} inmueble(s)...`,
+      'info'
+    );
+
+    await zipExportManager.startExport(
+      filtered,
+      filename,
+      () => {
+        toast(
+          `Paquete ZIP descargado con éxito (${filtered.length} inmuebles)`,
+          'success'
+        );
+      },
+      (err) => {
+        toast(err || 'Ocurrió un error al generar el archivo ZIP de los inmuebles', 'error');
+      }
+    );
   };
 
   return (
@@ -416,9 +407,13 @@ export default function HerramientasPage() {
             )}
             <span>
               {isExportingZip && zipProgress
-                ? `Procesando ${zipProgress.current}/${zipProgress.total}...`
+                ? `Procesando ${zipProgress.current}/${zipProgress.total}${
+                    zipProgress.totalParts && zipProgress.totalParts > 1
+                      ? ` (Parte ${zipProgress.partIndex}/${zipProgress.totalParts})`
+                      : ''
+                  }...`
                 : isExportingZip
-                ? 'Comprimiendo...'
+                ? 'Preparando...'
                 : 'Descargar ZIP (Fotos + Detalles)'}
             </span>
           </Button>

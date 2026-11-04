@@ -53,14 +53,35 @@ function dataUrlToBlob(dataUrl: string): { blob: Blob; ext: string } {
 }
 
 /**
+ * Ejecuta una lista de tareas asíncronas con concurrencia máxima controlada.
+ */
+async function runConcurrent<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+  const workers = new Array(Math.min(concurrency, items.length)).fill(0).map(async () => {
+    while (nextIndex < items.length) {
+      const idx = nextIndex++;
+      results[idx] = await fn(items[idx], idx);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
+/**
  * Descarga una imagen remota (Supabase Storage, URL pública o blob)
  * y la retorna en formato Blob con su extensión detectada.
  * Incluye respaldo vía elemento HTMLImage + Canvas en caso de bloqueo.
  */
 async function fetchImageAsBlob(
-  url: string
+  url: string,
+  signal?: AbortSignal
 ): Promise<{ blob: Blob; ext: string } | null> {
-  if (!url) return null;
+  if (!url || signal?.aborted) return null;
 
   // 1. Caso Data URL (base64)
   if (url.startsWith('data:')) {
@@ -72,9 +93,9 @@ async function fetchImageAsBlob(
     }
   }
 
-  // 2. Intentar fetch directo con CORS
+  // 2. Intentar fetch directo con CORS y señal de aborto
   try {
-    const res = await fetch(url, { mode: 'cors' });
+    const res = await fetch(url, { mode: 'cors', signal });
     if (res.ok) {
       const blob = await res.blob();
       let ext = 'jpg';
@@ -87,10 +108,15 @@ async function fetchImageAsBlob(
       }
       return { blob, ext };
     }
-  } catch (fetchErr) {
+  } catch (fetchErr: unknown) {
+    if (signal?.aborted || (fetchErr as { name?: string })?.name === 'AbortError') {
+      return null;
+    }
     // Si fetch falla (e.g. CORS), intentamos fallback con Image + Canvas
     console.warn(`Fetch directo falló para ${url.slice(0, 60)}..., intentando fallback:`, fetchErr);
   }
+
+  if (signal?.aborted) return null;
 
   // 3. Fallback: Cargar como HTMLImageElement y extraer blob de canvas
   if (typeof window !== 'undefined') {
@@ -98,10 +124,24 @@ async function fetchImageAsBlob(
       const img = new Image();
       img.crossOrigin = 'anonymous';
       await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error('No se pudo cargar la imagen para canvas'));
+        if (signal?.aborted) return reject(new Error('Aborted'));
+        const onAbort = () => {
+          img.src = '';
+          reject(new Error('Aborted'));
+        };
+        signal?.addEventListener('abort', onAbort, { once: true });
+        img.onload = () => {
+          signal?.removeEventListener('abort', onAbort);
+          resolve();
+        };
+        img.onerror = () => {
+          signal?.removeEventListener('abort', onAbort);
+          reject(new Error('No se pudo cargar la imagen para canvas'));
+        };
         img.src = url;
       });
+
+      if (signal?.aborted) return null;
 
       const canvas = document.createElement('canvas');
       canvas.width = img.naturalWidth || img.width || 800;
@@ -116,7 +156,8 @@ async function fetchImageAsBlob(
           return { blob, ext: 'jpg' };
         }
       }
-    } catch (canvasErr) {
+    } catch (canvasErr: unknown) {
+      if (signal?.aborted) return null;
       console.warn(`Fallback de canvas también falló para ${url.slice(0, 60)}:`, canvasErr);
     }
   }
@@ -251,54 +292,85 @@ export function generatePropertyDetailsText(
   return lines.join('\r\n').trim();
 }
 
+export interface BulkProgress {
+  current: number;
+  total: number;
+  title: string;
+  partIndex?: number;
+  totalParts?: number;
+}
+
+export interface BulkExportOptions {
+  signal?: AbortSignal;
+  chunkSize?: number;
+  onProgress?: (progress: BulkProgress) => void;
+}
+
 /**
  * Añade un inmueble específico a una instancia de JSZip:
  * Crea una carpeta con el código interno del inmueble, dentro coloca el
- * archivo .txt con la descripción y detalles, y todas las fotos.
+ * archivo .txt con la descripción y detalles, y todas las fotos en paralelo (5 concurrentes).
  */
 export async function addPropertyToZip(
   zip: JSZip,
   property: Inmueble,
   customFolderName?: string,
-  onProgress?: (imageIndex: number, totalImages: number) => void
+  onProgress?: (imageIndex: number, totalImages: number) => void,
+  prefetchedPrivateInfo?: InfoPrivadaInmueble | null,
+  signal?: AbortSignal
 ): Promise<void> {
+  if (signal?.aborted) return;
+
   const folderName = customFolderName || getPropertyFolderName(property);
   const folder = zip.folder(folderName);
   if (!folder) {
     throw new Error(`No se pudo crear la carpeta "${folderName}" en el archivo ZIP`);
   }
 
-  // 🔒 Info privada (solo con tu sesión; si falla, continúa sin bloquear el ZIP)
-  let privateInfo: InfoPrivadaInmueble | null = null;
-  try {
-    privateInfo = await privateInfoStore.get(property.id);
-  } catch {
-    privateInfo = null;
+  // 🔒 Info privada (usa la precargada o la consulta individual si no se pasó)
+  let privateInfo: InfoPrivadaInmueble | null =
+    prefetchedPrivateInfo !== undefined ? prefetchedPrivateInfo : null;
+  if (prefetchedPrivateInfo === undefined) {
+    try {
+      privateInfo = await privateInfoStore.get(property.id);
+    } catch {
+      privateInfo = null;
+    }
   }
+
+  if (signal?.aborted) return;
 
   // 1. Agregar archivo de texto con descripción y detalles
   const txtContent = generatePropertyDetailsText(property, privateInfo);
   folder.file('descripcion_y_detalles.txt', txtContent);
 
-  // 2. Descargar y agregar todas las fotos
+  // 2. Descargar fotos con concurrencia controlada (5 simultáneas)
   const images = property.images || [];
   const totalImages = images.length;
+  let downloadedCount = 0;
 
-  for (let i = 0; i < totalImages; i++) {
-    onProgress?.(i + 1, totalImages);
-    const imageUrl = images[i];
-    const imageResult = await fetchImageAsBlob(imageUrl);
+  const imageBlobs = await runConcurrent(images, 5, async (imageUrl) => {
+    if (signal?.aborted) return null;
+    const res = await fetchImageAsBlob(imageUrl, signal);
+    downloadedCount++;
+    onProgress?.(downloadedCount, totalImages);
+    return res;
+  });
 
+  if (signal?.aborted) return;
+
+  for (let i = 0; i < imageBlobs.length; i++) {
+    const imageResult = imageBlobs[i];
     if (imageResult) {
       const numStr = String(i + 1).padStart(2, '0');
       folder.file(`foto_${numStr}.${imageResult.ext}`, imageResult.blob);
     }
   }
 
-  // 3. 🔒 Fotos de fachada de enfrente (bucket privado, vía URLs firmadas)
+  // 3. 🔒 Fotos de fachada de enfrente (bucket privado, URLs firmadas)
   const facadeUrls = privateInfo?.fachada_urls?.filter(Boolean) || [];
-  if (facadeUrls.length > 0) {
-    const facadeBlobs = await privateInfoStore.getFacadeBlobs(facadeUrls);
+  if (facadeUrls.length > 0 && !signal?.aborted) {
+    const facadeBlobs = await privateInfoStore.getFacadeBlobs(facadeUrls, signal);
     for (let i = 0; i < facadeBlobs.length; i++) {
       const numStr = String(i + 1).padStart(2, '0');
       folder.file(`fachada_${numStr}.jpg`, facadeBlobs[i].blob);
@@ -324,65 +396,134 @@ export function triggerFileDownload(blob: Blob, filename: string): void {
  * Empaqueta y descarga un único inmueble en un archivo .zip:
  * - El nombre del ZIP y la carpeta interna usan el código del inmueble
  * - Dentro de la carpeta: un txt con descripción y detalles, y todas las fotos
+ * - Usa compresión 'STORE' (cero CPU, instantáneo)
  */
 export async function downloadSinglePropertyZip(
   property: Inmueble,
-  onProgress?: (imageIndex: number, totalImages: number) => void
+  onProgress?: (imageIndex: number, totalImages: number) => void,
+  signal?: AbortSignal
 ): Promise<void> {
   const JSZipClass = await loadJSZip();
   const zip = new JSZipClass();
-  await addPropertyToZip(zip, property, undefined, onProgress);
+  await addPropertyToZip(zip, property, undefined, onProgress, undefined, signal);
+
+  if (signal?.aborted) return;
 
   const zipBlob = await zip.generateAsync({
     type: 'blob',
-    compression: 'DEFLATE',
-    compressionOptions: { level: 6 },
+    compression: 'STORE',
   });
+
+  if (signal?.aborted) return;
 
   const zipFilename = `${getPropertyFolderName(property)}.zip`;
   triggerFileDownload(zipBlob, zipFilename);
 }
 
 /**
- * Empaqueta y descarga un grupo de inmuebles en un único archivo .zip:
- * - Cada inmueble tiene su propia carpeta con su código interno
- * - Dentro de cada carpeta: txt con descripción y detalles, y sus fotos
+ * Empaqueta y descarga un grupo de inmuebles en archivos .zip de forma optimizada:
+ * - Pre-carga la información privada de todos los inmuebles en un solo viaje (Batch SQL)
+ * - Descarga fotos en paralelo con concurrencia controlada
+ * - Empaqueta sin re-comprimir ('STORE') evitando congelar la CPU
+ * - Si el lote excede el tamaño seguro (chunkSize = 50), descarga por partes automáticas
+ *   para evitar que la memoria RAM del navegador colapse.
  */
 export async function downloadBulkPropertiesZip(
   properties: Inmueble[],
   zipFilename: string,
-  onProgress?: (
-    currentPropIndex: number,
-    totalProps: number,
-    currentPropTitle: string
-  ) => void
+  progressOrOptions?:
+    | ((current: number, total: number, title: string) => void)
+    | BulkExportOptions
 ): Promise<void> {
+  const options: BulkExportOptions =
+    typeof progressOrOptions === 'function'
+      ? { onProgress: (p) => progressOrOptions(p.current, p.total, p.title) }
+      : progressOrOptions || {};
+
+  const signal = options.signal;
+  const onProgress = options.onProgress;
+  const chunkSize = options.chunkSize && options.chunkSize > 0 ? options.chunkSize : 50;
+
+  if (!properties || properties.length === 0 || signal?.aborted) return;
+
+  // 1. Pre-cargar info privada de todos los inmuebles en 1 sola consulta
+  const propertyIds = properties.map((p) => p.id);
+  const privateInfoMap = await privateInfoStore.getBatch(propertyIds);
+
+  if (signal?.aborted) return;
+
+  const totalParts = Math.ceil(properties.length / chunkSize);
   const JSZipClass = await loadJSZip();
-  const zip = new JSZipClass();
-  const usedFolderNames = new Set<string>();
+  const baseFilename = zipFilename.replace(/\.zip$/i, '');
 
-  for (let i = 0; i < properties.length; i++) {
-    const prop = properties[i];
-    onProgress?.(i + 1, properties.length, prop.title);
+  for (let part = 0; part < totalParts; part++) {
+    if (signal?.aborted) return;
 
-    const baseFolderName = getPropertyFolderName(prop);
-    let uniqueFolderName = baseFolderName;
-    let counter = 2;
+    const startIdx = part * chunkSize;
+    const chunkProperties = properties.slice(startIdx, startIdx + chunkSize);
+    const partNumber = part + 1;
 
-    while (usedFolderNames.has(uniqueFolderName.toLowerCase())) {
-      uniqueFolderName = `${baseFolderName}_${counter}`;
-      counter++;
+    let zip: JSZip | null = new JSZipClass();
+    const usedFolderNames = new Set<string>();
+
+    for (let i = 0; i < chunkProperties.length; i++) {
+      if (signal?.aborted) return;
+
+      const prop = chunkProperties[i];
+      const globalIndex = startIdx + i + 1;
+
+      onProgress?.({
+        current: globalIndex,
+        total: properties.length,
+        title: prop.title,
+        partIndex: totalParts > 1 ? partNumber : undefined,
+        totalParts: totalParts > 1 ? totalParts : undefined,
+      });
+
+      const baseFolderName = getPropertyFolderName(prop);
+      let uniqueFolderName = baseFolderName;
+      let counter = 2;
+
+      while (usedFolderNames.has(uniqueFolderName.toLowerCase())) {
+        uniqueFolderName = `${baseFolderName}_${counter}`;
+        counter++;
+      }
+      usedFolderNames.add(uniqueFolderName.toLowerCase());
+
+      const prefetchedInfo = privateInfoMap.get(prop.id) || null;
+      await addPropertyToZip(
+        zip,
+        prop,
+        uniqueFolderName,
+        undefined,
+        prefetchedInfo,
+        signal
+      );
     }
-    usedFolderNames.add(uniqueFolderName.toLowerCase());
 
-    await addPropertyToZip(zip, prop, uniqueFolderName);
+    if (signal?.aborted) return;
+
+    // Empaque instantáneo sin CPU costosa
+    const zipBlob = await zip.generateAsync({
+      type: 'blob',
+      compression: 'STORE',
+    });
+
+    if (signal?.aborted) return;
+
+    const currentZipFilename =
+      totalParts > 1
+        ? `${baseFilename}_parte_${partNumber}_de_${totalParts}.zip`
+        : `${baseFilename}.zip`;
+
+    triggerFileDownload(zipBlob, currentZipFilename);
+
+    // Liberar referencia para que el Garbage Collector libere RAM de inmediato
+    zip = null;
+
+    if (part < totalParts - 1) {
+      // Pausa mínima de 350ms entre partes para dar respiro al navegador
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    }
   }
-
-  const zipBlob = await zip.generateAsync({
-    type: 'blob',
-    compression: 'DEFLATE',
-    compressionOptions: { level: 6 },
-  });
-
-  triggerFileDownload(zipBlob, zipFilename.endsWith('.zip') ? zipFilename : `${zipFilename}.zip`);
 }
