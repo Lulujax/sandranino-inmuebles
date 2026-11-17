@@ -56,10 +56,6 @@ Desde la misma sección también puedes descargar:
 - La capacidad recomendada es de **350 inmuebles** dentro de ese plan. El panel muestra cuánto espacio usas, tanto en el inventario como en el perfil.
 - Si necesitas más espacio en el futuro, se puede contratar capacidad adicional.
 
-## Contacto
-
-[NECESITA ACLARACIÓN: ¿qué número de WhatsApp o enlace de contacto va aquí para que los asesores te escriban?]
-
 ---
 
 ## Para desarrolladores
